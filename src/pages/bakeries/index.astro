@@ -3,18 +3,61 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getCollection } from 'astro:content';
 
 const bakeries = await getCollection('bakeries');
-console.log('Bakeries found:', bakeries.length);
-console.log('Bakeries:', JSON.stringify(bakeries, null, 2));
 ---
 
-<BaseLayout title="Bakeries" description="Explore Melbourne's best bakeries.">
-  <main>
-    <h1>Bakeries ({bakeries.length})</h1>
-    {bakeries.map((bakery) => (
-      <div>
-        <p>ID: {bakery.id}</p>
-        <p>Name: {bakery.data.name}</p>
-      </div>
-    ))}
+<BaseLayout title="Bakeries" description="Every bakery we've visited — neighbourhood rooms, old ovens and places worth travelling for.">
+
+  <main class="wf-container py-page">
+
+    <div class="wf-page-head">
+      <div class="wf-eyebrow">Explore</div>
+      <h1 class="wf-page-h1">Bakeries</h1>
+      <p class="wf-page-intro">Neighbourhood rooms, old ovens and places worth travelling for.</p>
+    </div>
+
+    <div class="bak-grid">
+      {bakeries.map((bakery) => (
+        <a href={`/bakeries/${bakery.data.slug}`} class="bak-card">
+          <div class="bak-card-img-wrap">
+            <img
+              class="bak-card-img"
+              src={bakery.data.thumbnail}
+              alt={bakery.data.name}
+              loading="lazy"
+            />
+            <div class="bak-card-grade"></div>
+            <div class="bak-card-cat">{bakery.data.category}</div>
+            <div class="bak-card-watch">
+              <div class="bak-watch-pill">
+                <svg viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg>
+                View Bakery
+              </div>
+            </div>
+          </div>
+          <div class="bak-card-body">
+            <div class="bak-card-eyebrow">{bakery.data.suburb}</div>
+            <div class="bak-card-title">{bakery.data.name}</div>
+            <div class="bak-card-bakery">{bakery.data.hours}</div>
+          </div>
+        </a>
+      ))}
+    </div>
+
   </main>
+
 </BaseLayout>
+
+<style>
+.bak-grid {
+  display: grid;
+  gap: 1.125rem;
+  grid-template-columns: 1fr;
+  margin-top: 2rem;
+}
+@media (min-width: 600px) {
+  .bak-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 900px) {
+  .bak-grid { grid-template-columns: repeat(3, 1fr); }
+}
+</style>
