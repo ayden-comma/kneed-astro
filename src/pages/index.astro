@@ -10,15 +10,28 @@ const stories = await getCollection('stories');
   <main>
 
     <!-- HERO -->
-    <section class="home-hero">
-      <div class="home-hero-inner wf-container">
-        <div class="wf-eyebrow">Melbourne Bakeries</div>
-        <h1 class="home-hero-h1">Good bread is worth<br/>knowing about.</h1>
-        <p class="home-hero-sub">Short films and stories about the bakers, ovens and neighbourhoods that make Melbourne's bread worth eating.</p>
-        <div class="home-hero-actions">
-          <a href="/bakeries" class="wf-pill pill-dark">Explore Bakeries</a>
-          <a href="/kneed-to-know" class="wf-pill pill-light">Watch Films</a>
+    <section class="hero-section">
+      <div class="hero-bg">
+        <div class="hero-grade"></div>
+        <div class="hero-grade-side"></div>
+      </div>
+      <div class="hero-inner wf-container">
+        <div class="hero-content">
+          <div class="wf-eyebrow hero-anim-1">Melbourne Bakeries</div>
+          <h1 class="hero-h1 hero-anim-2">
+            Good bread<br/>is worth<br/>knowing about.
+          </h1>
+          <p class="hero-sub hero-anim-3">
+            Short films and stories about the bakers, ovens and neighbourhoods that make Melbourne's bread worth eating.
+          </p>
+          <div class="hero-actions hero-anim-4">
+            <a href="/bakeries" class="wf-pill pill-dark">Explore Bakeries</a>
+            <a href="/kneed-to-know" class="wf-pill pill-light">Watch Films</a>
+          </div>
         </div>
+      </div>
+      <div class="hero-scroll-hint">
+        <div class="hero-scroll-line"></div>
       </div>
     </section>
 
@@ -43,6 +56,12 @@ const stories = await getCollection('stories');
               <img class="bak-card-img" src={bakery.data.thumbnail} alt={bakery.data.name} loading="lazy" />
               <div class="bak-card-grade"></div>
               <div class="bak-card-cat">{bakery.data.category}</div>
+              <div class="bak-card-watch">
+                <div class="bak-watch-pill">
+                  <svg viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg>
+                  View Bakery
+                </div>
+              </div>
             </div>
             <div class="bak-card-body">
               <div class="bak-card-eyebrow">{bakery.data.suburb}</div>
@@ -55,7 +74,7 @@ const stories = await getCollection('stories');
     </section>
 
     <!-- STORIES -->
-    <section class="wf-container mt-section" style="padding-bottom: clamp(3rem,5vw,5rem);">
+    <section class="wf-container mt-section">
       <div class="wf-section-head">
         <div>
           <div class="wf-eyebrow">Latest</div>
@@ -88,45 +107,159 @@ const stories = await getCollection('stories');
       </div>
     </section>
 
+    <!-- MAP TEASER -->
+    <section class="wf-container mt-section">
+      <div class="wf-section-head">
+        <div>
+          <div class="wf-eyebrow">Locations</div>
+          <h2>Find Good Bread</h2>
+        </div>
+        <a href="/map" class="see-all-btn">
+          Full map
+          <span class="arrow-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 5 7 7-7 7"/></svg>
+          </span>
+        </a>
+      </div>
+      <a href="/map" class="map-teaser-card">
+        <div class="map-teaser-inner">
+          <div class="map-teaser-text">
+            <div class="wf-eyebrow" style="margin-bottom:0.5rem;">Every Bakery</div>
+            <p class="map-teaser-desc">Every Melbourne bakery on one map. Find addresses, opening times and watch their story.</p>
+            <div class="wf-pill pill-dark" style="margin-top:1.5rem; pointer-events:none; align-self:flex-start;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+              Explore the map
+            </div>
+          </div>
+          <div class="map-teaser-dots">
+            <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" class="map-teaser-svg">
+              <rect width="400" height="300" fill="var(--surface-2)"/>
+              <circle cx="200" cy="150" r="6" fill="#c8833a" opacity="0.9"/>
+              <circle cx="160" cy="120" r="5" fill="#c8833a" opacity="0.7"/>
+              <circle cx="240" cy="170" r="5" fill="#c8833a" opacity="0.7"/>
+              <circle cx="180" cy="190" r="4" fill="#c8833a" opacity="0.6"/>
+              <circle cx="220" cy="110" r="4" fill="#c8833a" opacity="0.6"/>
+              <circle cx="140" cy="160" r="4" fill="#c8833a" opacity="0.5"/>
+              <circle cx="260" cy="130" r="4" fill="#c8833a" opacity="0.5"/>
+              <circle cx="200" cy="150" r="18" fill="none" stroke="#c8833a" stroke-width="1" opacity="0.2"/>
+              <circle cx="200" cy="150" r="35" fill="none" stroke="#c8833a" stroke-width="1" opacity="0.1"/>
+            </svg>
+          </div>
+        </div>
+      </a>
+    </section>
+
+    <!-- NEWSLETTER -->
+    <section class="wf-container mt-section" style="padding-bottom: clamp(3rem,5vw,5rem);">
+      <div class="newsletter-block">
+        <div class="newsletter-grid">
+          <div>
+            <div class="nl-eyebrow">Stay in the know</div>
+            <h2 class="nl-title">Good bread is worth<br/>knowing about.</h2>
+            <p class="nl-sub">New bakery films, the stories behind the bakers, and places worth visiting — straight to your inbox.</p>
+          </div>
+          <div class="nl-form">
+            <input type="email" id="nl-email" placeholder="Your email address" class="nl-input" />
+            <button class="nl-btn" id="nl-btn">Get updates</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </main>
 </BaseLayout>
 
 <style>
-.home-hero {
-  min-height: 60vh;
+/* ── HERO ───────────────────────────────────────────────────── */
+.hero-section {
+  position: relative;
+  min-height: 92vh;
   display: flex;
   align-items: center;
-  padding: clamp(4rem, 10vw, 8rem) 0;
+  overflow: hidden;
   border-bottom: 1px solid var(--border);
 }
-.home-hero-inner {
-  max-width: 52rem;
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 60% 50%, rgba(200,131,58,0.07) 0%, transparent 70%),
+    linear-gradient(135deg, rgba(22,19,16,1) 0%, rgba(14,12,10,1) 100%);
 }
-.home-hero-h1 {
+.hero-grade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, rgba(14,12,10,0.95) 0%, rgba(14,12,10,0.4) 60%, transparent 100%);
+}
+.hero-grade-side {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(14,12,10,0.8) 0%, transparent 40%);
+}
+.hero-inner {
+  position: relative;
+  z-index: 1;
+  padding-top: clamp(5rem, 12vw, 9rem);
+  padding-bottom: clamp(5rem, 12vw, 9rem);
+}
+.hero-content {
+  max-width: 42rem;
+}
+.hero-h1 {
   font-family: var(--font-display);
   font-weight: 200;
-  font-size: clamp(2rem, 6vw, 4.5rem);
-  letter-spacing: 0.06em;
+  font-size: clamp(2.5rem, 7vw, 5.5rem);
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  line-height: 1.1;
+  line-height: 1.05;
   color: var(--parchment);
   margin-top: 0.75rem;
 }
-.home-hero-sub {
-  margin-top: 1.5rem;
+.hero-sub {
+  margin-top: 1.75rem;
   font-size: clamp(1rem, 1.5vw, 1.125rem);
   line-height: 1.8;
   font-weight: 300;
   color: var(--p-50);
-  max-width: 38rem;
+  max-width: 34rem;
 }
-.home-hero-actions {
+.hero-actions {
   display: flex;
   gap: 0.75rem;
   margin-top: 2.5rem;
   flex-wrap: wrap;
 }
+.hero-anim-1 { opacity: 0; animation: heroLineIn 0.5s 0.1s var(--ease-out) both; }
+.hero-anim-2 { opacity: 0; animation: heroLineIn 0.55s 0.2s var(--ease-out) both; }
+.hero-anim-3 { opacity: 0; animation: heroLineIn 0.5s 0.35s var(--ease-out) both; }
+.hero-anim-4 { opacity: 0; animation: heroLineIn 0.5s 0.48s var(--ease-out) both; }
+.hero-scroll-hint {
+  position: absolute;
+  bottom: 2.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0;
+  animation: heroLineIn 0.5s 0.9s var(--ease-out) both;
+}
+.hero-scroll-line {
+  width: 1px;
+  height: 3rem;
+  background: linear-gradient(to bottom, var(--amber), transparent);
+  animation: scrollPulse 2s 1.2s ease-in-out infinite;
+}
+@keyframes heroLineIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes scrollPulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 1; }
+}
 
+/* ── GRIDS ──────────────────────────────────────────────────── */
 .home-grid {
   display: grid;
   gap: 1.125rem;
@@ -139,6 +272,7 @@ const stories = await getCollection('stories');
   .home-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
+/* ── FILM CARDS ─────────────────────────────────────────────── */
 .film-card {
   position: relative;
   display: block;
@@ -247,4 +381,144 @@ const stories = await getCollection('stories');
   transition: width 0.5s var(--ease-out);
 }
 .film-card:hover .film-card-accent { width: 100%; }
+
+/* ── MAP TEASER ─────────────────────────────────────────────── */
+.map-teaser-card {
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-hero);
+  overflow: hidden;
+  transition: border-color 0.22s;
+}
+.map-teaser-card:hover { border-color: var(--border-md); }
+.map-teaser-inner {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 220px;
+}
+@media (min-width: 700px) {
+  .map-teaser-inner { grid-template-columns: 1fr 1fr; }
+}
+.map-teaser-text {
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.map-teaser-desc {
+  font-size: 0.875rem;
+  font-weight: 300;
+  color: var(--p-50);
+  line-height: 1.65;
+  margin-top: 0.5rem;
+}
+.map-teaser-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  min-height: 180px;
+}
+.map-teaser-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ── NEWSLETTER ─────────────────────────────────────────────── */
+.newsletter-block {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-hero);
+  padding: clamp(2rem, 4vw, 3.5rem);
+}
+.newsletter-grid {
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 768px) {
+  .newsletter-grid { grid-template-columns: 1fr 1fr; align-items: center; }
+}
+.nl-eyebrow {
+  font-family: var(--font-cond);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 0.75rem;
+}
+.nl-title {
+  font-family: var(--font-display);
+  font-weight: 200;
+  font-size: clamp(1.25rem, 2.5vw, 2rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  color: var(--parchment);
+}
+.nl-sub {
+  margin-top: 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 300;
+  color: var(--p-50);
+  line-height: 1.65;
+}
+.nl-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.nl-input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border-md);
+  border-radius: var(--r-pill);
+  padding: 0.875rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 300;
+  color: var(--parchment);
+  font-family: var(--font-body);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.nl-input:focus { border-color: var(--amber); box-shadow: 0 0 0 3px var(--amber-10); }
+.nl-input::placeholder { color: var(--p-35); }
+.nl-btn {
+  width: 100%;
+  background: var(--amber);
+  color: #fff;
+  border: none;
+  border-radius: var(--r-pill);
+  padding: 0.875rem 1.25rem;
+  font-family: var(--font-cond);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.nl-btn:hover { opacity: 0.88; }
 </style>
+
+<script is:inline>
+  var nlBtn = document.getElementById('nl-btn');
+  var nlEmail = document.getElementById('nl-email');
+  if (nlBtn && nlEmail) {
+    nlBtn.addEventListener('click', function() {
+      var email = nlEmail.value.trim();
+      if (!email || !email.includes('@')) {
+        nlEmail.style.borderColor = '#c0392b';
+        setTimeout(function() { nlEmail.style.borderColor = ''; }, 2000);
+        return;
+      }
+      nlBtn.textContent = 'Thanks — you\'re in!';
+      nlBtn.style.opacity = '0.7';
+      nlBtn.disabled = true;
+      nlEmail.disabled = true;
+    });
+  }
+</script>

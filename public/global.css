@@ -1931,4 +1931,19 @@ body.light-mode .story-inline-rating { border-color: rgba(26,22,18,0.10); }
   .hero-title { font-size: 1.4rem !important; }
   .scroll-row .wf-tile { min-width: 90vw; }
 }
+/* ── HOME HERO ANIMATIONS ───────────────────────────────────── */
+.hero-anim-1 { opacity: 0; animation: heroLineIn 0.5s 0.1s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.hero-anim-2 { opacity: 0; animation: heroLineIn 0.55s 0.2s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.hero-anim-3 { opacity: 0; animation: heroLineIn 0.5s 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.hero-anim-4 { opacity: 0; animation: heroLineIn 0.5s 0.48s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.hero-scroll-hint { opacity: 0; animation: heroLineIn 0.5s 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
+@keyframes heroLineIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scrollPulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 1; }
+}
