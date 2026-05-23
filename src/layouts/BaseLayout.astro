@@ -1,4 +1,6 @@
 ---
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
 const { title, description } = Astro.props;
 ---
 <!DOCTYPE html>
@@ -6,9 +8,15 @@ const { title, description } = Astro.props;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
     <meta name="description" content={description} />
-    <title>{title} | (K)Need</title>
+    <title>{title} | (K)NEED</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:ital,wght@0,100;0,200;0,300;0,400;1,200;1,300&family=Barlow:wght@300;400;500;600&family=Barlow+Condensed:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="/global.css" />
 
     <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-G6ZQHC582Q"></script>
@@ -34,6 +42,8 @@ const { title, description } = Astro.props;
     </script>
   </head>
   <body>
+    <Header />
     <slot />
+    <Footer />
   </body>
 </html>
