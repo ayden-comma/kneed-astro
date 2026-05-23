@@ -107,15 +107,15 @@ const stories = await getCollection('stories');
       </div>
     </section>
 
-    <!-- MAP TEASER -->
+<!-- MAP TEASER -->
     <section class="wf-container mt-section">
       <div class="wf-section-head">
         <div>
-          <div class="wf-eyebrow">Locations</div>
-          <h2>Find Good Bread</h2>
+          <div class="wf-eyebrow">Find a Bakery</div>
+          <h2>Melbourne's Bread Map</h2>
         </div>
         <a href="/map" class="see-all-btn">
-          Full map
+          Open map
           <span class="arrow-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 5 7 7-7 7"/></svg>
           </span>
@@ -126,29 +126,18 @@ const stories = await getCollection('stories');
           <div class="map-teaser-text">
             <div class="wf-eyebrow" style="margin-bottom:0.5rem;">Every Bakery</div>
             <p class="map-teaser-desc">Every Melbourne bakery on one map. Find addresses, opening times and watch their story.</p>
+            <ul class="map-teaser-list" id="map-teaser-list"></ul>
             <div class="wf-pill pill-dark" style="margin-top:1.5rem; pointer-events:none; align-self:flex-start;">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
               Explore the map
             </div>
           </div>
-          <div class="map-teaser-dots">
-            <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" class="map-teaser-svg">
-              <rect width="400" height="300" fill="var(--surface-2)"/>
-              <circle cx="200" cy="150" r="6" fill="#c8833a" opacity="0.9"/>
-              <circle cx="160" cy="120" r="5" fill="#c8833a" opacity="0.7"/>
-              <circle cx="240" cy="170" r="5" fill="#c8833a" opacity="0.7"/>
-              <circle cx="180" cy="190" r="4" fill="#c8833a" opacity="0.6"/>
-              <circle cx="220" cy="110" r="4" fill="#c8833a" opacity="0.6"/>
-              <circle cx="140" cy="160" r="4" fill="#c8833a" opacity="0.5"/>
-              <circle cx="260" cy="130" r="4" fill="#c8833a" opacity="0.5"/>
-              <circle cx="200" cy="150" r="18" fill="none" stroke="#c8833a" stroke-width="1" opacity="0.2"/>
-              <circle cx="200" cy="150" r="35" fill="none" stroke="#c8833a" stroke-width="1" opacity="0.1"/>
-            </svg>
+          <div class="map-teaser-map-wrap">
+            <div id="map-teaser-canvas"></div>
           </div>
         </div>
       </a>
     </section>
-
     <!-- NEWSLETTER -->
     <section class="wf-container mt-section" style="padding-bottom: clamp(3rem,5vw,5rem);">
       <div class="newsletter-block">
@@ -395,16 +384,18 @@ const stories = await getCollection('stories');
 .map-teaser-inner {
   display: grid;
   grid-template-columns: 1fr;
-  min-height: 220px;
+  min-height: 340px;
 }
 @media (min-width: 700px) {
-  .map-teaser-inner { grid-template-columns: 1fr 1fr; }
+  .map-teaser-inner { grid-template-columns: 320px 1fr; }
 }
 .map-teaser-text {
   padding: clamp(1.5rem, 3vw, 2.5rem);
   display: flex;
   flex-direction: column;
   justify-content: center;
+  background: var(--surface);
+  z-index: 1;
 }
 .map-teaser-desc {
   font-size: 0.875rem;
@@ -413,17 +404,39 @@ const stories = await getCollection('stories');
   line-height: 1.65;
   margin-top: 0.5rem;
 }
-.map-teaser-dots {
+.map-teaser-list {
+  list-style: none;
+  margin-top: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.map-teaser-list li {
   display: flex;
   align-items: center;
-  justify-content: center;
-  background: var(--surface-2);
-  min-height: 180px;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 300;
+  color: var(--p-50);
 }
-.map-teaser-svg {
+.map-teaser-list li::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--amber);
+  flex-shrink: 0;
+}
+.map-teaser-map-wrap {
+  position: relative;
+  min-height: 340px;
+}
+#map-teaser-canvas {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  display: block;
+  pointer-events: none;
 }
 
 /* ── NEWSLETTER ─────────────────────────────────────────────── */
@@ -521,4 +534,74 @@ const stories = await getCollection('stories');
       nlEmail.disabled = true;
     });
   }
+
+  // MAP TEASER
+  var BAKERY_DATA = [
+    { name: 'Tivoli Road Bakery', lat: -37.8395, lng: 144.9929 },
+    { name: 'Lune Croissanterie', lat: -37.7963, lng: 144.9795 },
+    { name: 'Baker Bleu', lat: -37.8566, lng: 145.0231 },
+  ];
+
+  var teaserList = document.getElementById('map-teaser-list');
+  if (teaserList) {
+    BAKERY_DATA.forEach(function(b) {
+      var li = document.createElement('li');
+      li.textContent = b.name;
+      teaserList.appendChild(li);
+    });
+  }
+
+  function buildTeaserMap() {
+    var el = document.getElementById('map-teaser-canvas');
+    if (!el || window._teaserMapInit) return;
+    window._teaserMapInit = true;
+
+    var map = L.map('map-teaser-canvas', {
+      center: [-37.814, 144.970],
+      zoom: 11,
+      zoomControl: false,
+      attributionControl: false,
+      dragging: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: false,
+      touchZoom: false,
+      keyboard: false,
+    });
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19
+    }).addTo(map);
+
+    BAKERY_DATA.forEach(function(b) {
+      var icon = L.divIcon({
+        className: '',
+        html: '<div style="width:10px;height:10px;border-radius:50%;background:#c8833a;border:2px solid rgba(242,237,230,0.9);box-shadow:0 2px 8px rgba(0,0,0,0.5);"></div>',
+        iconSize: [10, 10],
+        iconAnchor: [5, 5]
+      });
+      L.marker([b.lat, b.lng], { icon: icon }).addTo(map);
+    });
+
+    setTimeout(function() { map.invalidateSize(); }, 100);
+  }
+
+  function loadLeafletTeaser() {
+    if (window.L) { buildTeaserMap(); return; }
+    if (!document.getElementById('leaflet-css')) {
+      var css = document.createElement('link');
+      css.id = 'leaflet-css';
+      css.rel = 'stylesheet';
+      css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
+      document.head.appendChild(css);
+    }
+    if (!document.getElementById('leaflet-js')) {
+      var script = document.createElement('script');
+      script.id = 'leaflet-js';
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+      script.onload = buildTeaserMap;
+      document.head.appendChild(script);
+    }
+  }
+
+  window.addEventListener('load', loadLeafletTeaser);
 </script>

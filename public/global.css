@@ -1948,17 +1948,28 @@ body.light-mode .story-inline-rating { border-color: rgba(26,22,18,0.10); }
   50%       { opacity: 1; }
 }
 /* ── CARD ENTRANCE ANIMATIONS ───────────────────────────────── */
-.card-animate {
-  opacity: 0;
-  transform: translateY(24px);
-  transition: opacity 0.55s var(--ease-out), transform 0.55s var(--ease-out);
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-.card-animate.is-visible {
-  opacity: 1;
-  transform: translateY(0);
+.bak-card, .film-card {
+  animation: cardIn 0.6s var(--ease-out) both;
 }
-.card-animate:nth-child(2) { transition-delay: 0.08s; }
-.card-animate:nth-child(3) { transition-delay: 0.16s; }
-.card-animate:nth-child(4) { transition-delay: 0.24s; }
-.card-animate:nth-child(5) { transition-delay: 0.32s; }
-.card-animate:nth-child(6) { transition-delay: 0.40s; }
+.bak-grid .bak-card:nth-child(1),
+.home-grid .bak-card:nth-child(1),
+.stories-grid .film-card:nth-child(1),
+.home-grid .film-card:nth-child(1) { animation-delay: 0.05s; }
+
+.bak-grid .bak-card:nth-child(2),
+.home-grid .bak-card:nth-child(2),
+.stories-grid .film-card:nth-child(2),
+.home-grid .film-card:nth-child(2) { animation-delay: 0.15s; }
+
+.bak-grid .bak-card:nth-child(3),
+.home-grid .bak-card:nth-child(3),
+.stories-grid .film-card:nth-child(3),
+.home-grid .film-card:nth-child(3) { animation-delay: 0.25s; }
+
+.bak-grid .bak-card:nth-child(4) { animation-delay: 0.35s; }
+.bak-grid .bak-card:nth-child(5) { animation-delay: 0.45s; }
+.bak-grid .bak-card:nth-child(6) { animation-delay: 0.55s; }

@@ -15,9 +15,20 @@ const bakeries = await getCollection('bakeries');
       <p class="wf-page-intro">Neighbourhood rooms, old ovens and places worth travelling for.</p>
     </div>
 
-    <div class="bak-grid">
+    <!-- SEARCH BAR -->
+    <div class="bakery-search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" style="color:var(--p-35); flex-shrink:0;"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input
+        id="bakery-search"
+        type="search"
+        placeholder="Search bakeries…"
+        style="flex:1; background:transparent; border:none; outline:none; color:var(--parchment); font-family:var(--font-body); font-size:0.875rem; font-weight:300; min-width:0;"
+      />
+    </div>
+
+    <div class="bak-grid" id="bak-grid">
       {bakeries.map((bakery) => (
-        <a href={`/bakeries/${bakery.data.slug}`} class="bak-card">
+        <a href={'/bakeries/' + bakery.data.slug} class="bak-card" data-name={bakery.data.name.toLowerCase()} data-suburb={bakery.data.suburb.toLowerCase()} data-category={bakery.data.category.toLowerCase()}>
           <div class="bak-card-img-wrap">
             <img
               class="bak-card-img"
@@ -43,16 +54,35 @@ const bakeries = await getCollection('bakeries');
       ))}
     </div>
 
+    <div id="bak-no-results" style="display:none;" class="bak-no-results">
+      No bakeries found matching your search.
+    </div>
+
   </main>
 
 </BaseLayout>
 
 <style>
+.bakery-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 2rem;
+  margin-top: 1.75rem;
+  max-width: 28rem;
+  transition: border-color 0.2s;
+}
+.bakery-search-wrap:focus-within {
+  border-color: var(--amber);
+}
 .bak-grid {
   display: grid;
   gap: 1.125rem;
   grid-template-columns: 1fr;
-  margin-top: 2rem;
 }
 @media (min-width: 600px) {
   .bak-grid { grid-template-columns: repeat(2, 1fr); }
@@ -60,4 +90,33 @@ const bakeries = await getCollection('bakeries');
 @media (min-width: 900px) {
   .bak-grid { grid-template-columns: repeat(3, 1fr); }
 }
+.bak-no-results {
+  text-align: center;
+  padding: 3rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 300;
+  color: var(--p-35);
+}
 </style>
+
+<script is:inline>
+  var searchInput = document.getElementById('bakery-search');
+  var noResults = document.getElementById('bak-no-results');
+
+  searchInput.addEventListener('input', function() {
+    var query = this.value.toLowerCase().trim();
+    var cards = document.querySelectorAll('.bak-card');
+    var visible = 0;
+
+    cards.forEach(function(card) {
+      var name = card.dataset.name || '';
+      var suburb = card.dataset.suburb || '';
+      var category = card.dataset.category || '';
+      var matches = name.includes(query) || suburb.includes(query) || category.includes(query);
+      card.style.display = matches ? '' : 'none';
+      if (matches) visible++;
+    });
+
+    noResults.style.display = visible === 0 ? 'block' : 'none';
+  });
+</script>
