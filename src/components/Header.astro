@@ -9,6 +9,7 @@ const navLinks = [
 ---
 
 <header class="site-header">
+  <!-- TOP BAR: hamburger | logo | dark toggle + submit -->
   <div class="header-bar">
     <div class="header-left">
       <button class="icon-btn" id="menu-btn" aria-label="Open menu">
@@ -20,45 +21,139 @@ const navLinks = [
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 179.04 38.1" style="height:2.2em;width:auto;display:inline-block;vertical-align:middle;"><defs><style>.kneed-logo-fill{fill:currentColor;}</style></defs><g><path class="kneed-logo-fill" d="M9.45,13.44c.48-1.74,1.1-3.29,1.86-4.67.76-1.37,1.56-2.5,2.4-3.41l.57.81c-.76.88-1.49,1.97-2.19,3.26-.7,1.29-1.27,2.74-1.69,4.36-.43,1.62-.65,3.38-.65,5.28s.21,3.63.65,5.25c.43,1.62.99,3.07,1.69,4.35.7,1.28,1.43,2.36,2.19,3.24l-.57.81c-.84-.88-1.64-2.01-2.4-3.38-.76-1.37-1.38-2.93-1.86-4.67-.48-1.74-.72-3.62-.72-5.64s.24-3.87.72-5.61Z"/><path class="kneed-logo-fill" d="M47.76,24.69c-.48,1.74-1.1,3.29-1.85,4.67-.75,1.37-1.54,2.49-2.38,3.38l-.6-.81c.78-.88,1.52-1.96,2.21-3.24.69-1.28,1.25-2.73,1.68-4.35.43-1.62.65-3.37.65-5.25s-.21-3.66-.65-5.28-.99-3.07-1.68-4.35c-.69-1.28-1.43-2.36-2.21-3.24l.6-.84c.84.9,1.63,2.04,2.38,3.41.75,1.37,1.37,2.92,1.85,4.67.48,1.74.72,3.62.72,5.64s-.24,3.87-.72,5.61Z"/></g><g><path class="kneed-logo-fill" d="M81.9,30.11l-16.8-19.65.27-.3.03,19.5h-1.02V8.09h.06l16.89,19.83-.36.06V8.48h.96v21.63h-.03Z"/><path class="kneed-logo-fill" d="M97.89,8.48h12.84v.99h-11.82v9.03h10.65v.96h-10.65v9.21h12.24v.99h-13.26V8.48Z"/><path class="kneed-logo-fill" d="M125.94,8.48h12.84v.99h-11.82v9.03h10.65v.96h-10.65v9.21h12.24v.99h-13.26V8.48Z"/><path class="kneed-logo-fill" d="M153.99,29.66V8.48h5.04c2.02,0,3.75.33,5.19.98,1.44.65,2.6,1.5,3.5,2.55.89,1.05,1.54,2.2,1.96,3.45s.63,2.49.63,3.71c0,1.6-.28,3.04-.84,4.33-.56,1.29-1.32,2.4-2.28,3.31-.96.92-2.05,1.63-3.29,2.12-1.23.49-2.52.74-3.88.74h-6.03ZM155.01,28.67h4.68c1.32,0,2.56-.22,3.72-.66,1.16-.44,2.17-1.07,3.04-1.91.87-.83,1.55-1.83,2.05-3.01.5-1.18.75-2.51.75-3.99,0-1.18-.2-2.34-.6-3.48-.4-1.14-1.02-2.17-1.85-3.11-.83-.93-1.89-1.67-3.18-2.21s-2.82-.81-4.58-.81h-4.05v19.17Z"/></g><g><path class="kneed-logo-fill" d="M23.46,18.35l-.06,1.02v-.18l11.04-10.71h1.32l-8.76,8.55,9.9,12.63h-1.29l-9.39-11.97-2.79,2.67.03,9.3h-1.05V8.48h1.05v9.87Z"/></g></svg>
     </a>
 
-    <nav class="site-nav header-center">
-      {navLinks.map((link) => (
-        <a href={link.href} class="nav-link">{link.label}</a>
-      ))}
-    </nav>
-
     <div class="header-right">
       <button class="dark-toggle" id="dark-toggle" aria-label="Toggle dark mode">
         <span class="dark-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </span>
-        <span class="light-icon" style="display:none">
+        <span class="light-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
         </span>
       </button>
       <a href="/submit" class="submit-btn wf-pill pill-amber">Submit</a>
     </div>
   </div>
+
+  <!-- NAV ROW: only visible on desktop -->
+  <nav class="site-nav">
+    {navLinks.map((link) => (
+      <a href={link.href} class="nav-link">{link.label}</a>
+    ))}
+  </nav>
 </header>
 
+<!-- MENU DRAWER -->
+<div id="menu-drawer" class="menu-drawer" aria-hidden="true">
+  <div class="menu-backdrop" id="menu-backdrop"></div>
+  <div class="menu-panel">
+
+    <div class="menu-panel-header">
+      <a href="/" class="wf-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 179.04 38.1" style="height:2.2em;width:auto;display:inline-block;vertical-align:middle;"><defs><style>.kneed-logo-fill{fill:currentColor;}</style></defs><g><path class="kneed-logo-fill" d="M9.45,13.44c.48-1.74,1.1-3.29,1.86-4.67.76-1.37,1.56-2.5,2.4-3.41l.57.81c-.76.88-1.49,1.97-2.19,3.26-.7,1.29-1.27,2.74-1.69,4.36-.43,1.62-.65,3.38-.65,5.28s.21,3.63.65,5.25c.43,1.62.99,3.07,1.69,4.35.7,1.28,1.43,2.36,2.19,3.24l-.57.81c-.84-.88-1.64-2.01-2.4-3.38-.76-1.37-1.38-2.93-1.86-4.67-.48-1.74-.72-3.62-.72-5.64s.24-3.87.72-5.61Z"/><path class="kneed-logo-fill" d="M47.76,24.69c-.48,1.74-1.1,3.29-1.85,4.67-.75,1.37-1.54,2.49-2.38,3.38l-.6-.81c.78-.88,1.52-1.96,2.21-3.24.69-1.28,1.25-2.73,1.68-4.35.43-1.62.65-3.37.65-5.25s-.21-3.66-.65-5.28-.99-3.07-1.68-4.35c-.69-1.28-1.43-2.36-2.21-3.24l.6-.84c.84.9,1.63,2.04,2.38,3.41.75,1.37,1.37,2.92,1.85,4.67.48,1.74.72,3.62.72,5.64s-.24,3.87-.72,5.61Z"/></g><g><path class="kneed-logo-fill" d="M81.9,30.11l-16.8-19.65.27-.3.03,19.5h-1.02V8.09h.06l16.89,19.83-.36.06V8.48h.96v21.63h-.03Z"/><path class="kneed-logo-fill" d="M97.89,8.48h12.84v.99h-11.82v9.03h10.65v.96h-10.65v9.21h12.24v.99h-13.26V8.48Z"/><path class="kneed-logo-fill" d="M125.94,8.48h12.84v.99h-11.82v9.03h10.65v.96h-10.65v9.21h12.24v.99h-13.26V8.48Z"/><path class="kneed-logo-fill" d="M153.99,29.66V8.48h5.04c2.02,0,3.75.33,5.19.98,1.44.65,2.6,1.5,3.5,2.55.89,1.05,1.54,2.2,1.96,3.45s.63,2.49.63,3.71c0,1.6-.28,3.04-.84,4.33-.56,1.29-1.32,2.4-2.28,3.31-.96.92-2.05,1.63-3.29,2.12-1.23.49-2.52.74-3.88.74h-6.03ZM155.01,28.67h4.68c1.32,0,2.56-.22,3.72-.66,1.16-.44,2.17-1.07,3.04-1.91.87-.83,1.55-1.83,2.05-3.01.5-1.18.75-2.51.75-3.99,0-1.18-.2-2.34-.6-3.48-.4-1.14-1.02-2.17-1.85-3.11-.83-.93-1.89-1.67-3.18-2.21s-2.82-.81-4.58-.81h-4.05v19.17Z"/></g><g><path class="kneed-logo-fill" d="M23.46,18.35l-.06,1.02v-.18l11.04-10.71h1.32l-8.76,8.55,9.9,12.63h-1.29l-9.39-11.97-2.79,2.67.03,9.3h-1.05V8.48h1.05v9.87Z"/></g></svg>
+      </a>
+      <button class="icon-btn" id="menu-close-btn" aria-label="Close menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <nav class="menu-nav">
+      <div class="menu-nav-label">Explore</div>
+      <a class="menu-nav-item" href="/bakeries">
+        Bakeries
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 5 7 7-7 7"/></svg>
+      </a>
+      <a class="menu-nav-item" href="/kneed-to-know">
+        (K)Need to Know
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 5 7 7-7 7"/></svg>
+      </a>
+      <a class="menu-nav-item" href="/map">
+        Find Good Bread
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+      </a>
+      <a class="menu-nav-item" href="/about">
+        About
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 5 7 7-7 7"/></svg>
+      </a>
+    </nav>
+
+    <div class="menu-divider"></div>
+
+    <nav class="menu-secondary">
+      <div class="menu-nav-label">Get involved</div>
+      <a class="menu-secondary-item" href="/submit">Submit a Bakery</a>
+    </nav>
+
+    <div class="menu-divider"></div>
+
+    <div class="menu-follow">
+      <div class="menu-nav-label">Follow</div>
+      <div class="menu-follow-links">
+        <a class="menu-follow-btn" href="https://www.instagram.com/kneed.tv/" target="_blank" rel="noopener">Instagram</a>
+        <a class="menu-follow-btn" href="https://www.tiktok.com/@kneed.tv" target="_blank" rel="noopener">TikTok</a>
+        <a class="menu-follow-btn" href="https://www.facebook.com/kneed.tv" target="_blank" rel="noopener">Facebook</a>
+        <a class="menu-follow-btn" href="https://www.youtube.com/@KneedTV" target="_blank" rel="noopener">YouTube</a>
+      </div>
+    </div>
+
+    <div class="menu-divider"></div>
+
+    <div class="menu-panel-footer">
+      <p>(K)Need is a cultural and culinary exploration of breads and pastries told through the eyes of passionate bakers.</p>
+      <p style="margin-top:0.75rem; color:var(--p-35); font-size:0.6875rem;">&copy; 2025 (K)Need &middot; A Comma Films production</p>
+    </div>
+
+  </div>
+</div>
+
 <script is:inline>
-  const darkToggle = document.getElementById('dark-toggle');
-  const darkIcon = darkToggle.querySelector('.dark-icon');
-  const lightIcon = darkToggle.querySelector('.light-icon');
+  // ── DARK MODE ────────────────────────────────────────────────
+  var darkToggle = document.getElementById('dark-toggle');
+  var darkIcon = darkToggle.querySelector('.dark-icon');
+  var lightIcon = darkToggle.querySelector('.light-icon');
 
-  function toggleDark() {
-    document.body.classList.toggle('light-mode');
-    const isLight = document.body.classList.contains('light-mode');
-    darkIcon.style.display = isLight ? 'none' : '';
-    lightIcon.style.display = isLight ? '' : 'none';
+  function applyTheme(isLight) {
+    if (isLight) {
+      document.body.classList.add('light-mode');
+      darkIcon.style.display = 'none';
+      lightIcon.style.display = '';
+    } else {
+      document.body.classList.remove('light-mode');
+      darkIcon.style.display = '';
+      lightIcon.style.display = 'none';
+    }
+  }
+
+  darkToggle.addEventListener('click', function() {
+    var isLight = !document.body.classList.contains('light-mode');
+    applyTheme(isLight);
     localStorage.setItem('kneed-theme', isLight ? 'light' : 'dark');
+  });
+
+  applyTheme(localStorage.getItem('kneed-theme') === 'light');
+
+  // ── MENU DRAWER ──────────────────────────────────────────────
+  var drawer = document.getElementById('menu-drawer');
+  var backdrop = document.getElementById('menu-backdrop');
+  var menuBtn = document.getElementById('menu-btn');
+  var closeBtn = document.getElementById('menu-close-btn');
+
+  function openMenu() {
+    drawer.classList.add('is-open');
+    drawer.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
   }
 
-  darkToggle.addEventListener('click', toggleDark);
-
-  // Restore saved theme
-  if (localStorage.getItem('kneed-theme') === 'light') {
-    document.body.classList.add('light-mode');
-    darkIcon.style.display = 'none';
-    lightIcon.style.display = '';
+  function closeMenu() {
+    drawer.classList.remove('is-open');
+    drawer.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
   }
+
+  menuBtn.addEventListener('click', openMenu);
+  closeBtn.addEventListener('click', closeMenu);
+  backdrop.addEventListener('click', closeMenu);
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeMenu();
+  });
 </script>

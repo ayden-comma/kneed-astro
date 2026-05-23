@@ -2,10 +2,68 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
-<BaseLayout title="Page Not Found" description="This page could not be found.">
-  <main>
-    <h1>404 — Page Not Found</h1>
-    <p>The page you're looking for doesn't exist.</p>
-    <a href="/">Go home</a>
+<BaseLayout title="404 — Page Not Found" description="This page doesn't exist.">
+  <main class="wf-container">
+    <div class="not-found-wrap">
+
+      <div class="not-found-num">404</div>
+
+      <div class="wf-eyebrow">Lost in the bakery</div>
+      <h1 class="not-found-h1">This page doesn't exist.</h1>
+      <p class="not-found-sub">The page you're looking for may have moved, or never existed. Try heading back home or exploring the bakeries.</p>
+
+      <div class="not-found-actions">
+        <a href="/" class="wf-pill pill-dark">Back home</a>
+        <a href="/bakeries" class="wf-pill pill-light">Explore Bakeries</a>
+      </div>
+
+    </div>
   </main>
 </BaseLayout>
+
+<style>
+.not-found-wrap {
+  min-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: clamp(3rem, 8vw, 6rem) 0;
+}
+.not-found-num {
+  font-family: var(--font-display);
+  font-weight: 100;
+  font-size: clamp(6rem, 20vw, 14rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(242,237,230,0.12);
+  margin-bottom: 1.5rem;
+  user-select: none;
+}
+.not-found-h1 {
+  font-family: var(--font-display);
+  font-weight: 200;
+  font-size: clamp(1.25rem, 3vw, 2rem);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--parchment);
+  margin-top: 0.5rem;
+}
+.not-found-sub {
+  margin-top: 1rem;
+  font-size: 1rem;
+  font-weight: 300;
+  line-height: 1.75;
+  color: var(--p-50);
+  max-width: 28rem;
+}
+.not-found-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 2.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+</style>

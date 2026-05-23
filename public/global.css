@@ -1947,3 +1947,18 @@ body.light-mode .story-inline-rating { border-color: rgba(26,22,18,0.10); }
   0%, 100% { opacity: 0.4; }
   50%       { opacity: 1; }
 }
+/* ── CARD ENTRANCE ANIMATIONS ───────────────────────────────── */
+.card-animate {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.55s var(--ease-out), transform 0.55s var(--ease-out);
+}
+.card-animate.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.card-animate:nth-child(2) { transition-delay: 0.08s; }
+.card-animate:nth-child(3) { transition-delay: 0.16s; }
+.card-animate:nth-child(4) { transition-delay: 0.24s; }
+.card-animate:nth-child(5) { transition-delay: 0.32s; }
+.card-animate:nth-child(6) { transition-delay: 0.40s; }
