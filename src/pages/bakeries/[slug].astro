@@ -13,19 +13,116 @@ export async function getStaticPaths() {
 const { bakery } = Astro.props;
 const { data } = bakery;
 const { Content } = await render(bakery);
+
+const websiteDisplay = data.website ? data.website.replace(/^https?:\/\//, '') : null;
+const websiteHref = data.website ? (data.website.startsWith('http') ? data.website : 'https://' + data.website) : null;
+const igHandle = data.instagram ? data.instagram.replace('@', '') : null;
+const hasMapLink = !!data.mapLink;
 ---
 
-<BaseLayout title={data.name} description={`${data.name} — ${data.category} bakery in ${data.suburb}, Melbourne.`}>
+<BaseLayout title={data.name} description={data.name + ' — ' + data.category + ' bakery in ' + data.suburb + ', Melbourne.'}>
   <main>
-    <a href="/bakeries">← Back to Bakeries</a>
-    <img src={data.thumbnail} alt={data.name} />
-    <p>{data.category}</p>
-    <h1>{data.name}</h1>
-    <p>{data.address}</p>
-    <p>{data.hours}</p>
-    {data.website && <a href={`https://${data.website}`} target="_blank">{data.website}</a>}
-    {data.instagram && <a href={`https://instagram.com/${data.instagram}`} target="_blank">@{data.instagram}</a>}
-    {data.mapLink && <a href={data.mapLink} target="_blank">Open in Maps</a>}
-    <Content />
+
+    <div class="wf-container" style="padding-top: clamp(1.5rem,3vw,2.5rem);">
+      <a href="/bakeries" class="back-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        All Bakeries
+      </a>
+    </div>
+
+    <div class="bakery-hero-wrap">
+      <img class="bakery-hero-img" src={data.thumbnail} alt={data.name} />
+      <div class="bakery-hero-grade"></div>
+      <div class="bakery-hero-badge">{data.category}</div>
+    </div>
+
+    <div class="story-title-block">
+      <div class="story-meta-row">
+        <span>{data.category}</span>
+        <span class="meta-dot">—</span>
+        <span>{data.suburb}</span>
+      </div>
+      <h1 class="story-h1">
+        <span class="story-h1-bread">{data.name}</span>
+        <span class="story-h1-bakery">{data.address}</span>
+      </h1>
+    </div>
+
+    <div class="story-body-section">
+      <aside>
+        <div class="story-aside">
+
+          <div>
+            <span class="aside-label">Suburb</span>
+            <span class="aside-value">{data.suburb}</span>
+          </div>
+
+          <div>
+            <span class="aside-label">Address</span>
+            <span class="aside-value">{data.address}</span>
+          </div>
+
+          <div>
+            <span class="aside-label">Hours</span>
+            <span class="aside-value">{data.hours}</span>
+          </div>
+
+          {websiteHref && <div><span class="aside-label">Website</span><a class="aside-link" href={websiteHref} target="_blank" rel="noopener">{websiteDisplay}</a></div>}
+
+          {igHandle && <div><span class="aside-label">Instagram</span><a class="aside-link aside-instagram" href={'https://instagram.com/' + igHandle} target="_blank" rel="noopener">{igHandle}</a></div>}
+
+          {hasMapLink && <a class="wf-pill pill-dark" href={data.mapLink} target="_blank" rel="noopener" style="margin-top:0.25rem; justify-content:center;">Open in Maps</a>}
+
+        </div>
+      </aside>
+
+      <article class="story-article">
+        <div class="story-body-text">
+          <Content />
+        </div>
+      </article>
+    </div>
+
   </main>
 </BaseLayout>
+
+<style>
+.bakery-hero-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 21/9;
+  overflow: hidden;
+  margin-top: 1rem;
+}
+@media (max-width: 640px) {
+  .bakery-hero-wrap { aspect-ratio: 16/9; }
+}
+.bakery-hero-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.75) saturate(0.85);
+  display: block;
+}
+.bakery-hero-grade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(14,12,10,0.88) 0%, rgba(14,12,10,0.2) 45%, transparent 100%);
+}
+.bakery-hero-badge {
+  position: absolute;
+  bottom: 1.25rem;
+  left: clamp(1.25rem, 4vw, 2.5rem);
+  font-family: var(--font-cond);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  background: var(--amber);
+  color: #fff;
+  padding: 0.28rem 0.75rem;
+  border-radius: var(--r-pill);
+}
+</style>

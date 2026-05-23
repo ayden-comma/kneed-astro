@@ -13,29 +13,142 @@ export async function getStaticPaths() {
 const { story } = Astro.props;
 const { data } = story;
 const { Content } = await render(story);
+
+const credits = [];
+if (data.director) credits.push({ role: 'Director', name: data.director });
+if (data.camera) credits.push({ role: 'Camera', name: data.camera });
+if (data.sound) credits.push({ role: 'Sound', name: data.sound });
+if (data.edit) credits.push({ role: 'Edit', name: data.edit });
 ---
 
 <BaseLayout title={data.title} description={data.description}>
   <main>
-    <a href="/kneed-to-know">← Back to (K)Need to Know</a>
-    <img src={data.thumbnail} alt={data.title} />
-    <p>{data.category}</p>
-    <h1>{data.title}</h1>
-    <p>{data.bakery}</p>
-    <p>{data.duration}</p>
-    {data.videoId && data.videoId !== 'YOUR_YOUTUBE_VIDEO_ID' && (
-      <iframe
-        src={`https://www.youtube-nocookie.com/embed/${data.videoId}?rel=0&modestbranding=1&playsinline=1`}
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowfullscreen
-      ></iframe>
-    )}
-    <Content />
-    <div>
-      {data.director && <p>Director: {data.director}</p>}
-      {data.camera && <p>Camera: {data.camera}</p>}
-      {data.sound && <p>Sound: {data.sound}</p>}
-      {data.edit && <p>Edit: {data.edit}</p>}
+
+    <div class="story-video-shell">
+      <div class="wf-container">
+        <div class="yt-wrap">
+          <iframe
+            src={'https://www.youtube.com/embed/' + data.videoId + '?rel=0&modestbranding=1'}
+            title={data.title}
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen
+            loading="lazy"
+          ></iframe>
+        </div>
+      </div>
     </div>
+
+    <div class="story-title-block">
+      <a href="/kneed-to-know" class="back-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        (K)Need to Know
+      </a>
+      <div class="story-meta-row">
+        <span>{data.category}</span>
+        <span class="meta-dot">—</span>
+        <span>{data.bakery}</span>
+        <span class="meta-dot">—</span>
+        <span>{data.duration}</span>
+      </div>
+      <h1 class="story-h1">
+        <span class="story-h1-bread">{data.title}</span>
+        <span class="story-h1-bakery">{data.bakery}</span>
+      </h1>
+      {data.description && <p class="story-h1-sub">{data.description}</p>}
+    </div>
+
+    <div class="story-body-section">
+      <aside>
+        <div class="story-aside">
+
+          <div>
+            <span class="aside-label">Bakery</span>
+            <span class="aside-value">{data.bakery}</span>
+          </div>
+
+          <div>
+            <span class="aside-label">Category</span>
+            <span class="aside-value">{data.category}</span>
+          </div>
+
+          <div>
+            <span class="aside-label">Duration</span>
+            <span class="aside-value">{data.duration}</span>
+          </div>
+
+          {credits.length > 0 && (
+            <div>
+              <div style="height:1px; background:var(--border); margin:0.25rem 0;"></div>
+              <span class="aside-label" style="display:block; margin-bottom:0.5rem;">Film Credits</span>
+              <div class="credits-grid">
+                {credits.map((c) => (
+                  <div class="credit-card">
+                    <span class="credit-role">{c.role}</span>
+                    <span class="credit-name">{c.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <button class="aside-share-btn" id="share-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4"/><path d="m15.4 6.5-6.8 4"/></svg>
+            Share
+          </button>
+
+        </div>
+      </aside>
+
+      <article class="story-article">
+        <div class="story-body-text">
+          <Content />
+        </div>
+      </article>
+    </div>
+
   </main>
 </BaseLayout>
+
+<style>
+.story-video-shell {
+  background: var(--ink);
+  padding: clamp(1rem, 2vw, 1.75rem) 0;
+  border-bottom: 1px solid var(--border);
+}
+.yt-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  border-radius: var(--r-hero);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: #000;
+}
+.yt-wrap iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+</style>
+
+<script is:inline>
+  const btn = document.getElementById('share-btn');
+  if (btn) {
+    btn.addEventListener('click', async function() {
+      var url = window.location.href;
+      if (navigator.share) {
+        try { await navigator.share({ url: url }); } catch(e) {}
+      } else {
+        try {
+          await navigator.clipboard.writeText(url);
+          btn.textContent = 'Link copied!';
+          setTimeout(function() { btn.textContent = 'Share'; }, 2000);
+        } catch(e) {}
+      }
+    });
+  }
+</script>

@@ -5,16 +5,173 @@ import { getCollection } from 'astro:content';
 const stories = await getCollection('stories');
 ---
 
-<BaseLayout title="(K)Need to Know" description="Original short films celebrating Melbourne's best bakeries.">
-  <main>
-    <h1>(K)Need to Know</h1>
-    {stories.map((story) => (
-      <a href={`/kneed-to-know/${story.data.slug}`}>
-        <img src={story.data.thumbnail} alt={story.data.title} />
-        <h2>{story.data.title}</h2>
-        <p>{story.data.bakery}</p>
-        <p>{story.data.duration}</p>
-      </a>
-    ))}
+<BaseLayout title="(K)Need to Know" description="Films, walkthroughs and essays about bread, bakers and the places they make.">
+
+  <main class="wf-container py-page">
+
+    <div class="wf-page-head">
+      <div class="wf-eyebrow">Editorial</div>
+      <h1 class="wf-page-h1">(K)Need to Know</h1>
+      <p class="wf-page-intro">Films, walkthroughs and essays about bread, bakers and the places they make.</p>
+    </div>
+
+    <div class="stories-grid">
+      {stories.map((story) => (
+        <a href={'/kneed-to-know/' + story.data.slug} class="film-card">
+          <img class="film-card-img" src={story.data.thumbnail} alt={story.data.title} loading="lazy" />
+          <div class="film-card-grade"></div>
+          <div class="film-card-dur">{story.data.duration}</div>
+          <div class="film-card-num">01</div>
+          <div class="film-card-body">
+            <div class="film-card-tag">{story.data.category}</div>
+            <div class="film-card-title">{story.data.title}</div>
+            <div class="film-card-bakery">{story.data.bakery}</div>
+          </div>
+          <div class="film-card-play">
+            <svg viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg>
+          </div>
+          <div class="film-card-accent"></div>
+        </a>
+      ))}
+    </div>
+
   </main>
+
 </BaseLayout>
+
+<style>
+.stories-grid {
+  display: grid;
+  gap: 1.125rem;
+  grid-template-columns: 1fr;
+  margin-top: 2rem;
+}
+@media (min-width: 600px) {
+  .stories-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 900px) {
+  .stories-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.film-card {
+  position: relative;
+  display: block;
+  border-radius: var(--r-card);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  aspect-ratio: 16/10;
+  cursor: pointer;
+  transition: border-color 0.22s, transform 0.25s var(--ease-out);
+}
+.film-card:hover { border-color: var(--border-md); transform: translateY(-4px); }
+.film-card-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.72) saturate(0.85);
+  transition: filter 0.4s, transform 0.6s var(--ease-out);
+  display: block;
+}
+.film-card:hover .film-card-img { filter: brightness(0.88) saturate(1); transform: scale(1.04); }
+.film-card-grade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(14,12,10,0.94) 0%, rgba(14,12,10,0.28) 45%, transparent 100%);
+  pointer-events: none;
+}
+.film-card-dur {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  font-family: var(--font-cond);
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  background: rgba(14,12,10,0.72);
+  color: var(--p-70);
+  padding: 0.22rem 0.55rem;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(6px);
+}
+.film-card-num {
+  position: absolute;
+  top: -0.1em;
+  left: 0.2em;
+  font-family: var(--font-display);
+  font-weight: 100;
+  font-size: clamp(5rem, 12vw, 9rem);
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(242,237,230,0.10);
+  pointer-events: none;
+  user-select: none;
+}
+.film-card-body {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.film-card-tag {
+  font-family: var(--font-cond);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+.film-card-title {
+  font-family: var(--font-display);
+  font-weight: 200;
+  font-size: clamp(0.95rem, 1.8vw, 1.35rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--parchment);
+  line-height: 1.25;
+}
+.film-card-bakery {
+  font-family: var(--font-display);
+  font-weight: 100;
+  font-size: clamp(0.7rem, 1vw, 0.85rem);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--p-35);
+  margin-top: 0.15rem;
+}
+.film-card-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: rgba(242,237,230,0.08);
+  border: 1px solid rgba(242,237,230,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.25s, transform 0.25s var(--ease-out);
+  pointer-events: none;
+}
+.film-card-play svg { width: 1rem; height: 1rem; fill: #fff; margin-left: 0.12em; }
+.film-card:hover .film-card-play { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+.film-card-accent {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  width: 0;
+  background: var(--amber);
+  transition: width 0.5s var(--ease-out);
+}
+.film-card:hover .film-card-accent { width: 100%; }
+</style>
