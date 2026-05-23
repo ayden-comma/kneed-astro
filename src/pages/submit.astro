@@ -2,8 +2,122 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
-<BaseLayout title="Submit" description="Submit a bakery or story to (K)Need.">
-  <main>
-    <h1>Submit a Bakery</h1>
+<BaseLayout title="Submit a Bakery" description="Know a Melbourne bakery that deserves a film? Tell us about it.">
+  <main class="wf-container py-page">
+
+    <div class="wf-page-head">
+      <div class="wf-eyebrow">Get Involved</div>
+      <h1 class="wf-page-h1">Submit a Bakery</h1>
+      <p class="wf-page-intro">Know a bakery that deserves a film? We want to hear about it. Tell us who they are and why they matter.</p>
+    </div>
+
+    <div class="submit-form-wrap">
+
+      <div class="form-group">
+        <label class="form-label" for="bakery-name">Bakery name</label>
+        <input class="form-input" type="text" id="bakery-name" placeholder="e.g. Tivoli Road Bakery" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="bakery-suburb">Suburb</label>
+        <input class="form-input" type="text" id="bakery-suburb" placeholder="e.g. South Yarra" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="bakery-address">Address</label>
+        <input class="form-input" type="text" id="bakery-address" placeholder="Street address" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="bakery-website">Website or Instagram</label>
+        <input class="form-input" type="text" id="bakery-website" placeholder="e.g. tivoliroad.com.au or @tivoliroad" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="bakery-why">Why do they deserve a film?</label>
+        <textarea class="form-input form-textarea" id="bakery-why" placeholder="Tell us what makes them special..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="your-name">Your name</label>
+        <input class="form-input" type="text" id="your-name" placeholder="Your name" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="your-email">Your email</label>
+        <input class="form-input" type="email" id="your-email" placeholder="your@email.com" />
+      </div>
+
+      <div class="submit-actions">
+        <button class="wf-pill pill-amber" id="submit-btn">Submit Bakery</button>
+      </div>
+
+      <div class="submit-success" id="submit-success" style="display:none;">
+        <div class="wf-eyebrow">Thank you</div>
+        <h3 class="submit-success-title">We've got your submission.</h3>
+        <p class="submit-success-body">We'll look into it and be in touch if we decide to film there.</p>
+      </div>
+
+    </div>
+
   </main>
 </BaseLayout>
+
+<style>
+.submit-form-wrap {
+  max-width: 36rem;
+  margin-top: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.submit-actions {
+  margin-top: 0.5rem;
+}
+.submit-success {
+  margin-top: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  padding: 1.75rem;
+}
+.submit-success-title {
+  font-family: var(--font-display);
+  font-weight: 200;
+  font-size: 1.25rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--parchment);
+  margin: 0.5rem 0 0.5rem;
+}
+.submit-success-body {
+  font-size: 0.9rem;
+  line-height: 1.7;
+  font-weight: 300;
+  color: var(--p-50);
+}
+</style>
+
+<script is:inline>
+  var btn = document.getElementById('submit-btn');
+  var success = document.getElementById('submit-success');
+  if (btn) {
+    btn.addEventListener('click', function() {
+      var name = document.getElementById('bakery-name').value.trim();
+      var email = document.getElementById('your-email').value.trim();
+      if (!name || !email) {
+        alert('Please fill in at least the bakery name and your email.');
+        return;
+      }
+      btn.textContent = 'Submitted!';
+      btn.style.opacity = '0.6';
+      btn.disabled = true;
+      if (success) success.style.display = 'block';
+    });
+  }
+</script>

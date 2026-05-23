@@ -2,8 +2,82 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
-<BaseLayout title="About" description="(K)Need is a cinematic journey through Melbourne's best bakeries, built by Comma Films.">
-  <main>
-    <h1>About (K)Need</h1>
+<BaseLayout title="About" description="(K)Need is a cinematic exploration of Melbourne's best bakeries, built by Comma Films.">
+  <main class="wf-container py-page">
+
+    <div class="wf-page-head">
+      <div class="wf-eyebrow">About</div>
+      <h1 class="wf-page-h1">(K)Need is a love letter to good bread.</h1>
+      <p class="wf-page-intro">A cultural and culinary exploration of breads and pastries told through the eyes of passionate bakers.</p>
+    </div>
+
+    <div class="simple-body">
+      <p>We believe the best bakeries are more than places to buy bread — they are neighbourhood anchors, living archives of craft, and windows into the people who shape the food we eat. (K)Need exists to document them.</p>
+      <p>Each film is a short portrait of a baker and their space — the early mornings, the flour-dusted hands, the ovens that never cool. We travel across Melbourne to find the people doing it properly, and we tell their stories with the care they deserve.</p>
+      <p>(K)Need is a production of <a href="https://commafilms.com.au" target="_blank" rel="noopener" style="color:var(--amber);">Comma Films</a>, a Melbourne-based film company.</p>
+    </div>
+
+    <div class="about-grid">
+      <div class="about-card">
+        <div class="wf-eyebrow">What we make</div>
+        <h3 class="about-card-title">Short Films</h3>
+        <p class="about-card-body">Cinematic portraits of Melbourne bakers — the people, the process and the places.</p>
+      </div>
+      <div class="about-card">
+        <div class="wf-eyebrow">Where to find us</div>
+        <h3 class="about-card-title">The Map</h3>
+        <p class="about-card-body">Every bakery we've visited, plotted on a single map with addresses and opening hours.</p>
+      </div>
+      <div class="about-card">
+        <div class="wf-eyebrow">Get involved</div>
+        <h3 class="about-card-title">Submit a Bakery</h3>
+        <p class="about-card-body">Know a bakery that deserves a film? Tell us about it and we'll add it to our list.</p>
+      </div>
+    </div>
+
+    <div class="about-cta">
+      <a href="/bakeries" class="wf-pill pill-dark">Explore Bakeries</a>
+      <a href="/submit" class="wf-pill pill-light">Submit a Bakery</a>
+    </div>
+
   </main>
 </BaseLayout>
+
+<style>
+.about-grid {
+  display: grid;
+  gap: 1.125rem;
+  grid-template-columns: 1fr;
+  margin-top: 3rem;
+}
+@media (min-width: 600px) {
+  .about-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.about-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  padding: 1.75rem;
+}
+.about-card-title {
+  font-family: var(--font-display);
+  font-weight: 200;
+  font-size: 1.25rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--parchment);
+  margin: 0.5rem 0 0.75rem;
+}
+.about-card-body {
+  font-size: 0.9rem;
+  line-height: 1.7;
+  font-weight: 300;
+  color: var(--p-50);
+}
+.about-cta {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 3rem;
+  flex-wrap: wrap;
+}
+</style>

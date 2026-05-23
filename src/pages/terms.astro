@@ -2,8 +2,21 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
-<BaseLayout title="Terms of Use" description="Terms of Use for (K)Need.">
-  <main>
-    <h1>Terms of Use</h1>
+<BaseLayout title="Terms of Use" description="Terms of use for (K)Need.">
+  <main class="wf-container py-page">
+    <div class="wf-page-head">
+      <div class="wf-eyebrow">Legal</div>
+      <h1 class="wf-page-h1">Terms of Use</h1>
+      <p class="wf-page-intro">Last updated January 2025.</p>
+    </div>
+    <div class="simple-body">
+      <p>By using kneed.tv you agree to these terms. If you do not agree, please do not use the site.</p>
+      <p><strong style="color:var(--parchment); font-weight:500;">Content ownership.</strong> All films, photography, written content and design on (K)Need are owned by Comma Films Pty Ltd unless otherwise stated. You may not reproduce, distribute or use our content without written permission.</p>
+      <p><strong style="color:var(--parchment); font-weight:500;">User submissions.</strong> When you submit a bakery or leave a comment, you grant us a non-exclusive licence to use that content on the site. You confirm the information you provide is accurate.</p>
+      <p><strong style="color:var(--parchment); font-weight:500;">Acceptable use.</strong> You agree not to use the site in any way that is unlawful, harmful or disruptive. We reserve the right to remove any content or restrict access at our discretion.</p>
+      <p><strong style="color:var(--parchment); font-weight:500;">External links.</strong> We link to third party websites including bakery websites and social media. We are not responsible for the content or privacy practices of those sites.</p>
+      <p><strong style="color:var(--parchment); font-weight:500;">Disclaimer.</strong> The site is provided as is without warranties of any kind. Information such as bakery hours may change — always check directly with the bakery.</p>
+      <p><strong style="color:var(--parchment); font-weight:500;">Contact.</strong> For any questions about these terms, email us at hello@kneed.tv.</p>
+    </div>
   </main>
 </BaseLayout>
