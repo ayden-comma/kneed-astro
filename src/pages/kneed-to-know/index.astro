@@ -1,0 +1,20 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const stories = await getCollection('stories');
+---
+
+<BaseLayout title="(K)Need to Know" description="Original short films celebrating Melbourne's best bakeries.">
+  <main>
+    <h1>(K)Need to Know</h1>
+    {stories.map((story) => (
+      <a href={`/kneed-to-know/${story.data.slug}`}>
+        <img src={story.data.thumbnail} alt={story.data.title} />
+        <h2>{story.data.title}</h2>
+        <p>{story.data.bakery}</p>
+        <p>{story.data.duration}</p>
+      </a>
+    ))}
+  </main>
+</BaseLayout>

@@ -1,0 +1,20 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const bakeries = await getCollection('bakeries');
+console.log('Bakeries found:', bakeries.length);
+console.log('Bakeries:', JSON.stringify(bakeries, null, 2));
+---
+
+<BaseLayout title="Bakeries" description="Explore Melbourne's best bakeries.">
+  <main>
+    <h1>Bakeries ({bakeries.length})</h1>
+    {bakeries.map((bakery) => (
+      <div>
+        <p>ID: {bakery.id}</p>
+        <p>Name: {bakery.data.name}</p>
+      </div>
+    ))}
+  </main>
+</BaseLayout>
