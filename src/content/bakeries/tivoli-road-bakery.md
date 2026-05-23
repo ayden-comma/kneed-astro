@@ -2,13 +2,15 @@
 name: Tivoli Road Bakery
 slug: tivoli-road-bakery
 suburb: South Yarra
-address: 3 Tivoli Rd, South Yarra VIC 3141
+address: 3 Tivoli Road, South Yarra VIC 3141
 category: Sourdough
-hours: Mon–Sun 7am–2:30pm
-website: tivoliroadbakery.com.au
-instagram: tivoliroadbakery
-thumbnail: https://images.pexels.com/photos/1775043/pexels-photo-1775043.jpeg
-mapLink: https://maps.google.com/?q=3+Tivoli+Rd+South+Yarra+VIC+3141
+hours: Mon–Fri 7am–4pm, Sat–Sun 7am–3pm
+website: tivoliroad.com.au
+instagram: tivoliroad
+thumbnail: /images/bakeries/tivoli-road-bakery.jpg
+mapLink: https://maps.google.com/?q=3+Tivoli+Road+South+Yarra
+lat: -37.8395
+lng: 144.9929
 ---
 
 Tivoli Road Bakery is one of Melbourne's most beloved neighbourhood bakeries, built on a single idea — that great bread starts with great ingredients and time.

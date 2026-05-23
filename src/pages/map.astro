@@ -1,9 +1,169 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const bakeries = await getCollection('bakeries');
 ---
 
-<BaseLayout title="Find Good Bread" description="Find Melbourne's best bakeries on the map.">
+<BaseLayout title="Find Good Bread" description="Every bakery on one map. Find addresses, opening hours and directions.">
   <main>
-    <h1>Find Good Bread</h1>
+    <div class="map-page-wrap">
+
+      <div class="map-sidebar">
+        <div class="map-sidebar-head">
+          <div class="wf-eyebrow">Find Good Bread</div>
+          <h1 class="map-sidebar-title">Every Bakery</h1>
+        </div>
+        <div class="map-sidebar-list" id="map-sidebar-list">
+          {bakeries.map((bakery, i) => (
+            <button
+              class="map-bakery-item"
+              data-index={i}
+              data-lat={bakery.data.lat}
+              data-lng={bakery.data.lng}
+            >
+              <div class="map-bakery-num">{String(i + 1).padStart(2, '0')}</div>
+              <img class="map-bakery-thumb" src={bakery.data.thumbnail} alt={bakery.data.name} />
+              <div class="map-bakery-info">
+                <div class="map-bakery-cat">{bakery.data.category}</div>
+                <div class="map-bakery-name">{bakery.data.name}</div>
+                <div class="map-bakery-addr">{bakery.data.address}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div class="map-canvas-wrap">
+        <div id="kneed-map"></div>
+      </div>
+
+    </div>
   </main>
 </BaseLayout>
+
+<style>
+.map-page-wrap {
+  display: grid;
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: clamp(1.5rem, 3vw, 2.5rem) var(--px) clamp(3rem, 5vw, 4rem);
+  gap: 1.125rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 900px) {
+  .map-page-wrap {
+    grid-template-columns: 300px 1fr;
+  }
+}
+.map-sidebar {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  overflow: hidden;
+  max-height: clamp(300px, 40vh, 500px);
+}
+@media (min-width: 900px) {
+  .map-sidebar {
+    max-height: clamp(500px, 70vh, 780px);
+  }
+}
+.map-sidebar-head {
+  padding: 1.5rem 1.25rem 1rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.map-sidebar-title {
+  font-family: var(--font-display);
+  font-weight: 200;
+  font-size: 1.1rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--parchment);
+  margin-top: 0.35rem;
+}
+.map-sidebar-list {
+  overflow-y: auto;
+  flex: 1;
+}
+#kneed-map {
+  width: 100%;
+  height: clamp(300px, 40vh, 500px);
+  border-radius: var(--r-card);
+  border: 1px solid var(--border);
+}
+@media (min-width: 900px) {
+  #kneed-map {
+    height: clamp(500px, 70vh, 780px);
+  }
+}
+</style>
+
+<script is:inline>
+  function initMap() {
+    if (window._kneedMapInit) return;
+    window._kneedMapInit = true;
+
+    var map = L.map('kneed-map', {
+      center: [-37.814, 144.970],
+      zoom: 12,
+      zoomControl: true,
+      attributionControl: false,
+    });
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19
+    }).addTo(map);
+
+    var items = document.querySelectorAll('.map-bakery-item');
+    items.forEach(function(item) {
+      var lat = parseFloat(item.dataset.lat);
+      var lng = parseFloat(item.dataset.lng);
+      if (!lat || !lng) return;
+
+      var icon = L.divIcon({
+        className: '',
+        html: '<div style="width:12px;height:12px;border-radius:50%;background:#c8833a;border:2px solid rgba(242,237,230,0.9);box-shadow:0 2px 8px rgba(0,0,0,0.5);"></div>',
+        iconSize: [12, 12],
+        iconAnchor: [6, 6]
+      });
+
+      var marker = L.marker([lat, lng], { icon: icon }).addTo(map);
+
+      marker.on('click', function() {
+        selectItem(item);
+      });
+
+      item.addEventListener('click', function() {
+        map.setView([lat, lng], 15, { animate: true });
+        selectItem(item);
+      });
+    });
+
+    function selectItem(active) {
+      document.querySelectorAll('.map-bakery-item').forEach(function(el) {
+        el.classList.remove('active');
+      });
+      active.classList.add('active');
+      active.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    setTimeout(function() { map.invalidateSize(); }, 100);
+  }
+
+  function loadLeaflet(cb) {
+    if (window.L) { cb(); return; }
+    var css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
+    document.head.appendChild(css);
+    var script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+    script.onload = cb;
+    document.head.appendChild(script);
+  }
+
+  loadLeaflet(initMap);
+</script>

@@ -14,6 +14,8 @@ const bakeries = defineCollection({
     instagram: z.string().optional(),
     thumbnail: z.string(),
     mapLink: z.string().optional(),
+    lat: z.number().optional(),
+    lng: z.number().optional(),
   }),
 });
 
