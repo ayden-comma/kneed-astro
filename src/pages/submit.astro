@@ -2,122 +2,279 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
-<BaseLayout title="Submit a Bakery" description="Know a Melbourne bakery that deserves a film? Tell us about it.">
-  <main class="wf-container py-page">
+<BaseLayout title="Submit a Bakery" description="Is your bakery a story worth telling? Submit to (K)Need.">
+  <main class="wf-container py-page" style="max-width: 56rem;">
 
-    <div class="wf-page-head">
-      <div class="wf-eyebrow">Get Involved</div>
-      <h1 class="wf-page-h1">Submit a Bakery</h1>
-      <p class="wf-page-intro">Know a bakery that deserves a film? We want to hear about it. Tell us who they are and why they matter.</p>
+    <a href="/" class="back-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      Back home
+    </a>
+
+    <div class="wf-eyebrow">Submit Your Bakery</div>
+    <h1 class="wf-page-h1" style="margin-top:0.5rem;">Is your bakery a story<br/>worth telling?</h1>
+    <p class="wf-page-intro">(K)Need is a journal for neighbourhood bakeries, the people behind the bench and the culture of daily bread.</p>
+
+    <div class="submit-overview">
+      <p>If you think your bakery belongs in the journal, we'd love to hear from you. Fill in the form below and we'll be in touch if your story feels like a fit.</p>
+      <p>Submissions are reviewed on a rolling basis. We don't charge for coverage and we're not a directory. Every story we publish is editorial.</p>
     </div>
 
-    <div class="submit-form-wrap">
+    <div style="border-top: 1px solid var(--border); margin: 2rem 0;"></div>
 
-      <div class="form-group">
-        <label class="form-label" for="bakery-name">Bakery name</label>
-        <input class="form-input" type="text" id="bakery-name" placeholder="e.g. Tivoli Road Bakery" />
+    <!-- TAB SWITCHER -->
+    <div class="submit-tabs">
+      <button class="submit-tab-btn wf-pill pill-dark" id="tab-bakery" data-tab="bakery">Submit your bakery</button>
+      <button class="submit-tab-btn wf-pill pill-light" id="tab-suggest" data-tab="suggest">Recommend a bakery</button>
+    </div>
+
+    <!-- SUBMIT YOUR BAKERY FORM -->
+    <div id="form-bakery">
+      <div id="submit-form-wrap">
+        <div class="wf-eyebrow" style="margin-bottom: 1.5rem;">Your details</div>
+        <div class="submit-form">
+          <div class="form-row">
+            <div class="form-field">
+              <label class="form-label" for="f-name">Name</label>
+              <input class="form-input" type="text" id="f-name" placeholder="Your full name" />
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="f-email">Email</label>
+              <input class="form-input" type="email" id="f-email" placeholder="your@email.com" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label class="form-label" for="f-bakery">Bakery Name</label>
+              <input class="form-input" type="text" id="f-bakery" placeholder="The name of your bakery" />
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="f-address">Address</label>
+              <input class="form-input" type="text" id="f-address" placeholder="Street, suburb" />
+            </div>
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="f-link">Website or Social Link</label>
+            <input class="form-input" type="text" id="f-link" placeholder="https://yoursite.com or @handle" />
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="f-desc">
+              Short Description
+              <span class="form-label-note">Tell us what makes your bakery worth a story. 100–200 words.</span>
+            </label>
+            <textarea class="form-input form-textarea" id="f-desc" placeholder="What's the story behind your bakery?..."></textarea>
+          </div>
+          <div class="form-actions">
+            <button class="wf-pill pill-dark" id="submit-bakery-btn">
+              Send submission
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 5 7 7-7 7"/></svg>
+            </button>
+            <p class="form-note">We read every submission. We'll be in touch within two weeks if your bakery feels like a fit.</p>
+          </div>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label class="form-label" for="bakery-suburb">Suburb</label>
-        <input class="form-input" type="text" id="bakery-suburb" placeholder="e.g. South Yarra" />
+      <div id="submit-success" style="display:none;">
+        <div class="submit-success-block">
+          <div class="success-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <h2 class="success-title">Submission received</h2>
+          <p class="success-body">Thank you for reaching out. We've received your submission and will review it carefully.</p>
+          <a class="wf-pill pill-light" href="/" style="margin-top: 2rem;">Back to journal</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECOMMEND A BAKERY FORM -->
+    <div id="form-suggest" style="display:none;">
+      <div class="wf-eyebrow" style="margin-bottom:0.5rem;">Know a bakery we should visit?</div>
+      <p style="font-size:0.9rem; font-weight:300; color:var(--p-50); line-height:1.65; margin-bottom:1.75rem; max-width:42rem;">If you know a bakery with a story worth telling, let us know. The best tips go straight onto our filming list.</p>
+      <div class="submit-form" style="max-width:42rem;">
+        <div class="form-field">
+          <label class="form-label" for="sg-name">Bakery name <span class="form-required">*</span></label>
+          <input class="form-input" type="text" id="sg-name" placeholder="Name of the bakery" />
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="sg-addr">Address or suburb <span class="form-required">*</span></label>
+          <input class="form-input" type="text" id="sg-addr" placeholder="Where are they?" />
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="sg-why">
+            Why should we film them?
+            <span class="form-label-note">What makes them special?</span>
+          </label>
+          <textarea class="form-input form-textarea" id="sg-why" placeholder="Tell us what makes this bakery worth a story..."></textarea>
+        </div>
+        <div class="form-actions">
+          <button class="wf-pill pill-dark" id="submit-suggest-btn">
+            Send recommendation
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 5 7 7-7 7"/></svg>
+          </button>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label class="form-label" for="bakery-address">Address</label>
-        <input class="form-input" type="text" id="bakery-address" placeholder="Street address" />
+      <div id="suggest-success" style="display:none;">
+        <div class="submit-success-block">
+          <div class="success-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <h2 class="success-title">Thanks for the tip</h2>
+          <p class="success-body">We've got your recommendation and will look into it for our filming list.</p>
+          <a class="wf-pill pill-light" href="/" style="margin-top: 2rem;">Back to journal</a>
+        </div>
       </div>
-
-      <div class="form-group">
-        <label class="form-label" for="bakery-website">Website or Instagram</label>
-        <input class="form-input" type="text" id="bakery-website" placeholder="e.g. tivoliroad.com.au or @tivoliroad" />
-      </div>
-
-      <div class="form-group">
-        <label class="form-label" for="bakery-why">Why do they deserve a film?</label>
-        <textarea class="form-input form-textarea" id="bakery-why" placeholder="Tell us what makes them special..."></textarea>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label" for="your-name">Your name</label>
-        <input class="form-input" type="text" id="your-name" placeholder="Your name" />
-      </div>
-
-      <div class="form-group">
-        <label class="form-label" for="your-email">Your email</label>
-        <input class="form-input" type="email" id="your-email" placeholder="your@email.com" />
-      </div>
-
-      <div class="submit-actions">
-        <button class="wf-pill pill-amber" id="submit-btn">Submit Bakery</button>
-      </div>
-
-      <div class="submit-success" id="submit-success" style="display:none;">
-        <div class="wf-eyebrow">Thank you</div>
-        <h3 class="submit-success-title">We've got your submission.</h3>
-        <p class="submit-success-body">We'll look into it and be in touch if we decide to film there.</p>
-      </div>
-
     </div>
 
   </main>
 </BaseLayout>
 
 <style>
-.submit-form-wrap {
-  max-width: 36rem;
-  margin-top: 2.5rem;
+.submit-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+.submit-tab-btn {
+  font-size: 0.65rem;
+  cursor: pointer;
+}
+.submit-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  margin-top: 1.25rem;
+  font-size: 0.9375rem;
+  line-height: 1.75;
+  font-weight: 300;
+  color: var(--p-50);
+}
+.submit-form {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  margin-top: 0.5rem;
 }
-.form-group {
+.form-row {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 640px) {
+  .form-row { grid-template-columns: 1fr 1fr; }
+}
+.form-field {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
-.submit-actions {
+.form-label-note {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 300;
+  color: var(--p-35);
+  margin-top: 0.2rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.form-required { color: var(--amber); }
+.form-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
   margin-top: 0.5rem;
 }
-.submit-success {
-  margin-top: 1rem;
+.form-note {
+  font-size: 0.8rem;
+  font-weight: 300;
+  color: var(--p-35);
+  line-height: 1.6;
+}
+.submit-success-block {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-card);
-  padding: 1.75rem;
+  padding: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
 }
-.submit-success-title {
+.success-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: rgba(200,131,58,0.1);
+  border: 1px solid rgba(200,131,58,0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--amber);
+  margin-bottom: 0.5rem;
+}
+.success-icon svg { width: 1.25rem; height: 1.25rem; }
+.success-title {
   font-family: var(--font-display);
   font-weight: 200;
-  font-size: 1.25rem;
-  letter-spacing: 0.1em;
+  font-size: 1.5rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--parchment);
-  margin: 0.5rem 0 0.5rem;
 }
-.submit-success-body {
-  font-size: 0.9rem;
-  line-height: 1.7;
+.success-body {
+  font-size: 0.9375rem;
   font-weight: 300;
+  line-height: 1.75;
   color: var(--p-50);
 }
 </style>
 
 <script is:inline>
-  var btn = document.getElementById('submit-btn');
-  var success = document.getElementById('submit-success');
-  if (btn) {
-    btn.addEventListener('click', function() {
-      var name = document.getElementById('bakery-name').value.trim();
-      var email = document.getElementById('your-email').value.trim();
-      if (!name || !email) {
-        alert('Please fill in at least the bakery name and your email.');
-        return;
-      }
-      btn.textContent = 'Submitted!';
-      btn.style.opacity = '0.6';
-      btn.disabled = true;
-      if (success) success.style.display = 'block';
-    });
+  // TAB SWITCHING
+  var tabBakery = document.getElementById('tab-bakery');
+  var tabSuggest = document.getElementById('tab-suggest');
+  var formBakery = document.getElementById('form-bakery');
+  var formSuggest = document.getElementById('form-suggest');
+
+  function showTab(tab) {
+    if (tab === 'bakery') {
+      formBakery.style.display = '';
+      formSuggest.style.display = 'none';
+      tabBakery.className = 'submit-tab-btn wf-pill pill-dark';
+      tabSuggest.className = 'submit-tab-btn wf-pill pill-light';
+    } else {
+      formBakery.style.display = 'none';
+      formSuggest.style.display = '';
+      tabBakery.className = 'submit-tab-btn wf-pill pill-light';
+      tabSuggest.className = 'submit-tab-btn wf-pill pill-dark';
+    }
   }
+
+  tabBakery.addEventListener('click', function() { showTab('bakery'); });
+  tabSuggest.addEventListener('click', function() { showTab('suggest'); });
+
+  // SUBMIT BAKERY
+  document.getElementById('submit-bakery-btn').addEventListener('click', function() {
+    var name = document.getElementById('f-name').value.trim();
+    var email = document.getElementById('f-email').value.trim();
+    var bakery = document.getElementById('f-bakery').value.trim();
+    if (!name || !email || !bakery) {
+      alert('Please fill in your name, email and bakery name.');
+      return;
+    }
+    document.getElementById('submit-form-wrap').style.display = 'none';
+    document.getElementById('submit-success').style.display = 'block';
+  });
+
+  // SUBMIT SUGGESTION
+  document.getElementById('submit-suggest-btn').addEventListener('click', function() {
+    var name = document.getElementById('sg-name').value.trim();
+    var addr = document.getElementById('sg-addr').value.trim();
+    if (!name || !addr) {
+      alert('Please fill in the bakery name and address.');
+      return;
+    }
+    document.querySelector('#form-suggest .submit-form').style.display = 'none';
+    document.getElementById('suggest-success').style.display = 'block';
+  });
 </script>

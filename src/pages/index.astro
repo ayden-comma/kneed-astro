@@ -9,29 +9,61 @@ const stories = await getCollection('stories');
 <BaseLayout title="Home" description="(K)Need — a cinematic exploration of Melbourne's best bakeries.">
   <main>
 
-    <!-- HERO -->
-    <section class="hero-section">
-      <div class="hero-bg">
-        <div class="hero-grade"></div>
-        <div class="hero-grade-side"></div>
+    <!-- CINEMATIC HERO -->
+    <section class="hero-section" id="hero-section">
+      <div class="hero-img-bg" id="hero-img-bg"></div>
+      <div class="hero-img-next" id="hero-img-next"></div>
+      <div class="hero-grade"></div>
+      <div class="hero-text-scrim"></div>
+      <div class="hero-tone"></div>
+
+      <div class="hero-bg-word" id="hero-bg-word">KNEAD</div>
+
+      <div class="hero-ticker-wrap">
+        <div class="hero-ticker">
+          <span class="hero-ticker-item">Sourdough &nbsp;·&nbsp; </span>
+          <span class="hero-ticker-item">Fermentation &nbsp;·&nbsp; </span>
+          <span class="hero-ticker-item">Melbourne Bakeries &nbsp;·&nbsp; </span>
+          <span class="hero-ticker-item">Craft Bread &nbsp;·&nbsp; </span>
+          <span class="hero-ticker-item">Documentary &nbsp;·&nbsp; </span>
+          <span class="hero-ticker-item">Stone Milled &nbsp;·&nbsp; </span>
+          <span class="hero-ticker-item">Sourdough &nbsp;·&nbsp; </span>
+          <span class="hero-ticker-item">Fermentation &nbsp;·&nbsp; </span>
+          <span class="hero-ticker-item">Melbourne Bakeries &nbsp;·&nbsp; </span>
+          <span class="hero-ticker-item">Craft Bread &nbsp;·&nbsp; </span>
+          <span class="hero-ticker-item">Documentary &nbsp;·&nbsp; </span>
+          <span class="hero-ticker-item">Stone Milled &nbsp;·&nbsp; </span>
+        </div>
       </div>
-      <div class="hero-inner wf-container">
-        <div class="hero-content">
-          <div class="wf-eyebrow hero-anim-1">Melbourne Bakeries</div>
-          <h1 class="hero-h1 hero-anim-2">
-            Good bread<br/>is worth<br/>knowing about.
-          </h1>
-          <p class="hero-sub hero-anim-3">
-            Short films and stories about the bakers, ovens and neighbourhoods that make Melbourne's bread worth eating.
-          </p>
-          <div class="hero-actions hero-anim-4">
-            <a href="/bakeries" class="wf-pill pill-dark">Explore Bakeries</a>
-            <a href="/kneed-to-know" class="wf-pill pill-light">Watch Films</a>
+
+      <div class="hero-content">
+        <div class="hero-content-inner" id="hero-content-inner">
+          <div class="hero-eyebrow-row">
+            <span class="eyebrow-dot"></span>
+            <span class="eyebrow-tag" id="hero-eyebrow-tag">Sourdough</span>
+            <span class="eyebrow-rule"></span>
+            <span class="eyebrow-meta" id="hero-eyebrow-meta">Now Playing · Ep. 01</span>
+          </div>
+          <h1 class="hero-title" id="hero-title"></h1>
+          <span class="hero-bakery-line" id="hero-bakery-line"></span>
+          <p class="hero-subtitle" id="hero-subtitle"></p>
+          <div class="hero-cta-row">
+            <a href="/kneed-to-know" class="wf-pill pill-dark">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><polygon points="6,4 20,12 6,20"/></svg>
+              Watch Now
+            </a>
           </div>
         </div>
       </div>
-      <div class="hero-scroll-hint">
-        <div class="hero-scroll-line"></div>
+
+      <div class="hero-bottom-bar">
+        <div class="bottom-dots" id="hero-dots">
+          <button class="bottom-dot active" data-slide="0" aria-label="Slide 1"></button>
+          <button class="bottom-dot" data-slide="1" aria-label="Slide 2"></button>
+          <button class="bottom-dot" data-slide="2" aria-label="Slide 3"></button>
+          <button class="bottom-dot" data-slide="3" aria-label="Slide 4"></button>
+          <button class="bottom-dot" data-slide="4" aria-label="Slide 5"></button>
+        </div>
       </div>
     </section>
 
@@ -121,22 +153,20 @@ const stories = await getCollection('stories');
           </span>
         </a>
       </div>
-      <a href="/map" class="map-teaser-card">
-        <div class="map-teaser-inner">
-          <div class="map-teaser-text">
+      <div class="map-teaser-card">
+        <div class="map-teaser-info">
+          <div>
             <div class="wf-eyebrow" style="margin-bottom:0.5rem;">Every Bakery</div>
             <p class="map-teaser-desc">Every Melbourne bakery on one map. Find addresses, opening times and watch their story.</p>
-            <ul class="map-teaser-list" id="map-teaser-list"></ul>
-            <div class="wf-pill pill-dark" style="margin-top:1.5rem; pointer-events:none; align-self:flex-start;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-              Explore the map
-            </div>
           </div>
-          <div class="map-teaser-map-wrap">
-            <div id="map-teaser-canvas"></div>
-          </div>
+          <div class="map-teaser-locations" id="map-teaser-locations"></div>
+          <a href="/map" class="wf-pill pill-dark" style="margin-top:1.25rem; align-self:flex-start;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            Explore the map
+          </a>
         </div>
-      </a>
+        <div id="map-teaser-canvas"></div>
+      </div>
     </section>
 
     <!-- NEWSLETTER -->
@@ -163,74 +193,227 @@ const stories = await getCollection('stories');
 /* ── HERO ───────────────────────────────────────────────────── */
 .hero-section {
   position: relative;
-  min-height: 92vh;
-  display: flex;
-  align-items: center;
+  width: 100%;
+  height: 92vh;
+  min-height: 580px;
   overflow: hidden;
-  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-end;
 }
-.hero-bg {
+@media (max-width: 640px) {
+  .hero-section { min-height: 480px; }
+}
+.hero-img-bg, .hero-img-next {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(ellipse 80% 60% at 60% 50%, rgba(200,131,58,0.07) 0%, transparent 70%),
-    linear-gradient(135deg, rgba(22,19,16,1) 0%, rgba(14,12,10,1) 100%);
+  background-size: cover;
+  background-position: center 30%;
+}
+.hero-img-bg {
+  transform: scale(1.0);
+  transition: transform 20s ease-out;
+}
+.hero-img-bg.zooming {
+  transform: scale(1.08);
+}
+.hero-img-next {
+  transform: scale(1.0);
+  transition: opacity 1s ease, transform 20s ease-out;
+}
+.hero-img-next.zooming {
+  transform: scale(1.08);
+}
+.hero-img-next {
+  opacity: 0;
+  transition: opacity 1.2s ease-out;
+  pointer-events: none;
 }
 .hero-grade {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to right, rgba(14,12,10,0.95) 0%, rgba(14,12,10,0.4) 60%, transparent 100%);
+  background: linear-gradient(to top, rgba(14,12,10,0.92) 0%, rgba(14,12,10,0.4) 45%, transparent 100%);
 }
-.hero-grade-side {
+.hero-text-scrim {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(14,12,10,0.8) 0%, transparent 40%);
+  background: radial-gradient(ellipse 80% 60% at 50% 60%, rgba(14,12,10,0.5) 0%, transparent 70%);
 }
-.hero-inner {
-  position: relative;
-  z-index: 1;
-  padding-top: clamp(5rem, 12vw, 9rem);
-  padding-bottom: clamp(5rem, 12vw, 9rem);
-}
-.hero-content { max-width: 42rem; }
-.hero-h1 {
-  font-family: var(--font-display);
-  font-weight: 200;
-  font-size: clamp(2.5rem, 7vw, 5.5rem);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  line-height: 1.05;
-  color: var(--parchment);
-  margin-top: 0.75rem;
-}
-.hero-sub {
-  margin-top: 1.75rem;
-  font-size: clamp(1rem, 1.5vw, 1.125rem);
-  line-height: 1.8;
-  font-weight: 300;
-  color: var(--p-50);
-  max-width: 34rem;
-}
-.hero-actions {
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 2.5rem;
-  flex-wrap: wrap;
-}
-.hero-scroll-hint {
+.hero-tone {
   position: absolute;
-  bottom: 2.5rem;
-  left: 50%;
-  transform: translateX(-50%);
+  inset: 0;
+  background: radial-gradient(ellipse at 70% 40%, rgba(200,131,58,0.08) 0%, transparent 70%);
+}
+.hero-bg-word {
+  position: absolute;
+  top: 42%;
+  left: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(12rem, 26vw, 32rem);
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(242,237,230,0.11);
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0;
+  z-index: 1;
+  transition: opacity 0.7s ease;
+  animation: bgWordDrift 45s linear 0.3s infinite alternate;
+}
+.hero-bg-word.bg-visible { opacity: 1; }
+.hero-bg-word.bg-fading { opacity: 0; transition: opacity 0.4s ease; }
+@keyframes bgWordDrift {
+  0%   { transform: translateY(-50%) translateX(6%); }
+  100% { transform: translateY(-50%) translateX(-22%); }
+}
+.hero-ticker-wrap {
+  position: absolute;
+  top: clamp(2rem, 6vw, 4rem);
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  z-index: 2;
+  opacity: 0.5;
+}
+.hero-ticker {
+  display: flex;
+  white-space: nowrap;
+  animation: tickerScroll 40s linear infinite;
+  font-family: var(--font-cond);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--p-50);
+}
+.hero-ticker-item {
+  flex-shrink: 0;
+}
+@keyframes tickerScroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.hero-content {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 var(--px) clamp(5rem, 10vw, 8rem);
+}
+.hero-content-inner {
   display: flex;
   flex-direction: column;
   align-items: center;
+  text-align: center;
+  max-width: 50rem;
+  margin: 0 auto;
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
 }
-.hero-scroll-line {
-  width: 1px;
-  height: 3rem;
-  background: linear-gradient(to bottom, var(--amber), transparent);
-  animation: scrollPulse 2s 1.2s ease-in-out infinite;
+.hero-content-inner.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.hero-content-inner.fading {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+.hero-eyebrow-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: 1rem;
+}
+.eyebrow-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--amber);
+  flex-shrink: 0;
+}
+.eyebrow-tag {
+  font-family: var(--font-cond);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+.eyebrow-rule {
+  width: 2rem;
+  height: 1px;
+  background: var(--p-35);
+}
+.eyebrow-meta {
+  font-family: var(--font-cond);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--p-50);
+}
+.hero-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2.25rem, 6vw, 5rem);
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  color: var(--parchment);
+  text-transform: uppercase;
+}
+.hero-bakery-line {
+  display: block;
+  margin-top: 0.875rem;
+  font-family: var(--font-display);
+  font-weight: 200;
+  font-size: clamp(1.1rem, 2.5vw, 1.75rem);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+.hero-subtitle {
+  margin-top: 1.5rem;
+  font-size: clamp(0.95rem, 1.3vw, 1.05rem);
+  line-height: 1.7;
+  font-weight: 300;
+  color: var(--p-70);
+  max-width: 38rem;
+}
+.hero-cta-row {
+  margin-top: 2rem;
+}
+.hero-bottom-bar {
+  position: absolute;
+  bottom: 2rem;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  display: flex;
+  justify-content: center;
+}
+.bottom-dots {
+  display: flex;
+  gap: 0.5rem;
+}
+.bottom-dot {
+  width: 28px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(242,237,230,0.25);
+  border: none;
+  cursor: pointer;
+  transition: background 0.25s, width 0.25s;
+  padding: 0;
+}
+.bottom-dot:hover { background: rgba(242,237,230,0.5); }
+.bottom-dot.active {
+  background: var(--amber);
+  width: 40px;
 }
 
 /* ── GRIDS ──────────────────────────────────────────────────── */
@@ -239,12 +422,8 @@ const stories = await getCollection('stories');
   gap: 1.125rem;
   grid-template-columns: 1fr;
 }
-@media (min-width: 600px) {
-  .home-grid { grid-template-columns: repeat(2, 1fr); }
-}
-@media (min-width: 900px) {
-  .home-grid { grid-template-columns: repeat(3, 1fr); }
-}
+@media (min-width: 600px) { .home-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 900px) { .home-grid { grid-template-columns: repeat(3, 1fr); } }
 
 /* ── FILM CARDS ─────────────────────────────────────────────── */
 .film-card {
@@ -358,75 +537,57 @@ const stories = await getCollection('stories');
 
 /* ── MAP TEASER ─────────────────────────────────────────────── */
 .map-teaser-card {
-  display: block;
-  background: var(--surface);
+  border-radius: 1.5rem;
   border: 1px solid var(--border);
-  border-radius: var(--r-hero);
+  background: var(--surface);
   overflow: hidden;
-  transition: border-color 0.22s;
-}
-.map-teaser-card:hover { border-color: var(--border-md); }
-.map-teaser-inner {
+  transition: border-color 0.25s;
   display: grid;
   grid-template-columns: 1fr;
-  min-height: 340px;
+  height: clamp(260px, 32vw, 400px);
+  isolation: isolate;
 }
-@media (min-width: 700px) {
-  .map-teaser-inner { grid-template-columns: 320px 1fr; }
-}
-.map-teaser-text {
-  padding: clamp(1.5rem, 3vw, 2.5rem);
+@media (min-width: 768px) { .map-teaser-card { grid-template-columns: 280px 1fr; } }
+.map-teaser-card:hover { border-color: var(--border-md); }
+.map-teaser-info {
+  padding: clamp(1.25rem, 2vw, 2rem);
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  background: var(--surface);
-  z-index: 1;
+  border-right: 1px solid var(--border);
+  overflow: hidden;
 }
 .map-teaser-desc {
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   font-weight: 300;
   color: var(--p-50);
   line-height: 1.65;
   margin-top: 0.5rem;
 }
-.map-teaser-list {
-  list-style: none;
-  margin-top: 1.25rem;
+.map-teaser-locations {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.4rem;
+  margin-top: 1rem;
+  overflow: hidden;
 }
-.map-teaser-list li {
+.map-teaser-loc-row {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
-  font-family: var(--font-cond);
-  font-size: 0.65rem;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 300;
   color: var(--p-50);
 }
-.map-teaser-list li::before {
+.map-teaser-loc-row::before {
   content: '';
   width: 5px;
   height: 5px;
   border-radius: 50%;
   background: var(--amber);
   flex-shrink: 0;
-  opacity: 0.8;
 }
-.map-teaser-map-wrap {
-  position: relative;
-  min-height: 340px;
-}
-#map-teaser-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
+#map-teaser-canvas { width: 100%; height: 100%; }
 
 /* ── NEWSLETTER ─────────────────────────────────────────────── */
 .newsletter-block {
@@ -507,6 +668,177 @@ const stories = await getCollection('stories');
 </style>
 
 <script is:inline>
+  // HERO SLIDESHOW
+  var HERO_SLIDES = [
+    {
+      tag: 'Sourdough',
+      title: 'Country Sourdough Loaf',
+      bakery: 'Tivoli Road Bakery',
+      subtitle: "South Yarra's most enduring sourdough — a country-style loaf built on a 14-year-old starter and stone-milled Victorian wheat.",
+      image: 'https://images.pexels.com/photos/36445170/pexels-photo-36445170.jpeg?auto=compress&cs=tinysrgb&w=1920',
+      bgWord: 'COUNTRY'
+    },
+    {
+      tag: 'Pastry',
+      title: 'The Twice-Baked Croissant',
+      bakery: 'Lune Croissanterie',
+      subtitle: 'A scientific obsession with laminated dough — hundreds of paper-thin layers built one fold at a time.',
+      image: 'https://images.pexels.com/photos/2245295/pexels-photo-2245295.jpeg?auto=compress&cs=tinysrgb&w=1920',
+      bgWord: 'CROISSANT'
+    },
+    {
+      tag: 'Sourdough',
+      title: 'Stone-Milled Loaves',
+      bakery: 'Baker Bleu',
+      subtitle: 'A neighbourhood sourdough built on Australian-grown grain and slow overnight fermentation.',
+      image: 'https://images.pexels.com/photos/7447297/pexels-photo-7447297.jpeg?auto=compress&cs=tinysrgb&w=1920',
+      bgWord: 'STONE'
+    },
+    {
+      tag: 'Oat Bread',
+      title: 'Oat Porridge Loaf',
+      bakery: 'Falco Bakery',
+      subtitle: 'A distinctive Smith Street loaf folded with fermented oats and cooked porridge for a custard-soft crumb.',
+      image: 'https://images.pexels.com/photos/263168/pexels-photo-263168.jpeg?auto=compress&cs=tinysrgb&w=1920',
+      bgWord: 'OAT'
+    },
+    {
+      tag: 'Focaccia',
+      title: 'Focaccia with Rosemary',
+      bakery: 'To Be Frank',
+      subtitle: 'Organic wheat, Frattali olive oil, rosemary and sea salt — out of the oven at 10am, not before.',
+      image: 'https://images.pexels.com/photos/30666809/pexels-photo-30666809.jpeg?auto=compress&cs=tinysrgb&w=1920',
+      bgWord: 'FOCACCIA'
+    }
+  ];
+
+  var currentSlide = 0;
+  var heroTransitioning = false;
+  var heroTimer = null;
+
+  var bgEl = document.getElementById('hero-img-bg');
+  var nextEl = document.getElementById('hero-img-next');
+  var innerEl = document.getElementById('hero-content-inner');
+  var bgWordEl = document.getElementById('hero-bg-word');
+  var tagEl = document.getElementById('hero-eyebrow-tag');
+  var metaEl = document.getElementById('hero-eyebrow-meta');
+  var titleEl = document.getElementById('hero-title');
+  var bakeryEl = document.getElementById('hero-bakery-line');
+  var subtitleEl = document.getElementById('hero-subtitle');
+
+function applySlide(idx) {
+    var s = HERO_SLIDES[idx];
+    tagEl.textContent = s.tag;
+    metaEl.textContent = 'Ep. ' + String(idx + 1).padStart(2, '0') + ' · Now Playing';
+    titleEl.textContent = s.title;
+    bakeryEl.textContent = s.bakery;
+    subtitleEl.textContent = s.subtitle;
+    document.querySelectorAll('.bottom-dot').forEach(function(d, i) {
+      d.classList.toggle('active', i === idx);
+    });
+  }
+
+function initHero() {
+    if (!HERO_SLIDES.length) return;
+    var first = HERO_SLIDES[0];
+    bgEl.style.backgroundImage = "url('" + first.image + "')";
+    applySlide(0);
+    if (bgWordEl) bgWordEl.textContent = first.bgWord;
+    setTimeout(function() {
+      if (innerEl) innerEl.classList.add('visible');
+      if (bgWordEl) {
+        setTimeout(function() {
+          bgWordEl.classList.add('bg-visible');
+        }, 400);
+      }
+      // Start zoom on first image
+      requestAnimationFrame(function() {
+        bgEl.classList.add('zooming');
+      });
+    }, 100);
+  }
+
+function goToSlide(idx) {
+    if (heroTransitioning || idx === currentSlide) return;
+    heroTransitioning = true;
+    var s = HERO_SLIDES[idx];
+
+    // Stage next image — reset zoom, no transition
+    nextEl.style.transition = 'none';
+    nextEl.style.opacity = '0';
+    nextEl.classList.remove('zooming');
+    nextEl.style.backgroundImage = "url('" + s.image + "')";
+
+    // Force reflow so the transition-none takes effect
+    void nextEl.offsetHeight;
+
+    if (innerEl) {
+      innerEl.classList.remove('visible');
+      innerEl.classList.add('fading');
+    }
+
+    setTimeout(function() {
+      // Fade next image in AND start its zoom
+      nextEl.style.transition = 'opacity 1s ease, transform 20s ease-out';
+      nextEl.style.opacity = '1';
+      requestAnimationFrame(function() {
+        nextEl.classList.add('zooming');
+      });
+
+      // Fade bg word out, swap text, fade back in
+      if (bgWordEl) {
+        bgWordEl.classList.add('bg-fading');
+        bgWordEl.classList.remove('bg-visible');
+        setTimeout(function() {
+          bgWordEl.textContent = s.bgWord;
+          bgWordEl.classList.remove('bg-fading');
+          bgWordEl.classList.add('bg-visible');
+        }, 420);
+      }
+
+      setTimeout(function() {
+        applySlide(idx);
+        // Move next into bg, reset next
+        bgEl.style.backgroundImage = "url('" + s.image + "')";
+        bgEl.classList.remove('zooming');
+        void bgEl.offsetHeight;
+        bgEl.classList.add('zooming');
+
+        nextEl.style.transition = 'none';
+        nextEl.style.opacity = '0';
+        nextEl.classList.remove('zooming');
+
+        if (innerEl) {
+          innerEl.classList.remove('fading');
+          setTimeout(function() {
+            innerEl.classList.add('visible');
+          }, 50);
+        }
+
+        currentSlide = idx;
+        heroTransitioning = false;
+      }, 1000);
+    }, 400);
+  }
+
+  function startAutoplay() {
+    if (heroTimer) clearInterval(heroTimer);
+    heroTimer = setInterval(function() {
+      goToSlide((currentSlide + 1) % HERO_SLIDES.length);
+    }, 6000);
+  }
+
+  initHero();
+  startAutoplay();
+
+  document.querySelectorAll('.bottom-dot').forEach(function(dot) {
+    dot.addEventListener('click', function() {
+      var idx = parseInt(this.dataset.slide, 10);
+      goToSlide(idx);
+      startAutoplay();
+    });
+  });
+
   // NEWSLETTER
   var nlBtn = document.getElementById('nl-btn');
   var nlEmail = document.getElementById('nl-email');
@@ -532,18 +864,23 @@ const stories = await getCollection('stories');
     { name: 'Baker Bleu', lat: -37.8566, lng: 145.0231 },
   ];
 
-  var teaserList = document.getElementById('map-teaser-list');
-  if (teaserList) {
+  var locWrap = document.getElementById('map-teaser-locations');
+  if (locWrap) {
     BAKERY_DATA.forEach(function(b) {
-      var li = document.createElement('li');
-      li.textContent = b.name;
-      teaserList.appendChild(li);
+      var row = document.createElement('div');
+      row.className = 'map-teaser-loc-row';
+      row.textContent = b.name;
+      locWrap.appendChild(row);
     });
   }
 
   function buildTeaserMap() {
     var el = document.getElementById('map-teaser-canvas');
     if (!el || window._teaserMapInit) return;
+    if (el.offsetWidth === 0 || el.offsetHeight === 0) {
+      setTimeout(buildTeaserMap, 200);
+      return;
+    }
     window._teaserMapInit = true;
 
     var map = L.map('map-teaser-canvas', {
@@ -572,26 +909,23 @@ const stories = await getCollection('stories');
       L.marker([b.lat, b.lng], { icon: icon }).addTo(map);
     });
 
-    setTimeout(function() { map.invalidateSize(); }, 100);
+    setTimeout(function() { map.invalidateSize(); }, 200);
   }
 
-  function loadLeafletTeaser() {
-    if (window.L) { buildTeaserMap(); return; }
-    if (!document.getElementById('leaflet-css')) {
-      var css = document.createElement('link');
-      css.id = 'leaflet-css';
-      css.rel = 'stylesheet';
-      css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
-      document.head.appendChild(css);
-    }
-    if (!document.getElementById('leaflet-js')) {
-      var script = document.createElement('script');
-      script.id = 'leaflet-js';
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
-      script.onload = buildTeaserMap;
-      document.head.appendChild(script);
-    }
+  if (!document.getElementById('leaflet-css')) {
+    var css = document.createElement('link');
+    css.id = 'leaflet-css';
+    css.rel = 'stylesheet';
+    css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
+    document.head.appendChild(css);
   }
-
-  window.addEventListener('load', loadLeafletTeaser);
+  if (!document.getElementById('leaflet-js')) {
+    var script = document.createElement('script');
+    script.id = 'leaflet-js';
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+    script.onload = function() { setTimeout(buildTeaserMap, 100); };
+    document.head.appendChild(script);
+  } else if (window.L) {
+    setTimeout(buildTeaserMap, 100);
+  }
 </script>
