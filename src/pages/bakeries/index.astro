@@ -3,47 +3,68 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getCollection } from 'astro:content';
 
 const bakeries = await getCollection('bakeries');
+const bakeryList = bakeries.map((bakery) => ({
+  slug: bakery.data.slug,
+  name: bakery.data.name,
+  suburb: bakery.data.suburb,
+  category: bakery.data.category,
+  hours: bakery.data.hours,
+  duration: bakery.data.duration,
+  thumbnail: bakery.data.thumbnail,
+  description: bakery.data.description,
+  search: (bakery.data.name + ' ' + bakery.data.suburb + ' ' + bakery.data.category).toLowerCase(),
+}));
 ---
 
 <BaseLayout title="Bakeries" description="Every bakery we've visited — neighbourhood rooms, old ovens and places worth travelling for.">
 
   <main class="wf-container py-page">
 
-    <div class="wf-page-head">
-      <div class="wf-eyebrow">Explore</div>
-      <h1 class="wf-page-h1">Bakeries</h1>
-      <p class="wf-page-intro">Neighbourhood rooms, old ovens and places worth travelling for.</p>
+    <a href="/" class="back-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      Back home
+    </a>
+
+    <div class="wf-page-head" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:1rem; margin-bottom:1.5rem;">
+      <div>
+        <div class="wf-eyebrow">Explore</div>
+        <h1 class="wf-page-h1" style="margin-top:0.35rem;">Bakeries</h1>
+        <p class="wf-page-intro" style="margin-top:0.5rem;">Neighbourhood rooms, old ovens and places worth travelling for.</p>
+      </div>
     </div>
 
-    <div class="bakery-search-wrap">
+    <div class="bak-search-bar">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" style="color:var(--p-35); flex-shrink:0;"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input id="bakery-search" type="search" placeholder="Search bakeries…" style="flex:1; background:transparent; border:none; outline:none; color:var(--parchment); font-family:var(--font-body); font-size:0.875rem; font-weight:300; min-width:0;" />
+      <input id="list-search-input" type="search" placeholder="Search bakeries…" class="bak-search-input" />
     </div>
 
-    <div class="bak-grid" id="bak-grid">
-      {bakeries.map((bakery) => (
-        <a href={'/bakeries/' + bakery.data.slug} class="bak-card" data-name={bakery.data.name.toLowerCase()} data-suburb={bakery.data.suburb.toLowerCase()} data-category={bakery.data.category.toLowerCase()}>
+    <div class="grid-3" id="list-grid">
+      {bakeryList.map((bakery) => (
+        <a href={'/bakeries/' + bakery.slug} class="bak-card" data-search={bakery.search}>
           <div class="bak-card-img-wrap">
-            <img class="bak-card-img" src={bakery.data.thumbnail} alt={bakery.data.name} loading="lazy" />
+            <img class="bak-card-img" src={bakery.thumbnail} alt={bakery.name} loading="lazy" />
             <div class="bak-card-grade"></div>
-            <div class="bak-card-cat">{bakery.data.category}</div>
+            <div class="bak-card-cat">{bakery.category}</div>
+            {bakery.duration && (
+              <div class="bak-card-dur">{bakery.duration}</div>
+            )}
             <div class="bak-card-watch">
               <div class="bak-watch-pill">
                 <svg viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg>
-                View Bakery
+                Watch Now
               </div>
             </div>
           </div>
           <div class="bak-card-body">
-            <div class="bak-card-eyebrow">{bakery.data.suburb}</div>
-            <div class="bak-card-title">{bakery.data.name}</div>
-            <div class="bak-card-bakery">{bakery.data.hours}</div>
+            <div class="bak-card-eyebrow">{bakery.category}</div>
+            <div class="bak-card-title">{bakery.name}</div>
+            <p class="bak-card-desc">{bakery.description || bakery.hours}</p>
           </div>
         </a>
       ))}
     </div>
 
-    <div id="bak-no-results" style="display:none;" class="bak-no-results">
+    <div id="bak-no-results" style="display:none; text-align:center; padding:3rem 1rem; font-size:0.9rem; font-weight:300; color:var(--p-35);">
       No bakeries found matching your search.
     </div>
 
@@ -52,57 +73,77 @@ const bakeries = await getCollection('bakeries');
 </BaseLayout>
 
 <style>
-.bakery-search-wrap {
+.bak-search-bar {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-pill);
-  padding: 0.75rem 1.25rem;
-  margin-bottom: 2rem;
-  margin-top: 1.75rem;
-  max-width: 28rem;
+  padding: 0.65rem 1rem;
+  margin-bottom: 1.75rem;
   transition: border-color 0.2s;
 }
-.bakery-search-wrap:focus-within {
-  border-color: var(--amber);
+.bak-search-bar:focus-within { border-color: var(--amber); }
+.bak-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--parchment);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 300;
+  min-width: 0;
 }
-.bak-grid {
+.bak-card-dur {
+  position: absolute;
+  bottom: 0.875rem;
+  right: 0.875rem;
+  font-family: var(--font-cond);
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  background: rgba(14,12,10,0.72);
+  color: var(--p-70);
+  padding: 0.22rem 0.55rem;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border-md);
+  backdrop-filter: blur(6px);
+}
+.bak-card-desc {
+  font-size: 0.9rem;
+  font-weight: 300;
+  line-height: 1.65;
+  color: var(--p-50);
+  margin-top: 0.35rem;
+}
+.grid-3 {
   display: grid;
   gap: 1.125rem;
   grid-template-columns: 1fr;
 }
-@media (min-width: 600px) {
-  .bak-grid { grid-template-columns: repeat(2, 1fr); }
-}
-@media (min-width: 900px) {
-  .bak-grid { grid-template-columns: repeat(3, 1fr); }
-}
-.bak-no-results {
-  text-align: center;
-  padding: 3rem 1rem;
-  font-size: 0.9rem;
-  font-weight: 300;
-  color: var(--p-35);
-}
+@media (min-width: 600px) { .grid-3 { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 900px) { .grid-3 { grid-template-columns: repeat(3, 1fr); } }
 </style>
 
 <script is:inline>
-  var searchInput = document.getElementById('bakery-search');
+  var searchInput = document.getElementById('list-search-input');
   var noResults = document.getElementById('bak-no-results');
-  searchInput.addEventListener('input', function() {
-    var query = this.value.toLowerCase().trim();
-    var cards = document.querySelectorAll('.bak-card');
-    var visible = 0;
-    cards.forEach(function(card) {
-      var name = card.dataset.name || '';
-      var suburb = card.dataset.suburb || '';
-      var category = card.dataset.category || '';
-      var matches = name.includes(query) || suburb.includes(query) || category.includes(query);
-      card.style.display = matches ? '' : 'none';
-      if (matches) visible++;
+  var grid = document.getElementById('list-grid');
+
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      var query = this.value.toLowerCase().trim();
+      var cards = grid.querySelectorAll('[data-search]');
+      var visible = 0;
+      cards.forEach(function(card) {
+        var text = card.getAttribute('data-search') || '';
+        var matches = !query || text.includes(query);
+        card.style.display = matches ? '' : 'none';
+        if (matches) visible++;
+      });
+      noResults.style.display = visible === 0 ? 'block' : 'none';
     });
-    noResults.style.display = visible === 0 ? 'block' : 'none';
-  });
+  }
 </script>

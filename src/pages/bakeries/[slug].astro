@@ -4,62 +4,134 @@ import { getCollection, render } from 'astro:content';
 
 export async function getStaticPaths() {
   const bakeries = await getCollection('bakeries');
-  return bakeries.map((bakery) => ({
+  return bakeries.map((bakery, index) => ({
     params: { slug: bakery.data.slug },
-    props: { bakery },
+    props: {
+      bakery,
+      prevSlug: index > 0 ? bakeries[index - 1].data.slug : null,
+      nextSlug: index < bakeries.length - 1 ? bakeries[index + 1].data.slug : null,
+    },
   }));
 }
 
-const { bakery } = Astro.props;
+const { bakery, prevSlug, nextSlug } = Astro.props;
 const { data } = bakery;
 const { Content } = await render(bakery);
 
 const websiteDisplay = data.website ? data.website.replace(/^https?:\/\//, '') : null;
-const websiteHref = data.website ? (data.website.startsWith('http') ? data.website : 'https://' + data.website) : null;
+const websiteHref = data.website
+  ? data.website.startsWith('http') ? data.website : 'https://' + data.website
+  : null;
 const igHandle = data.instagram ? data.instagram.replace('@', '') : null;
 const hasMapLink = !!data.mapLink;
+const hasLat = !!data.lat && !!data.lng;
+const hasVideo = !!data.videoId;
+const images = data.images || [];
+
+const credits = [];
+if (data.director) credits.push({ role: 'Director', name: data.director });
+if (data.camera)   credits.push({ role: 'Camera',   name: data.camera });
+if (data.sound)    credits.push({ role: 'Sound',     name: data.sound });
+if (data.edit)     credits.push({ role: 'Edit',      name: data.edit });
 ---
 
-<BaseLayout title={data.name} description={data.name + ' — ' + data.category + ' bakery in ' + data.suburb + ', Melbourne.'}>
+<BaseLayout
+  title={data.name}
+  description={data.description || data.name + ' — ' + data.category + ' bakery in ' + data.suburb + ', Melbourne.'}
+>
   <main>
 
-    <div class="wf-container" style="padding-top: clamp(1.5rem,3vw,2.5rem);">
+    <!-- VIDEO SHELL -->
+    <div class="story-video-shell">
+      <div class="story-video-inner">
+
+        <!-- SHARE RAIL -->
+        <div class="story-share-rail">
+          <button class="share-btn" id="share-fb" aria-label="Share on Facebook">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+          </button>
+          <button class="share-btn" id="share-ig" aria-label="Share on Instagram">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+          </button>
+          <button class="share-btn" id="share-li" aria-label="Share on LinkedIn">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+          </button>
+          <button class="share-btn" id="share-link" aria-label="Copy link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          </button>
+        </div>
+
+        <!-- VIDEO / IMAGE BLOCK -->
+        <div class="story-video-block">
+          <div class="story-video-wrap">
+            {hasVideo ? (
+              <iframe
+                src={'https://www.youtube.com/embed/' + data.videoId + '?rel=0&modestbranding=1'}
+                title={data.name}
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen
+                loading="lazy"
+              ></iframe>
+            ) : (
+              <>
+                <img class="story-video-poster" src={data.thumbnail} alt={data.name} />
+                <div class="bakery-hero-grade"></div>
+                <div class="bakery-hero-badge">{data.category}</div>
+              </>
+            )}
+          </div>
+        </div>
+
+        <!-- NAV RAIL -->
+        <div class="story-nav-rail">
+          <a href={nextSlug ? '/bakeries/' + nextSlug : '/bakeries'} class="story-nav-btn" aria-label="Next bakery">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </a>
+          <a href={prevSlug ? '/bakeries/' + prevSlug : '/bakeries'} class="story-nav-btn" aria-label="Previous bakery">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          </a>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TITLE BLOCK -->
+    <div class="story-title-block">
       <a href="/bakeries" class="back-btn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
         All Bakeries
       </a>
-    </div>
-
-    <div class="bakery-hero-wrap">
-      <img class="bakery-hero-img" src={data.thumbnail} alt={data.name} />
-      <div class="bakery-hero-grade"></div>
-      <div class="bakery-hero-badge">{data.category}</div>
-    </div>
-
-    <div class="story-title-block">
       <div class="story-meta-row">
         <span>{data.category}</span>
         <span class="meta-dot">—</span>
         <span>{data.suburb}</span>
+        {data.date && <span class="meta-dot">—</span>}
+        {data.date && <span>{data.date}</span>}
+        {data.duration && <span class="meta-dot">—</span>}
+        {data.duration && <span>{data.duration}</span>}
       </div>
       <h1 class="story-h1">
         <span class="story-h1-bread">{data.name}</span>
-        <span class="story-h1-bakery">{data.address}</span>
+        <span class="story-h1-bakery">{data.suburb}</span>
       </h1>
+      {data.description && <p class="story-h1-sub">{data.description}</p>}
     </div>
 
+    <!-- BODY: ASIDE + ARTICLE -->
     <div class="story-body-section">
       <aside>
         <div class="story-aside">
 
           <div>
-            <span class="aside-label">Suburb</span>
-            <span class="aside-value">{data.suburb}</span>
+            <span class="aside-label">Bakery</span>
+            <span class="aside-value">{data.name}</span>
           </div>
 
           <div>
             <span class="aside-label">Address</span>
-            <span class="aside-value">{data.address}</span>
+            {hasMapLink && <a class="aside-link" href={data.mapLink} target="_blank" rel="noopener">{data.address}</a>}
+            {!hasMapLink && <span class="aside-value">{data.address}</span>}
           </div>
 
           <div>
@@ -67,49 +139,211 @@ const hasMapLink = !!data.mapLink;
             <span class="aside-value">{data.hours}</span>
           </div>
 
-          {websiteHref && <div><span class="aside-label">Website</span><a class="aside-link" href={websiteHref} target="_blank" rel="noopener">{websiteDisplay}</a></div>}
+          {websiteHref && (
+            <div>
+              <span class="aside-label">Website</span>
+              <a class="aside-link" href={websiteHref} target="_blank" rel="noopener">{websiteDisplay}</a>
+            </div>
+          )}
 
-          {igHandle && <div><span class="aside-label">Instagram</span><a class="aside-link aside-instagram" href={'https://instagram.com/' + igHandle} target="_blank" rel="noopener">{igHandle}</a></div>}
+          {igHandle && (
+            <div>
+              <span class="aside-label">Instagram</span>
+              <a class="aside-link aside-instagram" href={'https://instagram.com/' + igHandle} target="_blank" rel="noopener">{igHandle}</a>
+            </div>
+          )}
 
-          {hasMapLink && <a class="wf-pill pill-dark" href={data.mapLink} target="_blank" rel="noopener" style="margin-top:0.25rem; justify-content:center;">Open in Maps</a>}
+          {credits.length > 0 && (
+            <div>
+              <div style="height:1px; background:var(--border); margin:0.25rem 0;"></div>
+              <span class="aside-label" style="display:block; margin-bottom:0.375rem;">Film Credits</span>
+              <div class="credits-grid">
+                {credits.map((c) => (
+                  <div class="credit-card">
+                    <span class="credit-role">{c.role}</span>
+                    <span class="credit-name">{c.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {hasMapLink && (
+            <a class="wf-pill pill-dark" href={data.mapLink} target="_blank" rel="noopener" style="margin-top:0.25rem; justify-content:center;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+              Open in Maps
+            </a>
+          )}
+
+          <button class="aside-share-btn" id="share-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4"/><path d="m15.4 6.5-6.8 4"/></svg>
+            Share
+          </button>
 
         </div>
       </aside>
 
       <article class="story-article">
+
+        {data.quote && (
+          <blockquote class="story-quote">{data.quote}</blockquote>
+        )}
+
         <div class="story-body-text">
           <Content />
         </div>
+
+        {images.length > 0 && (
+          <div class="bakery-inline-photos">
+            {images.map((img) => (
+              <figure class="story-inline-photo">
+                <img src={img.src} alt={img.caption || data.name} loading="lazy" />
+                {img.caption && <figcaption>{img.caption}</figcaption>}
+              </figure>
+            ))}
+          </div>
+        )}
+
       </article>
     </div>
+
+    <!-- MAP SECTION -->
+    {hasLat && (
+      <section class="wf-container" style="padding-bottom: clamp(3rem,5vw,5rem);">
+        <div class="wf-section-head">
+          <div>
+            <div class="wf-eyebrow">Find this Bakery</div>
+            <h2>Visit the Bakery</h2>
+          </div>
+          <a href="/map" class="see-all-btn">
+            Full map
+            <span class="arrow-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 5 7 7-7 7"/></svg>
+            </span>
+          </a>
+        </div>
+        <div class="story-map-panel">
+          <div class="story-map-info">
+            <div class="story-map-info-top">
+              <div class="wf-eyebrow">{data.category}</div>
+              <div class="story-map-info-name">{data.name}</div>
+              <div class="story-map-details">
+                {hasMapLink && (
+                  <a class="story-map-detail" href={data.mapLink} target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                    {data.address}
+                  </a>
+                )}
+                <div class="story-map-detail">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  {data.hours}
+                </div>
+                {websiteHref && (
+                  <a class="story-map-detail" href={websiteHref} target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    {websiteDisplay}
+                  </a>
+                )}
+                {igHandle && (
+                  <a class="story-map-detail" href={'https://instagram.com/' + igHandle} target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                    @{igHandle}
+                  </a>
+                )}
+              </div>
+            </div>
+            {hasMapLink && (
+              <div class="story-map-info-btn">
+                <a class="wf-pill pill-dark" href={data.mapLink} target="_blank" rel="noopener">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                  Open in map
+                </a>
+              </div>
+            )}
+          </div>
+          <div id="bakery-map" data-lat={data.lat} data-lng={data.lng}></div>
+        </div>
+      </section>
+    )}
 
   </main>
 </BaseLayout>
 
 <style>
-.bakery-hero-wrap {
+.story-video-shell {
+  background: var(--ink);
+  padding: clamp(1rem, 2vw, 1.75rem) 0;
+  border-bottom: 1px solid var(--border);
+}
+.story-video-inner {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 var(--px);
+  display: flex;
+  align-items: center;
+}
+.story-share-rail {
+  width: clamp(2.5rem, 5vw, 3.5rem);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0 0.25rem;
+}
+.share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--p-50);
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, transform 0.18s;
+  flex-shrink: 0;
+}
+.share-btn:hover { background: var(--parchment); color: var(--ink); transform: scale(1.08); }
+.share-btn svg { width: 0.8125rem; height: 0.8125rem; }
+.story-video-block {
+  flex: 1;
+  position: relative;
+  background: #000;
+  min-width: 0;
+}
+.story-video-wrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 21/9;
+  aspect-ratio: 16/9;
+  background: #000;
   overflow: hidden;
-  margin-top: 1rem;
+  border-radius: var(--r-hero);
+  box-shadow: 0 12px 60px rgba(0,0,0,0.5);
 }
-@media (max-width: 640px) {
-  .bakery-hero-wrap { aspect-ratio: 16/9; }
+.story-video-wrap iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
 }
-.bakery-hero-img {
+.story-video-poster {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: brightness(0.75) saturate(0.85);
   display: block;
 }
 .bakery-hero-grade {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(14,12,10,0.88) 0%, rgba(14,12,10,0.2) 45%, transparent 100%);
+  background: linear-gradient(to bottom, rgba(14,12,10,0.25) 0%, rgba(14,12,10,0.05) 35%, rgba(14,12,10,0.55) 68%, rgba(14,12,10,0.97) 100%);
+  pointer-events: none;
 }
 .bakery-hero-badge {
   position: absolute;
@@ -125,4 +359,180 @@ const hasMapLink = !!data.mapLink;
   padding: 0.28rem 0.75rem;
   border-radius: var(--r-pill);
 }
+.story-nav-rail {
+  width: clamp(2.5rem, 5vw, 3.5rem);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0 0.25rem;
+}
+.story-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--p-50);
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, transform 0.18s;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+.story-nav-btn:hover { background: var(--parchment); color: var(--ink); transform: scale(1.08); }
+.story-nav-btn svg { width: 0.875rem; height: 0.875rem; }
+@media (max-width: 640px) {
+  .story-share-rail { display: none; }
+  .story-nav-rail { width: 2rem; padding: 0; }
+  .story-video-block { padding: 0 0.75rem; }
+}
+.story-map-panel {
+  border-radius: 1.5rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 600px) {
+  .story-map-panel { grid-template-columns: clamp(220px, 30%, 300px) 1fr; }
+}
+.story-map-info {
+  padding: clamp(1.25rem, 3vw, 1.875rem);
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--border);
+}
+@media (min-width: 600px) {
+  .story-map-info { border-bottom: none; border-right: 1px solid var(--border); }
+}
+.story-map-info-top { flex: 1; }
+.story-map-info-name {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(0.95rem, 1.8vw, 1.35rem);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--parchment);
+  line-height: 1.2;
+  margin-top: 0.35rem;
+}
+.story-map-details {
+  margin-top: 1.125rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.story-map-detail {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 300;
+  color: var(--p-50);
+  line-height: 1.5;
+  text-decoration: none;
+}
+.story-map-detail svg { width: 0.82rem; height: 0.82rem; flex-shrink: 0; margin-top: 0.18rem; color: var(--p-35); }
+a.story-map-detail { transition: color 0.18s; }
+a.story-map-detail:hover { color: var(--amber); }
+a.story-map-detail:hover svg { color: var(--amber); }
+.story-map-info-btn {
+  margin-top: clamp(1rem, 2.5vw, 1.5rem);
+  align-self: flex-start;
+}
+#bakery-map { height: clamp(280px, 40vw, 520px); }
+@media (max-width: 599px) { #bakery-map { height: 260px; } }
+.bakery-inline-photos {
+  margin-top: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
 </style>
+
+<script is:inline>
+  var url = window.location.href;
+
+  document.getElementById('share-fb').addEventListener('click', function() {
+    window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url), '_blank', 'width=600,height=400');
+  });
+  document.getElementById('share-ig').addEventListener('click', function() {
+    window.open('https://www.instagram.com/', '_blank');
+  });
+  document.getElementById('share-li').addEventListener('click', function() {
+    window.open('https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(url), '_blank', 'width=600,height=400');
+  });
+  document.getElementById('share-link').addEventListener('click', function() {
+    navigator.clipboard.writeText(url).then(function() {
+      var btn = document.getElementById('share-link');
+      btn.style.color = 'var(--amber)';
+      setTimeout(function() { btn.style.color = ''; }, 1200);
+    });
+  });
+
+  var shareBtn = document.getElementById('share-btn');
+  if (shareBtn) {
+    shareBtn.addEventListener('click', function() {
+      if (navigator.share) {
+        navigator.share({ url: url });
+      } else {
+        navigator.clipboard.writeText(url).then(function() {
+          shareBtn.textContent = 'Link copied!';
+          setTimeout(function() {
+            shareBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4"/><path d="m15.4 6.5-6.8 4"/></svg>Share';
+          }, 2000);
+        });
+      }
+    });
+  }
+
+  var mapEl = document.getElementById('bakery-map');
+  if (mapEl) {
+    var lat = parseFloat(mapEl.dataset.lat || '0');
+    var lng = parseFloat(mapEl.dataset.lng || '0');
+
+    function buildBakeryMap() {
+      if (!lat || !lng || window._bakeryMapInit) return;
+      window._bakeryMapInit = true;
+      var map = L.map('bakery-map', {
+        center: [lat, lng],
+        zoom: 15,
+        zoomControl: true,
+        attributionControl: false,
+      });
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19
+      }).addTo(map);
+      var icon = L.divIcon({
+        className: '',
+        html: '<div style="width:12px;height:12px;border-radius:50%;background:#c8833a;border:2px solid rgba(242,237,230,0.9);box-shadow:0 2px 8px rgba(0,0,0,0.5);"></div>',
+        iconSize: [12, 12],
+        iconAnchor: [6, 6]
+      });
+      L.marker([lat, lng], { icon: icon }).addTo(map);
+    }
+
+    if (!document.getElementById('leaflet-css')) {
+      var css = document.createElement('link');
+      css.id = 'leaflet-css';
+      css.rel = 'stylesheet';
+      css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
+      document.head.appendChild(css);
+    }
+    if (!document.getElementById('leaflet-js')) {
+      var script = document.createElement('script');
+      script.id = 'leaflet-js';
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+      script.onload = function() { setTimeout(buildBakeryMap, 100); };
+      document.head.appendChild(script);
+    } else if (window.L) {
+      setTimeout(buildBakeryMap, 100);
+    }
+  }
+</script>

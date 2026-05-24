@@ -1,40 +1,42 @@
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
 
+const sharedSchema = z.object({
+  name: z.string(),
+  slug: z.string(),
+  suburb: z.string(),
+  address: z.string(),
+  category: z.string(),
+  hours: z.string(),
+  website: z.string().optional(),
+  instagram: z.string().optional(),
+  thumbnail: z.string(),
+  mapLink: z.string().optional(),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
+  videoId: z.string().optional(),
+  duration: z.string().optional(),
+  date: z.string().optional(),
+  description: z.string().optional(),
+  quote: z.string().optional(),
+  director: z.string().optional(),
+  camera: z.string().optional(),
+  sound: z.string().optional(),
+  edit: z.string().optional(),
+  images: z.array(z.object({
+    src: z.string(),
+    caption: z.string().optional(),
+  })).optional(),
+});
+
 const bakeries = defineCollection({
   loader: glob({ pattern: '*.md', base: './src/content/bakeries' }),
-  schema: z.object({
-    name: z.string(),
-    slug: z.string(),
-    suburb: z.string(),
-    address: z.string(),
-    category: z.string(),
-    hours: z.string(),
-    website: z.string().optional(),
-    instagram: z.string().optional(),
-    thumbnail: z.string(),
-    mapLink: z.string().optional(),
-    lat: z.number().optional(),
-    lng: z.number().optional(),
-  }),
+  schema: sharedSchema,
 });
 
-const stories = defineCollection({
-  loader: glob({ pattern: '*.md', base: './src/content/stories' }),
-  schema: z.object({
-    title: z.string(),
-    slug: z.string(),
-    bakery: z.string(),
-    category: z.string(),
-    duration: z.string(),
-    thumbnail: z.string(),
-    videoId: z.string(),
-    description: z.string(),
-    director: z.string().optional(),
-    camera: z.string().optional(),
-    sound: z.string().optional(),
-    edit: z.string().optional(),
-  }),
+const kneedToKnow = defineCollection({
+  loader: glob({ pattern: '*.md', base: './src/content/kneed-to-know' }),
+  schema: sharedSchema,
 });
 
-export const collections = { bakeries, stories };
+export const collections = { bakeries, kneedToKnow };

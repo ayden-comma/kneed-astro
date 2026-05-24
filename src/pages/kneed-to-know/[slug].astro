@@ -3,39 +3,72 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getCollection, render } from 'astro:content';
 
 export async function getStaticPaths() {
-  const stories = await getCollection('stories');
-  return stories.map((story) => ({
+  const bakeries = await getCollection('bakeries');
+  const stories = bakeries.filter((b) => !!b.data.videoId);
+  return stories.map((story, index) => ({
     params: { slug: story.data.slug },
-    props: { story },
+    props: {
+      story,
+      prevSlug: index > 0 ? stories[index - 1].data.slug : null,
+      nextSlug: index < stories.length - 1 ? stories[index + 1].data.slug : null,
+    },
   }));
 }
 
-const { story } = Astro.props;
+const { story, prevSlug, nextSlug } = Astro.props;
 const { data } = story;
 const { Content } = await render(story);
 
 const credits = [];
 if (data.director) credits.push({ role: 'Director', name: data.director });
-if (data.camera) credits.push({ role: 'Camera', name: data.camera });
-if (data.sound) credits.push({ role: 'Sound', name: data.sound });
-if (data.edit) credits.push({ role: 'Edit', name: data.edit });
+if (data.camera)   credits.push({ role: 'Camera',   name: data.camera });
+if (data.sound)    credits.push({ role: 'Sound',     name: data.sound });
+if (data.edit)     credits.push({ role: 'Edit',      name: data.edit });
 ---
 
-<BaseLayout title={data.title} description={data.description}>
+<BaseLayout title={data.name} description={data.description || data.name + ' — ' + data.category + ' — (K)Need'}>
   <main>
 
     <div class="story-video-shell">
-      <div class="wf-container">
-        <div class="yt-wrap">
-          <iframe
-            src={'https://www.youtube.com/embed/' + data.videoId + '?rel=0&modestbranding=1'}
-            title={data.title}
-            frameborder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowfullscreen
-            loading="lazy"
-          ></iframe>
+      <div class="story-video-inner">
+
+        <div class="story-share-rail">
+          <button class="share-btn" id="share-fb" aria-label="Share on Facebook">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+          </button>
+          <button class="share-btn" id="share-ig" aria-label="Share on Instagram">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+          </button>
+          <button class="share-btn" id="share-li" aria-label="Share on LinkedIn">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+          </button>
+          <button class="share-btn" id="share-link" aria-label="Copy link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          </button>
         </div>
+
+        <div class="story-video-block">
+          <div class="story-video-wrap">
+            <iframe
+              src={'https://www.youtube.com/embed/' + data.videoId + '?rel=0&modestbranding=1'}
+              title={data.name}
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+              loading="lazy"
+            ></iframe>
+          </div>
+        </div>
+
+        <div class="story-nav-rail">
+          <a href={nextSlug ? '/kneed-to-know/' + nextSlug : '/kneed-to-know'} class="story-nav-btn" aria-label="Next story">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </a>
+          <a href={prevSlug ? '/kneed-to-know/' + prevSlug : '/kneed-to-know'} class="story-nav-btn" aria-label="Previous story">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          </a>
+        </div>
+
       </div>
     </div>
 
@@ -47,13 +80,15 @@ if (data.edit) credits.push({ role: 'Edit', name: data.edit });
       <div class="story-meta-row">
         <span>{data.category}</span>
         <span class="meta-dot">—</span>
-        <span>{data.bakery}</span>
-        <span class="meta-dot">—</span>
-        <span>{data.duration}</span>
+        <span>{data.suburb}</span>
+        {data.date && <span class="meta-dot">—</span>}
+        {data.date && <span>{data.date}</span>}
+        {data.duration && <span class="meta-dot">—</span>}
+        {data.duration && <span>{data.duration}</span>}
       </div>
       <h1 class="story-h1">
-        <span class="story-h1-bread">{data.title}</span>
-        <span class="story-h1-bakery">{data.bakery}</span>
+        <span class="story-h1-bread">{data.name}</span>
+        <span class="story-h1-bakery">{data.suburb}</span>
       </h1>
       {data.description && <p class="story-h1-sub">{data.description}</p>}
     </div>
@@ -64,7 +99,7 @@ if (data.edit) credits.push({ role: 'Edit', name: data.edit });
 
           <div>
             <span class="aside-label">Bakery</span>
-            <span class="aside-value">{data.bakery}</span>
+            <span class="aside-value">{data.name}</span>
           </div>
 
           <div>
@@ -72,14 +107,16 @@ if (data.edit) credits.push({ role: 'Edit', name: data.edit });
             <span class="aside-value">{data.category}</span>
           </div>
 
-          <div>
-            <span class="aside-label">Duration</span>
-            <span class="aside-value">{data.duration}</span>
-          </div>
+          {data.duration && (
+            <div>
+              <span class="aside-label">Duration</span>
+              <span class="aside-value">{data.duration}</span>
+            </div>
+          )}
 
           {credits.length > 0 && (
             <div>
-              <div style="height:1px; background:var(--border); margin:0.25rem 0;"></div>
+              <div style="height:1px; background:var(--border); margin:0.125rem 0;"></div>
               <span class="aside-label" style="display:block; margin-bottom:0.5rem;">Film Credits</span>
               <div class="credits-grid">
                 {credits.map((c) => (
@@ -101,6 +138,9 @@ if (data.edit) credits.push({ role: 'Edit', name: data.edit });
       </aside>
 
       <article class="story-article">
+        {data.quote && (
+          <blockquote class="story-quote">{data.quote}</blockquote>
+        )}
         <div class="story-body-text">
           <Content />
         </div>
@@ -116,16 +156,55 @@ if (data.edit) credits.push({ role: 'Edit', name: data.edit });
   padding: clamp(1rem, 2vw, 1.75rem) 0;
   border-bottom: 1px solid var(--border);
 }
-.yt-wrap {
+.story-video-inner {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 var(--px);
+  display: flex;
+  align-items: center;
+}
+.story-share-rail {
+  width: clamp(2.5rem, 5vw, 3.5rem);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0 0.25rem;
+}
+.share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--p-50);
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, transform 0.18s;
+  flex-shrink: 0;
+}
+.share-btn:hover { background: var(--parchment); color: var(--ink); transform: scale(1.08); }
+.share-btn svg { width: 0.8125rem; height: 0.8125rem; }
+.story-video-block {
+  flex: 1;
+  position: relative;
+  background: #000;
+  min-width: 0;
+}
+.story-video-wrap {
   position: relative;
   width: 100%;
   aspect-ratio: 16/9;
-  border-radius: var(--r-hero);
-  overflow: hidden;
-  border: 1px solid var(--border);
   background: #000;
+  overflow: hidden;
+  border-radius: var(--r-hero);
+  box-shadow: 0 12px 60px rgba(0,0,0,0.5);
 }
-.yt-wrap iframe {
+.story-video-wrap iframe {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -133,21 +212,72 @@ if (data.edit) credits.push({ role: 'Edit', name: data.edit });
   border: none;
   display: block;
 }
+.story-nav-rail {
+  width: clamp(2.5rem, 5vw, 3.5rem);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0 0.25rem;
+}
+.story-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--p-50);
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, transform 0.18s;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+.story-nav-btn:hover { background: var(--parchment); color: var(--ink); transform: scale(1.08); }
+.story-nav-btn svg { width: 0.875rem; height: 0.875rem; }
+@media (max-width: 640px) {
+  .story-share-rail { display: none; }
+  .story-nav-rail { width: 2rem; padding: 0; }
+  .story-video-block { padding: 0 0.75rem; }
+}
 </style>
 
 <script is:inline>
-  const btn = document.getElementById('share-btn');
-  if (btn) {
-    btn.addEventListener('click', async function() {
-      var url = window.location.href;
+  var url = window.location.href;
+
+  document.getElementById('share-fb').addEventListener('click', function() {
+    window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url), '_blank', 'width=600,height=400');
+  });
+  document.getElementById('share-ig').addEventListener('click', function() {
+    window.open('https://www.instagram.com/', '_blank');
+  });
+  document.getElementById('share-li').addEventListener('click', function() {
+    window.open('https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(url), '_blank', 'width=600,height=400');
+  });
+  document.getElementById('share-link').addEventListener('click', function() {
+    navigator.clipboard.writeText(url).then(function() {
+      var btn = document.getElementById('share-link');
+      btn.style.color = 'var(--amber)';
+      setTimeout(function() { btn.style.color = ''; }, 1200);
+    });
+  });
+
+  var shareBtn = document.getElementById('share-btn');
+  if (shareBtn) {
+    shareBtn.addEventListener('click', function() {
       if (navigator.share) {
-        try { await navigator.share({ url: url }); } catch(e) {}
+        navigator.share({ url: url });
       } else {
-        try {
-          await navigator.clipboard.writeText(url);
-          btn.textContent = 'Link copied!';
-          setTimeout(function() { btn.textContent = 'Share'; }, 2000);
-        } catch(e) {}
+        navigator.clipboard.writeText(url).then(function() {
+          shareBtn.textContent = 'Link copied!';
+          setTimeout(function() {
+            shareBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4"/><path d="m15.4 6.5-6.8 4"/></svg>Share';
+          }, 2000);
+        });
       }
     });
   }

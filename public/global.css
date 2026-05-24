@@ -1952,24 +1952,39 @@ body.light-mode .story-inline-rating { border-color: rgba(26,22,18,0.10); }
   from { opacity: 0; transform: translateY(28px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.bak-card, .film-card {
+
+.grid-3 .bak-card, .stories-grid .film-card {
   animation: cardIn 0.6s var(--ease-out) both;
 }
-.bak-grid .bak-card:nth-child(1),
-.home-grid .bak-card:nth-child(1),
-.stories-grid .film-card:nth-child(1),
-.home-grid .film-card:nth-child(1) { animation-delay: 0.05s; }
 
-.bak-grid .bak-card:nth-child(2),
-.home-grid .bak-card:nth-child(2),
-.stories-grid .film-card:nth-child(2),
-.home-grid .film-card:nth-child(2) { animation-delay: 0.15s; }
+.grid-3 .bak-card:nth-child(1),
+.stories-grid .film-card:nth-child(1) { animation-delay: 0.05s; }
 
-.bak-grid .bak-card:nth-child(3),
-.home-grid .bak-card:nth-child(3),
-.stories-grid .film-card:nth-child(3),
-.home-grid .film-card:nth-child(3) { animation-delay: 0.25s; }
+.grid-3 .bak-card:nth-child(2),
+.stories-grid .film-card:nth-child(2) { animation-delay: 0.15s; }
 
-.bak-grid .bak-card:nth-child(4) { animation-delay: 0.35s; }
-.bak-grid .bak-card:nth-child(5) { animation-delay: 0.45s; }
-.bak-grid .bak-card:nth-child(6) { animation-delay: 0.55s; }
+.grid-3 .bak-card:nth-child(3),
+.stories-grid .film-card:nth-child(3) { animation-delay: 0.25s; }
+
+.grid-3 .bak-card:nth-child(4) { animation-delay: 0.35s; }
+.grid-3 .bak-card:nth-child(5) { animation-delay: 0.45s; }
+.grid-3 .bak-card:nth-child(6) { animation-delay: 0.55s; }
+.grid-3 .bak-card:nth-child(7) { animation-delay: 0.65s; }
+.grid-3 .bak-card:nth-child(8) { animation-delay: 0.75s; }
+.grid-3 .bak-card:nth-child(9) { animation-delay: 0.85s; }
+
+/* ── PAGE TRANSITIONS ───────────────────────────────────────── */
+@keyframes fadeInPage {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+::view-transition-old(root) {
+  animation: 0.3s ease both fade-out;
+}
+::view-transition-new(root) {
+  animation: 0.4s ease both fadeInPage;
+}
+@keyframes fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}

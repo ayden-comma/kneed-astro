@@ -2,30 +2,30 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getCollection } from 'astro:content';
 
-const stories = await getCollection('stories');
+const stories = await getCollection('kneedToKnow');
 ---
 
-<BaseLayout title="(K)Need to Know" description="Films, walkthroughs and essays about bread, bakers and the places they make.">
+<BaseLayout title="(K)Need to Know" description="Films and stories about bread, bakers and the places they make.">
 
   <main class="wf-container py-page">
 
     <div class="wf-page-head">
       <div class="wf-eyebrow">Editorial</div>
       <h1 class="wf-page-h1">(K)Need to Know</h1>
-      <p class="wf-page-intro">Films, walkthroughs and essays about bread, bakers and the places they make.</p>
+      <p class="wf-page-intro">Films and stories about bread, bakers and the places they make.</p>
     </div>
 
     <div class="stories-grid">
-      {stories.map((story) => (
+      {stories.map((story, i) => (
         <a href={'/kneed-to-know/' + story.data.slug} class="film-card">
-          <img class="film-card-img" src={story.data.thumbnail} alt={story.data.title} loading="lazy" />
+          <img class="film-card-img" src={story.data.thumbnail} alt={story.data.name} loading="lazy" />
           <div class="film-card-grade"></div>
-          <div class="film-card-dur">{story.data.duration}</div>
-          <div class="film-card-num">01</div>
+          {story.data.duration && <div class="film-card-dur">{story.data.duration}</div>}
+          <div class="film-card-num">{String(i + 1).padStart(2, '0')}</div>
           <div class="film-card-body">
             <div class="film-card-tag">{story.data.category}</div>
-            <div class="film-card-title">{story.data.title}</div>
-            <div class="film-card-bakery">{story.data.bakery}</div>
+            <div class="film-card-title">{story.data.name}</div>
+            <div class="film-card-bakery">{story.data.suburb}</div>
           </div>
           <div class="film-card-play">
             <svg viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg>
@@ -52,7 +52,6 @@ const stories = await getCollection('stories');
 @media (min-width: 900px) {
   .stories-grid { grid-template-columns: repeat(3, 1fr); }
 }
-
 .film-card {
   position: relative;
   display: block;
