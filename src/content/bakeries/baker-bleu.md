@@ -7,7 +7,7 @@ category: Sourdough
 hours: Mon–Fri 7am–4pm, Sat 7am–3pm, Sun 8am–2pm
 website: bakerbleu.com.au
 instagram: bakerbleu
-thumbnail: /images/bakeries/baker-bleu.jpg
+thumbnail: https://images.pexels.com/photos/7447297/pexels-photo-7447297.jpeg?auto=compress&cs=tinysrgb&w=800
 mapLink: https://maps.google.com/?q=359+Malvern+Rd+Armadale
 lat: -37.8566
 lng: 145.0231

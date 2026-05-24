@@ -7,7 +7,7 @@ category: Pastry
 hours: Mon–Fri 7am–3pm, Sat–Sun 8am–3pm
 website: lunecroissanterie.com
 instagram: lunecroissanterie
-thumbnail: /images/bakeries/lune-croissanterie.jpg
+thumbnail: https://images.pexels.com/photos/2245295/pexels-photo-2245295.jpeg?auto=compress&cs=tinysrgb&w=800
 mapLink: https://maps.google.com/?q=119+Rose+St+Fitzroy
 lat: -37.7963
 lng: 144.9795

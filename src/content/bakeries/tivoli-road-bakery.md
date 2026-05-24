@@ -2,13 +2,13 @@
 name: Tivoli Road Bakery
 slug: tivoli-road-bakery
 suburb: South Yarra
-address: 3 Tivoli Road, South Yarra VIC 3141
+address: 3 Duke St, Windsor VIC 3181
 category: Sourdough
-hours: Mon–Fri 7am–4pm, Sat–Sun 7am–3pm
-website: tivoliroad.com.au
-instagram: tivoliroad
-thumbnail: /images/bakeries/tivoli-road-bakery.jpg
-mapLink: https://maps.google.com/?q=3+Tivoli+Road+South+Yarra
+hours: Mon–Fri 7am–4pm, Sat–Sun 8am–4pm
+website: tivoliroadbakery.com.au
+instagram: tivoliroadbakery
+thumbnail: https://images.pexels.com/photos/36445170/pexels-photo-36445170.jpeg?auto=compress&cs=tinysrgb&w=800
+mapLink: https://maps.google.com/?q=3+Duke+St+Windsor+VIC
 lat: -37.8395
 lng: 144.9929
 ---
