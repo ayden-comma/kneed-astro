@@ -24,9 +24,14 @@ const websiteHref = data.website
   : null;
 const igHandle = data.instagram ? data.instagram.replace('@', '') : null;
 const hasMapLink = !!data.mapLink;
-const hasLat = !!data.lat && !!data.lng;
+const hasMultiLocations = !!(data.locations && data.locations.length > 1);
+const hasLat = (!!data.lat && !!data.lng) || hasMultiLocations || !!(data.locations && data.locations.length === 1);
 const hasVideo = !!data.videoId;
 const images = data.images || [];
+// For multi-location: pass JSON; for single: pass lat/lng directly as data-attributes
+const mapLocationsJson = hasMultiLocations ? JSON.stringify(data.locations) : '';
+const mapLat  = !hasMultiLocations ? String(data.locations?.[0]?.lat ?? data.lat ?? '') : '';
+const mapLng  = !hasMultiLocations ? String(data.locations?.[0]?.lng ?? data.lng ?? '') : '';
 
 const credits = [];
 if (data.director) credits.push({ role: 'Director', name: data.director });
@@ -35,6 +40,15 @@ if (data.sound)    credits.push({ role: 'Sound',     name: data.sound });
 if (data.edit)     credits.push({ role: 'Edit',      name: data.edit });
 ---
 
+<script is:inline>
+  if (history.scrollRestoration) history.scrollRestoration = 'manual';
+  window.scrollTo(0, 0);
+  // Clear any hash that matches an element on this page (e.g. #bakery-map)
+  // to prevent the browser jumping to it on load.
+  if (window.location.hash) {
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+  }
+</script>
 <BaseLayout
   title={data.name}
   description={data.description || data.name + ' — ' + data.category + ' bakery in ' + data.suburb + ', Melbourne.'}
@@ -68,7 +82,6 @@ if (data.edit)     credits.push({ role: 'Edit',      name: data.edit });
               <iframe
                 src={'https://www.youtube.com/embed/' + data.videoId + '?rel=0&modestbranding=1'}
                 title={data.name}
-                frameborder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowfullscreen
                 loading="lazy"
@@ -130,8 +143,18 @@ if (data.edit)     credits.push({ role: 'Edit',      name: data.edit });
 
           <div>
             <span class="aside-label">Address</span>
-            {hasMapLink && <a class="aside-link" href={data.mapLink} target="_blank" rel="noopener">{data.address}</a>}
-            {!hasMapLink && <span class="aside-value">{data.address}</span>}
+            {hasMultiLocations ? (
+              <div class="aside-locations">
+                {data.locations!.map((loc, locIdx) => (
+                  <a class="aside-link" data-location-index={String(locIdx)} href={'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(loc.addr)} target="_blank" rel="noopener">{loc.addr}</a>
+                ))}
+              </div>
+            ) : (
+              <>
+                {hasMapLink && <a class="aside-link" data-location-index="0" href={data.mapLink} target="_blank" rel="noopener">{data.address}</a>}
+                {!hasMapLink && <span class="aside-value" data-location-index="0">{data.address}</span>}
+              </>
+            )}
           </div>
 
           <div>
@@ -168,12 +191,17 @@ if (data.edit)     credits.push({ role: 'Edit',      name: data.edit });
             </div>
           )}
 
-          {hasMapLink && (
+          {hasMultiLocations ? (
+            <a class="wf-pill pill-dark" href={'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(data.locations![0].addr)} target="_blank" rel="noopener" style="margin-top:0.25rem; justify-content:center;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+              Open in Maps
+            </a>
+          ) : hasMapLink ? (
             <a class="wf-pill pill-dark" href={data.mapLink} target="_blank" rel="noopener" style="margin-top:0.25rem; justify-content:center;">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
               Open in Maps
             </a>
-          )}
+          ) : null}
 
           <button class="aside-share-btn" id="share-btn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4"/><path d="m15.4 6.5-6.8 4"/></svg>
@@ -209,7 +237,7 @@ if (data.edit)     credits.push({ role: 'Edit',      name: data.edit });
 
     <!-- MAP SECTION -->
     {hasLat && (
-      <section class="wf-container" style="padding-bottom: clamp(3rem,5vw,5rem);">
+      <section class="wf-container story-map-section" style="padding-bottom: clamp(3rem,5vw,5rem);">
         <div class="wf-section-head">
           <div>
             <div class="wf-eyebrow">Find this Bakery</div>
@@ -228,19 +256,26 @@ if (data.edit)     credits.push({ role: 'Edit',      name: data.edit });
               <div class="wf-eyebrow">{data.category}</div>
               <div class="story-map-info-name">{data.name}</div>
               <div class="story-map-details">
-                {hasMapLink && (
-                  <a class="story-map-detail" href={data.mapLink} target="_blank" rel="noopener">
+                {hasMultiLocations ? (
+                  data.locations!.map((loc, locIdx) => (
+                    <a class="story-map-detail" data-location-index={String(locIdx)} href={'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(loc.addr)} target="_blank" rel="noopener">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                      {loc.addr}
+                    </a>
+                  ))
+                ) : hasMapLink ? (
+                  <a class="story-map-detail" data-location-index="0" href={data.mapLink} target="_blank" rel="noopener">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
                     {data.address}
                   </a>
-                )}
+                ) : null}
                 <div class="story-map-detail">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                   {data.hours}
                 </div>
                 {websiteHref && (
                   <a class="story-map-detail" href={websiteHref} target="_blank" rel="noopener">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"/></svg>
                     {websiteDisplay}
                   </a>
                 )}
@@ -252,16 +287,30 @@ if (data.edit)     credits.push({ role: 'Edit',      name: data.edit });
                 )}
               </div>
             </div>
-            {hasMapLink && (
+            {(hasMultiLocations || hasMapLink) && (
               <div class="story-map-info-btn">
-                <a class="wf-pill pill-dark" href={data.mapLink} target="_blank" rel="noopener">
+                <a
+                  class="wf-pill pill-dark"
+                  href={hasMultiLocations
+                    ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(data.locations![0].addr)
+                    : data.mapLink!}
+                  target="_blank"
+                  rel="noopener"
+                >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
                   Open in map
                 </a>
               </div>
             )}
           </div>
-          <div id="bakery-map" data-lat={data.lat} data-lng={data.lng}></div>
+          <div class="story-map-canvas-wrap">
+            <div
+              id="bakery-map"
+              data-lat={mapLat}
+              data-lng={mapLng}
+              data-locations={mapLocationsJson}
+            ></div>
+          </div>
         </div>
       </section>
     )}
@@ -311,17 +360,16 @@ if (data.edit)     credits.push({ role: 'Edit',      name: data.edit });
 .story-video-block {
   flex: 1;
   position: relative;
-  background: #000;
+  background: var(--ink);
   min-width: 0;
 }
 .story-video-wrap {
   position: relative;
   width: 100%;
   aspect-ratio: 16/9;
-  background: #000;
+  background: var(--ink);
   overflow: hidden;
   border-radius: var(--r-hero);
-  box-shadow: 0 12px 60px rgba(0,0,0,0.5);
 }
 .story-video-wrap iframe {
   position: absolute;
@@ -391,7 +439,14 @@ if (data.edit)     credits.push({ role: 'Edit',      name: data.edit });
   .story-nav-rail { width: 2rem; padding: 0; }
   .story-video-block { padding: 0 0.75rem; }
 }
+.story-map-section {
+  position: relative;
+  z-index: 0;
+}
 .story-map-panel {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
   border-radius: 1.5rem;
   border: 1px solid var(--border);
   background: var(--surface);
@@ -401,6 +456,13 @@ if (data.edit)     credits.push({ role: 'Edit',      name: data.edit });
 }
 @media (min-width: 600px) {
   .story-map-panel { grid-template-columns: clamp(220px, 30%, 300px) 1fr; }
+}
+.story-map-canvas-wrap {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+  overflow: hidden;
+  max-height: clamp(280px, 40vw, 520px);
 }
 .story-map-info {
   padding: clamp(1.25rem, 3vw, 1.875rem);
@@ -446,93 +508,205 @@ a.story-map-detail:hover svg { color: var(--amber); }
   margin-top: clamp(1rem, 2.5vw, 1.5rem);
   align-self: flex-start;
 }
-#bakery-map { height: clamp(280px, 40vw, 520px); }
-@media (max-width: 599px) { #bakery-map { height: 260px; } }
+#bakery-map { width: 100%; height: clamp(280px, 40vw, 520px); display: block; }
+@media (max-width: 599px) {
+  #bakery-map { height: 260px; }
+  .story-map-canvas-wrap { max-height: 260px; }
+}
 .bakery-inline-photos {
   margin-top: 2.5rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
+/* Multiple address links stacked in the aside for multi-location bakeries */
+.aside-locations {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.15rem;
+}
+/* Plain <span> address gets pointer + amber hover when it has a location-index (triggers marker highlight) */
+span[data-location-index] { cursor: pointer; transition: color 0.18s; }
+span[data-location-index]:hover { color: var(--amber); }
+/* setOpacity() targets the outer Leaflet wrapper — transition must live here, not on the inner div */
+:global(.leaflet-marker-icon) { transition: opacity 0.3s ease; }
 </style>
 
 <script is:inline>
-  var url = window.location.href;
+  function initBakeryPage() {
+    var url = window.location.href;
 
-  document.getElementById('share-fb').addEventListener('click', function() {
-    window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url), '_blank', 'width=600,height=400');
-  });
-  document.getElementById('share-ig').addEventListener('click', function() {
-    window.open('https://www.instagram.com/', '_blank');
-  });
-  document.getElementById('share-li').addEventListener('click', function() {
-    window.open('https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(url), '_blank', 'width=600,height=400');
-  });
-  document.getElementById('share-link').addEventListener('click', function() {
-    navigator.clipboard.writeText(url).then(function() {
-      var btn = document.getElementById('share-link');
-      btn.style.color = 'var(--amber)';
-      setTimeout(function() { btn.style.color = ''; }, 1200);
-    });
-  });
+    var elFb   = document.getElementById('share-fb');
+    var elIg   = document.getElementById('share-ig');
+    var elLi   = document.getElementById('share-li');
+    var elLink = document.getElementById('share-link');
+    if (elFb)   elFb.onclick   = function() { window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url), '_blank', 'width=600,height=400'); };
+    if (elIg)   elIg.onclick   = function() { window.open('https://www.instagram.com/', '_blank'); };
+    if (elLi)   elLi.onclick   = function() { window.open('https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(url), '_blank', 'width=600,height=400'); };
+    if (elLink) elLink.onclick = function() {
+      navigator.clipboard.writeText(url).then(function() {
+        elLink.style.color = 'var(--amber)';
+        setTimeout(function() { elLink.style.color = ''; }, 1200);
+      });
+    };
 
-  var shareBtn = document.getElementById('share-btn');
-  if (shareBtn) {
-    shareBtn.addEventListener('click', function() {
-      if (navigator.share) {
-        navigator.share({ url: url });
-      } else {
-        navigator.clipboard.writeText(url).then(function() {
-          shareBtn.textContent = 'Link copied!';
-          setTimeout(function() {
-            shareBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4"/><path d="m15.4 6.5-6.8 4"/></svg>Share';
-          }, 2000);
-        });
-      }
-    });
-  }
+    var shareBtn = document.getElementById('share-btn');
+    if (shareBtn) {
+      shareBtn.onclick = function() {
+        if (navigator.share) {
+          navigator.share({ url: url });
+        } else {
+          navigator.clipboard.writeText(url).then(function() {
+            shareBtn.textContent = 'Link copied!';
+            setTimeout(function() {
+              shareBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4"/><path d="m15.4 6.5-6.8 4"/></svg>Share';
+            }, 2000);
+          });
+        }
+      };
+    }
 
-  var mapEl = document.getElementById('bakery-map');
-  if (mapEl) {
+    var mapEl = document.getElementById('bakery-map');
+    if (!mapEl) return;
+
     var lat = parseFloat(mapEl.dataset.lat || '0');
     var lng = parseFloat(mapEl.dataset.lng || '0');
+    var multiLocations = null;
+    try {
+      var raw = mapEl.dataset.locations || '';
+      if (raw) multiLocations = JSON.parse(raw);
+    } catch(e) {}
+
+    // Populated by buildBakeryMap once Leaflet loads; referenced by hover handlers.
+    var markers = [];
+
+    function makeDot(size, primary) {
+      var half = size / 2;
+      var bg     = primary ? '#f2ede6' : '#c8833a';
+      var border = primary ? '#c8833a' : 'rgba(242,237,230,0.9)';
+      return L.divIcon({
+        className: '',
+        html: '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;'
+            + 'background:' + bg + ';border:2px solid ' + border + ';'
+            + 'box-shadow:0 2px 8px rgba(0,0,0,0.5);transition:transform 0.3s ease;"></div>',
+        iconSize: [size, size],
+        iconAnchor: [half, half],
+      });
+    }
+
+    // Scale the inner div directly — avoids setIcon() which replaces the element
+    // and would prevent CSS transitions from running.
+    function highlightLocation(locIdx) {
+      markers.forEach(function(m, i) {
+        var inner = m._icon && m._icon.firstElementChild;
+        if (i === locIdx) {
+          if (inner) inner.style.transform = 'scale(1.5)';
+          m.setOpacity(1);
+        } else {
+          if (inner) inner.style.transform = '';
+          m.setOpacity(0.5);
+        }
+      });
+    }
+
+    function clearHighlight() {
+      markers.forEach(function(m) {
+        var inner = m._icon && m._icon.firstElementChild;
+        if (inner) inner.style.transform = '';
+        m.setOpacity(1);
+      });
+    }
+
+    // Wire mouseenter/mouseleave on every [data-location-index] element.
+    // Called inside buildBakeryMap after markers[] is populated.
+    function wireAddressHovers() {
+      document.querySelectorAll('[data-location-index]').forEach(function(el) {
+        var locIdx = parseInt(el.dataset.locationIndex, 10);
+        el.onmouseenter = function() { highlightLocation(locIdx); };
+        el.onmouseleave = function() { clearHighlight(); };
+      });
+    }
 
     function buildBakeryMap() {
-      if (!lat || !lng || window._bakeryMapInit) return;
-      window._bakeryMapInit = true;
-      var map = L.map('bakery-map', {
-        center: [lat, lng],
-        zoom: 15,
-        zoomControl: true,
-        attributionControl: false,
-      });
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19
-      }).addTo(map);
-      var icon = L.divIcon({
-        className: '',
-        html: '<div style="width:12px;height:12px;border-radius:50%;background:#c8833a;border:2px solid rgba(242,237,230,0.9);box-shadow:0 2px 8px rgba(0,0,0,0.5);"></div>',
-        iconSize: [12, 12],
-        iconAnchor: [6, 6]
-      });
-      L.marker([lat, lng], { icon: icon }).addTo(map);
+      if (mapEl._leaflet_id) return;
+      setTimeout(function() {
+        requestAnimationFrame(function() {
+          if (mapEl._leaflet_id) return;
+
+          if (multiLocations && multiLocations.length > 1) {
+            // ── Multi-location: show all pins and fit bounds ──────────────
+            var map = L.map(mapEl, {
+              zoomControl: true,
+              attributionControl: false,
+              scrollWheelZoom: false,
+              dragging: true,
+              touchZoom: true,
+            });
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+              maxZoom: 19,
+            }).addTo(map);
+
+            var bounds = L.latLngBounds();
+            multiLocations.forEach(function(loc, i) {
+              var icon = makeDot(i === 0 ? 16 : 12, i === 0);
+              var m = L.marker([loc.lat, loc.lng], { icon: icon }).addTo(map);
+              markers.push(m);
+              bounds.extend([loc.lat, loc.lng]);
+            });
+
+            map.fitBounds(bounds, { padding: [48, 48] });
+            setTimeout(function() { map.invalidateSize(); }, 100);
+
+          } else {
+            // ── Single location ───────────────────────────────────────────
+            if (!lat || !lng) return;
+            var map = L.map(mapEl, {
+              center: [lat, lng],
+              zoom: 15,
+              zoomControl: true,
+              attributionControl: false,
+            });
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+              maxZoom: 19,
+            }).addTo(map);
+            var icon = makeDot(12, false);
+            var m = L.marker([lat, lng], { icon: icon }).addTo(map);
+            markers.push(m);
+            setTimeout(function() { map.invalidateSize(); }, 100);
+          }
+
+          wireAddressHovers();
+        });
+      }, 200);
     }
 
-    if (!document.getElementById('leaflet-css')) {
-      var css = document.createElement('link');
-      css.id = 'leaflet-css';
-      css.rel = 'stylesheet';
-      css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
-      document.head.appendChild(css);
+    function loadLeafletAndInit() {
+      if (!document.getElementById('leaflet-css')) {
+        var css = document.createElement('link');
+        css.id = 'leaflet-css';
+        css.rel = 'stylesheet';
+        css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
+        document.head.appendChild(css);
+      }
+      if (window.L) {
+        buildBakeryMap();
+      } else {
+        var existing = document.getElementById('leaflet-js');
+        if (existing) {
+          existing.addEventListener('load', buildBakeryMap);
+        } else {
+          var script = document.createElement('script');
+          script.id = 'leaflet-js';
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+          script.onload = buildBakeryMap;
+          document.head.appendChild(script);
+        }
+      }
     }
-    if (!document.getElementById('leaflet-js')) {
-      var script = document.createElement('script');
-      script.id = 'leaflet-js';
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
-      script.onload = function() { setTimeout(buildBakeryMap, 100); };
-      document.head.appendChild(script);
-    } else if (window.L) {
-      setTimeout(buildBakeryMap, 100);
-    }
+
+    loadLeafletAndInit();
   }
+
+  window.registerPageInit('bakery-story', initBakeryPage, null);
 </script>

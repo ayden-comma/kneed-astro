@@ -1,4 +1,5 @@
-import { defineCollection, z } from 'astro:content';
+import { defineCollection } from 'astro:content';
+import { z } from 'zod';
 import { glob } from 'astro/loaders';
 
 const sharedSchema = z.object({
@@ -26,6 +27,11 @@ const sharedSchema = z.object({
   images: z.array(z.object({
     src: z.string(),
     caption: z.string().optional(),
+  })).optional(),
+  locations: z.array(z.object({
+    addr: z.string(),
+    lat: z.number(),
+    lng: z.number(),
   })).optional(),
 });
 

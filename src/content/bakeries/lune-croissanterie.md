@@ -12,6 +12,13 @@ thumbnail: https://images.pexels.com/photos/2245295/pexels-photo-2245295.jpeg?au
 mapLink: https://maps.google.com/?q=119+Rose+St+Fitzroy
 lat: -37.7963
 lng: 144.9795
+locations:
+  - addr: 119 Rose St, Fitzroy VIC 3065
+    lat: -37.7963
+    lng: 144.9795
+  - addr: 119 Hawthorn Rd, Caulfield North VIC 3161
+    lat: -37.874
+    lng: 145.024
 date: March 2025
 quote: "Scientific precision applied to laminated dough — hundreds of paper-thin layers that shatter at the touch."
 images:

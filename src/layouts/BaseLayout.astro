@@ -20,8 +20,54 @@ const { title, description } = Astro.props;
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="/global.css" />
     
+    <!--
+      ═══════════════════════════════════════════════════════════════
+      PAGE INIT REGISTRY
+      ═══════════════════════════════════════════════════════════════
+      Handles Astro View Transition lifecycle for every page on the
+      site. Because Astro's ClientRouter (SPA mode) keeps <head>
+      alive across navigations, this script runs once and persists.
+
+      HOW TO USE — in any page's <script is:inline> block:
+
+        window.registerPageInit('my-page-id', initFn, destroyFn);
+
+        • initFn()    — called after every astro:page-load
+        • destroyFn() — called before astro:before-swap (optional)
+
+      The registry is cleared on every before-swap so only the
+      incoming page's function is queued when page-load fires.
+      Each init should guard with an element-existence check so it
+      is safe to be called on pages where its elements don't exist.
+      ═══════════════════════════════════════════════════════════════
+    -->
+    <script is:inline>
+      window.__pageInits = window.__pageInits || {};
+
+      window.registerPageInit = function(pageId, initFn, destroyFn) {
+        window.__pageInits[pageId] = { init: initFn, destroy: destroyFn || null };
+      };
+
+      if (!window.__lifecycleListenersAdded) {
+        window.__lifecycleListenersAdded = true;
+
+        document.addEventListener('astro:before-swap', function() {
+          Object.values(window.__pageInits).forEach(function(p) {
+            if (typeof p.destroy === 'function') p.destroy();
+          });
+          window.__pageInits = {};
+        });
+
+        document.addEventListener('astro:page-load', function() {
+          Object.values(window.__pageInits).forEach(function(p) {
+            if (typeof p.init === 'function') p.init();
+          });
+        });
+      }
+    </script>
+
     <!-- Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-G6ZQHC582Q"></script>
+    <script is:inline async src="https://www.googletagmanager.com/gtag/js?id=G-G6ZQHC582Q"></script>
     <script is:inline>
       window.dataLayer = window.dataLayer || [];
       function gtag(){window.dataLayer.push(arguments);}

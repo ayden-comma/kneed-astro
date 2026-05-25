@@ -1029,7 +1029,9 @@ body.light-mode .disc-suggest-title { color: #1a1612; }
 }
 .map-popup-btn:hover { opacity: 0.82; }
 .map-popup-btn-primary { background: var(--parchment); color: var(--ink); border: none; }
-.map-popup-btn-ghost { background: none; border: 1px solid var(--border-md); color: var(--p-70); }
+.map-popup-btn-ghost { background: var(--surface-2); border: 1px solid var(--border-md); color: var(--parchment); }
+.map-popup-addr-link { color: inherit; text-decoration: none; transition: color 0.18s; }
+.map-popup-addr-link:hover { color: var(--amber); }
 .map-popup-close {
   position: absolute; top: 0.5rem; right: 0.5rem;
   width: 1.75rem; height: 1.75rem; border-radius: 50%;
@@ -1116,6 +1118,46 @@ body.light-mode .story-map-info-name { color: #1a1612; }
 #map-teaser-canvas .leaflet-tile-pane,
 #map-teaser-canvas .leaflet-marker-pane { pointer-events: none; }
 #map-teaser-canvas .leaflet-marker-icon { pointer-events: all; cursor: pointer; }
+
+/*
+ * Leaflet z-index note: do NOT override .leaflet-top/.leaflet-control z-indexes here.
+ * The map wrappers (.map-canvas-wrap, .story-map-canvas-wrap) use isolation:isolate
+ * with a low z-index to contain all Leaflet elements below the site header.
+ * Overriding internal Leaflet z-indexes (tiles: 200, controls: 1000) causes controls
+ * to disappear behind the tile layer.
+ */
+
+/* Leaflet zoom control — match site design */
+.leaflet-bar {
+  border: 1px solid var(--border-md) !important;
+  border-radius: 0.5rem !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important;
+}
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+  background: var(--surface-2) !important;
+  color: var(--parchment) !important;
+  border-bottom: 1px solid var(--border) !important;
+  width: 2rem !important;
+  height: 2rem !important;
+  line-height: 2rem !important;
+  font-size: 1.1rem !important;
+  font-weight: 300 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-decoration: none !important;
+  transition: background 0.18s, color 0.18s !important;
+}
+.leaflet-control-zoom-out {
+  border-bottom: none !important;
+}
+.leaflet-control-zoom-in:hover,
+.leaflet-control-zoom-out:hover {
+  background: var(--parchment) !important;
+  color: var(--ink) !important;
+}
 
 /* light mode overrides */
 body.light-mode .map-sidebar { background: #ede8e0; border-color: rgba(26,22,18,0.10); }

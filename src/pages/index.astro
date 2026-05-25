@@ -94,7 +94,7 @@ const kneedToKnow = await getCollection('kneedToKnow');
       <div style="margin-top: clamp(0.75rem,1.5vw,1.25rem);">
         <div class="film-rail-wrap">
           <div class="film-rail" id="film-rail">
-{bakeries.map((bakery, i) => (
+{bakeries.map((bakery) => (
               <a href={'/bakeries/' + bakery.data.slug} class="film-card film-card-side">
                 <img class="film-card-img" src={bakery.data.thumbnail} alt={bakery.data.name} loading="lazy" />
                 <div class="film-card-grade"></div>
@@ -163,20 +163,20 @@ const kneedToKnow = await getCollection('kneedToKnow');
           </span>
         </a>
       </div>
-      <div class="map-teaser-card">
+      <a href="/map" class="map-teaser-card">
         <div class="map-teaser-info">
           <div>
             <div class="wf-eyebrow" style="margin-bottom:0.5rem;">Every Bakery</div>
             <p class="map-teaser-desc">Every Melbourne bakery on one map. Find addresses, opening times and watch their story.</p>
           </div>
           <div class="map-teaser-locations" id="map-teaser-locations"></div>
-          <a href="/map" class="wf-pill pill-dark" style="margin-top:1.25rem; align-self:flex-start;">
+          <span class="wf-pill pill-dark" style="margin-top:1.25rem; align-self:flex-start;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
             Explore the map
-          </a>
+          </span>
         </div>
         <div id="map-teaser-canvas"></div>
-      </div>
+      </a>
     </section>
 
     <!-- NEWSLETTER -->
@@ -218,25 +218,16 @@ const kneedToKnow = await getCollection('kneedToKnow');
   inset: 0;
   background-size: cover;
   background-position: center 30%;
-}
-.hero-img-bg {
-  transform: scale(1.0);
-  transition: transform 20s ease-out;
-}
-.hero-img-bg.zooming {
-  transform: scale(1.08);
-}
-.hero-img-next {
-  transform: scale(1.0);
-  transition: opacity 1s ease, transform 20s ease-out;
-}
-.hero-img-next.zooming {
-  transform: scale(1.08);
-}
-.hero-img-next {
-  opacity: 0;
-  transition: opacity 1.2s ease-out;
   pointer-events: none;
+  will-change: transform, opacity;
+}
+.hero-img-next { opacity: 0; }
+@keyframes heroZoom {
+  from { transform: scale(1.0); }
+  to   { transform: scale(1.08); }
+}
+.hero-img-bg.zooming, .hero-img-next.zooming {
+  animation: heroZoom 22s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 .hero-grade {
   position: absolute;
@@ -582,6 +573,9 @@ const kneedToKnow = await getCollection('kneedToKnow');
   grid-template-columns: 1fr;
   height: clamp(260px, 32vw, 400px);
   isolation: isolate;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
 }
 @media (min-width: 768px) { .map-teaser-card { grid-template-columns: 280px 1fr; } }
 .map-teaser-card:hover { border-color: var(--border-md); }
@@ -753,75 +747,100 @@ const kneedToKnow = await getCollection('kneedToKnow');
     }
   ];
 
-  var currentSlide = 0;
-  var heroTransitioning = false;
-  var heroTimer = null;
+  var BAKERY_DATA = [
+    { name: 'Tivoli Road Bakery', lat: -37.8395, lng: 144.9929 },
+    { name: 'Lune Croissanterie', lat: -37.7963, lng: 144.9795 },
+    { name: 'Baker Bleu', lat: -37.8566, lng: 145.0231 },
+  ];
 
-  var bgEl = document.getElementById('hero-img-bg');
-  var nextEl = document.getElementById('hero-img-next');
-  var innerEl = document.getElementById('hero-content-inner');
-  var bgWordEl = document.getElementById('hero-bg-word');
-  var tagEl = document.getElementById('hero-eyebrow-tag');
-  var metaEl = document.getElementById('hero-eyebrow-meta');
-  var titleEl = document.getElementById('hero-title');
-  var bakeryEl = document.getElementById('hero-bakery-line');
-  var subtitleEl = document.getElementById('hero-subtitle');
+  function initHomePage() {
+    // Clear any hero timer left over from a previous visit
+    if (window._heroTimer) { clearInterval(window._heroTimer); window._heroTimer = null; }
 
-  function applySlide(idx) {
-    var s = HERO_SLIDES[idx];
-    tagEl.textContent = s.tag;
-    metaEl.textContent = 'Ep. ' + String(idx + 1).padStart(2, '0') + ' · Now Playing';
-    titleEl.textContent = s.title;
-    bakeryEl.textContent = s.bakery;
-    subtitleEl.textContent = s.subtitle;
-    var ctaBtn = document.getElementById('hero-cta-btn');
-    if (ctaBtn && s.slug) ctaBtn.href = s.slug;
-    document.querySelectorAll('.bottom-dot').forEach(function(d, i) {
-      d.classList.toggle('active', i === idx);
-    });
-  }
+    // Fresh DOM refs on every call
+    var bottomEl   = document.getElementById('hero-img-bg');
+    var topEl      = document.getElementById('hero-img-next');
+    var innerEl    = document.getElementById('hero-content-inner');
+    var bgWordEl   = document.getElementById('hero-bg-word');
+    var tagEl      = document.getElementById('hero-eyebrow-tag');
+    var metaEl     = document.getElementById('hero-eyebrow-meta');
+    var titleEl    = document.getElementById('hero-title');
+    var bakeryEl   = document.getElementById('hero-bakery-line');
+    var subtitleEl = document.getElementById('hero-subtitle');
 
-  function initHero() {
-    if (!HERO_SLIDES.length) return;
-    var first = HERO_SLIDES[0];
-    bgEl.style.backgroundImage = "url('" + first.image + "')";
-    applySlide(0);
-    if (bgWordEl) bgWordEl.textContent = first.bgWord;
-    setTimeout(function() {
-      if (innerEl) innerEl.classList.add('visible');
-      if (bgWordEl) {
-        setTimeout(function() {
-          bgWordEl.classList.add('bg-visible');
-        }, 400);
-      }
-      requestAnimationFrame(function() {
-        bgEl.classList.add('zooming');
+    if (!bottomEl || !topEl) return; // not on homepage
+
+    var currentSlide = 0;
+    var heroTransitioning = false;
+    var activeIsTop = false;
+
+    function applySlide(idx) {
+      var s = HERO_SLIDES[idx];
+      if (tagEl) tagEl.textContent = s.tag;
+      if (metaEl) metaEl.textContent = 'Ep. ' + String(idx + 1).padStart(2, '0') + ' · Now Playing';
+      if (titleEl) titleEl.textContent = s.title;
+      if (bakeryEl) bakeryEl.textContent = s.bakery;
+      if (subtitleEl) subtitleEl.textContent = s.subtitle;
+      var ctaBtn = document.getElementById('hero-cta-btn');
+      if (ctaBtn && s.slug) ctaBtn.href = s.slug;
+      document.querySelectorAll('.bottom-dot').forEach(function(d, i) {
+        d.classList.toggle('active', i === idx);
       });
-    }, 100);
-  }
-
-  function goToSlide(idx) {
-    if (heroTransitioning || idx === currentSlide) return;
-    heroTransitioning = true;
-    var s = HERO_SLIDES[idx];
-
-    nextEl.style.transition = 'none';
-    nextEl.style.opacity = '0';
-    nextEl.classList.remove('zooming');
-    nextEl.style.backgroundImage = "url('" + s.image + "')";
-    void nextEl.offsetHeight;
-
-    if (innerEl) {
-      innerEl.classList.remove('visible');
-      innerEl.classList.add('fading');
     }
 
-    setTimeout(function() {
-      nextEl.style.transition = 'opacity 1s ease, transform 20s ease-out';
-      nextEl.style.opacity = '1';
-      requestAnimationFrame(function() {
-        nextEl.classList.add('zooming');
-      });
+    function initHero() {
+      if (!HERO_SLIDES.length) return;
+      var first = HERO_SLIDES[0];
+      // Reset any leftover state from a previous visit
+      bottomEl.classList.remove('zooming');
+      topEl.classList.remove('zooming');
+      if (innerEl) innerEl.classList.remove('visible', 'fading');
+      if (bgWordEl) bgWordEl.classList.remove('bg-visible', 'bg-fading');
+      bottomEl.style.opacity = '1';
+      topEl.style.opacity = '0';
+      bottomEl.style.backgroundImage = "url('" + first.image + "')";
+      applySlide(0);
+      if (bgWordEl) bgWordEl.textContent = first.bgWord;
+      setTimeout(function() {
+        if (innerEl) innerEl.classList.add('visible');
+        if (bgWordEl) setTimeout(function() { bgWordEl.classList.add('bg-visible'); }, 400);
+        bottomEl.classList.add('zooming');
+      }, 100);
+    }
+
+    function goToSlide(idx) {
+      if (heroTransitioning || idx === currentSlide) return;
+      heroTransitioning = true;
+      var s = HERO_SLIDES[idx];
+      var outgoingEl = activeIsTop ? topEl : bottomEl;
+      var incomingEl = activeIsTop ? bottomEl : topEl;
+
+      incomingEl.style.transition = 'none';
+      incomingEl.style.opacity = '0';
+      incomingEl.classList.remove('zooming');
+      incomingEl.style.backgroundImage = "url('" + s.image + "')";
+      void incomingEl.offsetHeight;
+
+      if (innerEl) { innerEl.classList.remove('visible'); innerEl.classList.add('fading'); }
+
+      if (!activeIsTop) {
+        requestAnimationFrame(function() {
+          requestAnimationFrame(function() {
+            incomingEl.style.transition = 'opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1)';
+            incomingEl.style.opacity = '1';
+            incomingEl.classList.add('zooming');
+          });
+        });
+      } else {
+        incomingEl.style.opacity = '1';
+        incomingEl.classList.add('zooming');
+        requestAnimationFrame(function() {
+          requestAnimationFrame(function() {
+            outgoingEl.style.transition = 'opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1)';
+            outgoingEl.style.opacity = '0';
+          });
+        });
+      }
 
       if (bgWordEl) {
         bgWordEl.classList.add('bg-fading');
@@ -830,163 +849,143 @@ const kneedToKnow = await getCollection('kneedToKnow');
           bgWordEl.textContent = s.bgWord;
           bgWordEl.classList.remove('bg-fading');
           bgWordEl.classList.add('bg-visible');
-        }, 420);
+        }, 700);
       }
 
       setTimeout(function() {
         applySlide(idx);
-        bgEl.style.backgroundImage = "url('" + s.image + "')";
-        bgEl.classList.remove('zooming');
-        void bgEl.offsetHeight;
-        bgEl.classList.add('zooming');
+        if (innerEl) { innerEl.classList.remove('fading'); innerEl.classList.add('visible'); }
+      }, 1200);
 
-        nextEl.style.transition = 'none';
-        nextEl.style.opacity = '0';
-        nextEl.classList.remove('zooming');
-
-        if (innerEl) {
-          innerEl.classList.remove('fading');
-          setTimeout(function() {
-            innerEl.classList.add('visible');
-          }, 50);
-        }
-
+      setTimeout(function() {
+        activeIsTop = !activeIsTop;
+        outgoingEl.style.transition = 'none';
+        outgoingEl.style.opacity = '0';
+        outgoingEl.classList.remove('zooming');
         currentSlide = idx;
         heroTransitioning = false;
-      }, 1000);
-    }, 400);
-  }
-
-  function startAutoplay() {
-    if (heroTimer) clearInterval(heroTimer);
-    heroTimer = setInterval(function() {
-      goToSlide((currentSlide + 1) % HERO_SLIDES.length);
-    }, 6000);
-  }
-
-  initHero();
-  startAutoplay();
-
-  // Hero click — navigate to current slide
-  var heroSection = document.getElementById('hero-section');
-  if (heroSection) {
-    heroSection.style.cursor = 'pointer';
-    heroSection.addEventListener('click', function() {
-      var s = HERO_SLIDES[currentSlide];
-      if (s && s.slug) window.location.href = s.slug;
-    });
-  }
-
-  // Dots — change slide, don't navigate
-  document.querySelectorAll('.bottom-dot').forEach(function(dot) {
-    dot.addEventListener('click', function(e) {
-      e.stopPropagation();
-      var idx = parseInt(this.dataset.slide, 10);
-      goToSlide(idx);
-      startAutoplay();
-    });
-  });
-
-  // NEWSLETTER
-  var nlBtn = document.getElementById('nl-btn');
-  var nlEmail = document.getElementById('nl-email');
-  if (nlBtn && nlEmail) {
-    nlBtn.addEventListener('click', function() {
-      var email = nlEmail.value.trim();
-      if (!email || !email.includes('@')) {
-        nlEmail.style.borderColor = '#c0392b';
-        setTimeout(function() { nlEmail.style.borderColor = ''; }, 2000);
-        return;
-      }
-      nlBtn.textContent = 'Thanks — you\'re in!';
-      nlBtn.style.opacity = '0.7';
-      nlBtn.disabled = true;
-      nlEmail.disabled = true;
-    });
-  }
-
-  // FILM RAIL NAV
-  var rail = document.getElementById('film-rail');
-  var prevBtn = document.getElementById('film-prev');
-  var nextBtn = document.getElementById('film-next');
-  if (rail && prevBtn && nextBtn) {
-    nextBtn.addEventListener('click', function() {
-      rail.scrollBy({ left: 340, behavior: 'smooth' });
-    });
-    prevBtn.addEventListener('click', function() {
-      rail.scrollBy({ left: -340, behavior: 'smooth' });
-    });
-  }
-
-  // MAP TEASER
-  var BAKERY_DATA = [
-    { name: 'Tivoli Road Bakery', lat: -37.8395, lng: 144.9929 },
-    { name: 'Lune Croissanterie', lat: -37.7963, lng: 144.9795 },
-    { name: 'Baker Bleu', lat: -37.8566, lng: 145.0231 },
-  ];
-
-  var locWrap = document.getElementById('map-teaser-locations');
-  if (locWrap) {
-    BAKERY_DATA.forEach(function(b) {
-      var row = document.createElement('div');
-      row.className = 'map-teaser-loc-row';
-      row.textContent = b.name;
-      locWrap.appendChild(row);
-    });
-  }
-
-  function buildTeaserMap() {
-    var el = document.getElementById('map-teaser-canvas');
-    if (!el || window._teaserMapInit) return;
-    if (el.offsetWidth === 0 || el.offsetHeight === 0) {
-      setTimeout(buildTeaserMap, 200);
-      return;
+      }, 1600);
     }
-    window._teaserMapInit = true;
 
-    var map = L.map('map-teaser-canvas', {
-      center: [-37.814, 144.970],
-      zoom: 11,
-      zoomControl: false,
-      attributionControl: false,
-      dragging: false,
-      scrollWheelZoom: false,
-      doubleClickZoom: false,
-      touchZoom: false,
-      keyboard: false,
+    function startAutoplay() {
+      if (window._heroTimer) clearInterval(window._heroTimer);
+      window._heroTimer = setInterval(function() {
+        goToSlide((currentSlide + 1) % HERO_SLIDES.length);
+      }, 6000);
+    }
+
+    initHero();
+    startAutoplay();
+
+    // Hero click — navigate to current slide
+    var heroSection = document.getElementById('hero-section');
+    if (heroSection) {
+      heroSection.style.cursor = 'pointer';
+      heroSection.onclick = function() {
+        var s = HERO_SLIDES[currentSlide];
+        if (s && s.slug) window.location.href = s.slug;
+      };
+    }
+
+    // Dots — change slide
+    document.querySelectorAll('.bottom-dot').forEach(function(dot) {
+      dot.onclick = function(e) {
+        e.stopPropagation();
+        var idx = parseInt(this.dataset.slide, 10);
+        goToSlide(idx);
+        startAutoplay();
+      };
     });
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19
-    }).addTo(map);
+    // NEWSLETTER
+    var nlBtn = document.getElementById('nl-btn');
+    var nlEmail = document.getElementById('nl-email');
+    if (nlBtn && nlEmail) {
+      nlBtn.onclick = function() {
+        var email = nlEmail.value.trim();
+        if (!email || !email.includes('@')) {
+          nlEmail.style.borderColor = '#c0392b';
+          setTimeout(function() { nlEmail.style.borderColor = ''; }, 2000);
+          return;
+        }
+        nlBtn.textContent = 'Thanks — you\'re in!';
+        nlBtn.style.opacity = '0.7';
+        nlBtn.disabled = true;
+        nlEmail.disabled = true;
+      };
+    }
 
-    BAKERY_DATA.forEach(function(b) {
-      var icon = L.divIcon({
-        className: '',
-        html: '<div style="width:10px;height:10px;border-radius:50%;background:#c8833a;border:2px solid rgba(242,237,230,0.9);box-shadow:0 2px 8px rgba(0,0,0,0.5);"></div>',
-        iconSize: [10, 10],
-        iconAnchor: [5, 5]
+    // FILM RAIL NAV
+    var rail = document.getElementById('film-rail');
+    var prevBtn = document.getElementById('film-prev');
+    var nextBtn = document.getElementById('film-next');
+    if (rail && prevBtn && nextBtn) {
+      nextBtn.onclick = function() { rail.scrollBy({ left: 340, behavior: 'smooth' }); };
+      prevBtn.onclick = function() { rail.scrollBy({ left: -340, behavior: 'smooth' }); };
+    }
+
+    // MAP TEASER — location list
+    var locWrap = document.getElementById('map-teaser-locations');
+    if (locWrap) {
+      locWrap.innerHTML = '';
+      BAKERY_DATA.forEach(function(b) {
+        var row = document.createElement('div');
+        row.className = 'map-teaser-loc-row';
+        row.textContent = b.name;
+        locWrap.appendChild(row);
       });
-      L.marker([b.lat, b.lng], { icon: icon }).addTo(map);
-    });
+    }
 
-    setTimeout(function() { map.invalidateSize(); }, 200);
+    // MAP TEASER — Leaflet
+    function buildTeaserMap() {
+      var el = document.getElementById('map-teaser-canvas');
+      if (!el) return;
+      if (el._leaflet_id) return; // element-level guard, resets when DOM is replaced
+      if (el.offsetWidth === 0 || el.offsetHeight === 0) { setTimeout(buildTeaserMap, 200); return; }
+
+      var map = L.map('map-teaser-canvas', {
+        center: [-37.814, 144.970],
+        zoom: 11,
+        zoomControl: false,
+        attributionControl: false,
+        dragging: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        touchZoom: false,
+        keyboard: false,
+      });
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
+      BAKERY_DATA.forEach(function(b) {
+        var icon = L.divIcon({
+          className: '',
+          html: '<div style="width:10px;height:10px;border-radius:50%;background:#c8833a;border:2px solid rgba(242,237,230,0.9);box-shadow:0 2px 8px rgba(0,0,0,0.5);"></div>',
+          iconSize: [10, 10], iconAnchor: [5, 5]
+        });
+        L.marker([b.lat, b.lng], { icon: icon }).addTo(map);
+      });
+      setTimeout(function() { map.invalidateSize(); }, 200);
+    }
+
+    if (!document.getElementById('leaflet-css')) {
+      var css = document.createElement('link');
+      css.id = 'leaflet-css'; css.rel = 'stylesheet';
+      css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
+      document.head.appendChild(css);
+    }
+    if (!document.getElementById('leaflet-js')) {
+      var script = document.createElement('script');
+      script.id = 'leaflet-js';
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+      script.onload = function() { setTimeout(buildTeaserMap, 100); };
+      document.head.appendChild(script);
+    } else if (window.L) {
+      setTimeout(buildTeaserMap, 100);
+    }
   }
 
-  if (!document.getElementById('leaflet-css')) {
-    var css = document.createElement('link');
-    css.id = 'leaflet-css';
-    css.rel = 'stylesheet';
-    css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
-    document.head.appendChild(css);
+  function destroyHomePage() {
+    if (window._heroTimer) { clearInterval(window._heroTimer); window._heroTimer = null; }
   }
-  if (!document.getElementById('leaflet-js')) {
-    var script = document.createElement('script');
-    script.id = 'leaflet-js';
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
-    script.onload = function() { setTimeout(buildTeaserMap, 100); };
-    document.head.appendChild(script);
-  } else if (window.L) {
-    setTimeout(buildTeaserMap, 100);
-  }
+
+  window.registerPageInit('home', initHomePage, destroyHomePage);
 </script>
