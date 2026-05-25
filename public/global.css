@@ -516,17 +516,6 @@ body.light-mode .film-nav-btn:hover { background: #1a1612; color: #f2ede6; borde
 .film-rail-wrap {
   position: relative;
 }
-/* Fade edges */
-.film-rail-wrap::before,
-.film-rail-wrap::after {
-  content: ''; position: absolute; top: 0; bottom: 0;
-  width: 4rem; pointer-events: none; z-index: 2;
-  transition: opacity 0.3s;
-}
-.film-rail-wrap::before { left: 0;  background: linear-gradient(to right, var(--ink), transparent); }
-.film-rail-wrap::after  { right: 0; background: linear-gradient(to left,  var(--ink), transparent); }
-body.light-mode .film-rail-wrap::before { background: linear-gradient(to right, #f2ede6, transparent); }
-body.light-mode .film-rail-wrap::after  { background: linear-gradient(to left,  #f2ede6, transparent); }
 
 .film-rail {
   display: flex;

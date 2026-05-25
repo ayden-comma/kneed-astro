@@ -48,7 +48,7 @@ const kneedToKnow = await getCollection('kneedToKnow');
           <span class="hero-bakery-line" id="hero-bakery-line"></span>
           <p class="hero-subtitle" id="hero-subtitle"></p>
           <div class="hero-cta-row">
-            <a href="/kneed-to-know" class="wf-pill pill-dark">
+<a href="/bakeries" class="wf-pill pill-dark" id="hero-cta-btn">
               <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><polygon points="6,4 20,12 6,20"/></svg>
               Watch Now
             </a>
@@ -109,7 +109,9 @@ const kneedToKnow = await getCollection('kneedToKnow');
                 </div>
                 <div class="film-card-accent"></div>
               </a>
-            ))}        </div>
+            ))}        
+            </div>
+          </div>
       </div>
     </section>
 
@@ -440,11 +442,11 @@ const kneedToKnow = await getCollection('kneedToKnow');
   border-radius: var(--r-card);
   overflow: hidden;
   border: 1px solid var(--border);
-  aspect-ratio: 16/10;
   cursor: pointer;
   transition: border-color 0.22s, transform 0.25s var(--ease-out);
 }
 .film-card:hover { border-color: var(--border-md); transform: translateY(-4px); }
+.home-grid .film-card { aspect-ratio: 16/10; }
 .film-card-img {
   position: absolute;
   inset: 0;
@@ -547,18 +549,6 @@ const kneedToKnow = await getCollection('kneedToKnow');
 .film-rail-wrap {
   position: relative;
 }
-.film-rail-wrap::before,
-.film-rail-wrap::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 4rem;
-  pointer-events: none;
-  z-index: 2;
-}
-.film-rail-wrap::before { left: 0; background: linear-gradient(to right, var(--ink), transparent); }
-.film-rail-wrap::after  { right: 0; background: linear-gradient(to left, var(--ink), transparent); }
 .film-rail {
   display: flex;
   gap: 1rem;
@@ -574,14 +564,11 @@ const kneedToKnow = await getCollection('kneedToKnow');
   scroll-snap-align: start;
   aspect-ratio: 4/3;
 }
-.film-card {
-  position: relative;
-  display: block;
-  border-radius: var(--r-card);
-  overflow: hidden;
-  border: 1px solid var(--border);
-  cursor: pointer;
-  transition: border-color 0.22s, transform 0.25s var(--ease-out);
+.film-card-side {
+  flex: 0 0 280px;
+  width: 280px;
+  scroll-snap-align: start;
+  aspect-ratio: 3/4;
 }
 
 /* ── MAP TEASER ─────────────────────────────────────────────── */
@@ -725,7 +712,8 @@ const kneedToKnow = await getCollection('kneedToKnow');
       bakery: 'Tivoli Road Bakery',
       subtitle: "South Yarra's most enduring sourdough — a country-style loaf built on a 14-year-old starter and stone-milled Victorian wheat.",
       image: 'https://images.pexels.com/photos/36445170/pexels-photo-36445170.jpeg?auto=compress&cs=tinysrgb&w=1920',
-      bgWord: 'COUNTRY'
+      bgWord: 'COUNTRY',
+      slug: '/bakeries/tivoli-road-bakery'
     },
     {
       tag: 'Pastry',
@@ -733,7 +721,8 @@ const kneedToKnow = await getCollection('kneedToKnow');
       bakery: 'Lune Croissanterie',
       subtitle: 'A scientific obsession with laminated dough — hundreds of paper-thin layers built one fold at a time.',
       image: 'https://images.pexels.com/photos/2245295/pexels-photo-2245295.jpeg?auto=compress&cs=tinysrgb&w=1920',
-      bgWord: 'CROISSANT'
+      bgWord: 'CROISSANT',
+      slug: '/bakeries/lune-croissanterie'
     },
     {
       tag: 'Sourdough',
@@ -741,7 +730,8 @@ const kneedToKnow = await getCollection('kneedToKnow');
       bakery: 'Baker Bleu',
       subtitle: 'A neighbourhood sourdough built on Australian-grown grain and slow overnight fermentation.',
       image: 'https://images.pexels.com/photos/7447297/pexels-photo-7447297.jpeg?auto=compress&cs=tinysrgb&w=1920',
-      bgWord: 'STONE'
+      bgWord: 'STONE',
+      slug: '/bakeries/baker-bleu'
     },
     {
       tag: 'Oat Bread',
@@ -749,7 +739,8 @@ const kneedToKnow = await getCollection('kneedToKnow');
       bakery: 'Falco Bakery',
       subtitle: 'A distinctive Smith Street loaf folded with fermented oats and cooked porridge for a custard-soft crumb.',
       image: 'https://images.pexels.com/photos/263168/pexels-photo-263168.jpeg?auto=compress&cs=tinysrgb&w=1920',
-      bgWord: 'OAT'
+      bgWord: 'OAT',
+      slug: '/bakeries/falco-bakery'
     },
     {
       tag: 'Focaccia',
@@ -757,7 +748,8 @@ const kneedToKnow = await getCollection('kneedToKnow');
       bakery: 'To Be Frank',
       subtitle: 'Organic wheat, Frattali olive oil, rosemary and sea salt — out of the oven at 10am, not before.',
       image: 'https://images.pexels.com/photos/30666809/pexels-photo-30666809.jpeg?auto=compress&cs=tinysrgb&w=1920',
-      bgWord: 'FOCACCIA'
+      bgWord: 'FOCACCIA',
+      slug: '/bakeries/to-be-frank'
     }
   ];
 
@@ -775,19 +767,21 @@ const kneedToKnow = await getCollection('kneedToKnow');
   var bakeryEl = document.getElementById('hero-bakery-line');
   var subtitleEl = document.getElementById('hero-subtitle');
 
-function applySlide(idx) {
+  function applySlide(idx) {
     var s = HERO_SLIDES[idx];
     tagEl.textContent = s.tag;
     metaEl.textContent = 'Ep. ' + String(idx + 1).padStart(2, '0') + ' · Now Playing';
     titleEl.textContent = s.title;
     bakeryEl.textContent = s.bakery;
     subtitleEl.textContent = s.subtitle;
+    var ctaBtn = document.getElementById('hero-cta-btn');
+    if (ctaBtn && s.slug) ctaBtn.href = s.slug;
     document.querySelectorAll('.bottom-dot').forEach(function(d, i) {
       d.classList.toggle('active', i === idx);
     });
   }
 
-function initHero() {
+  function initHero() {
     if (!HERO_SLIDES.length) return;
     var first = HERO_SLIDES[0];
     bgEl.style.backgroundImage = "url('" + first.image + "')";
@@ -800,25 +794,21 @@ function initHero() {
           bgWordEl.classList.add('bg-visible');
         }, 400);
       }
-      // Start zoom on first image
       requestAnimationFrame(function() {
         bgEl.classList.add('zooming');
       });
     }, 100);
   }
 
-function goToSlide(idx) {
+  function goToSlide(idx) {
     if (heroTransitioning || idx === currentSlide) return;
     heroTransitioning = true;
     var s = HERO_SLIDES[idx];
 
-    // Stage next image — reset zoom, no transition
     nextEl.style.transition = 'none';
     nextEl.style.opacity = '0';
     nextEl.classList.remove('zooming');
     nextEl.style.backgroundImage = "url('" + s.image + "')";
-
-    // Force reflow so the transition-none takes effect
     void nextEl.offsetHeight;
 
     if (innerEl) {
@@ -827,14 +817,12 @@ function goToSlide(idx) {
     }
 
     setTimeout(function() {
-      // Fade next image in AND start its zoom
       nextEl.style.transition = 'opacity 1s ease, transform 20s ease-out';
       nextEl.style.opacity = '1';
       requestAnimationFrame(function() {
         nextEl.classList.add('zooming');
       });
 
-      // Fade bg word out, swap text, fade back in
       if (bgWordEl) {
         bgWordEl.classList.add('bg-fading');
         bgWordEl.classList.remove('bg-visible');
@@ -847,7 +835,6 @@ function goToSlide(idx) {
 
       setTimeout(function() {
         applySlide(idx);
-        // Move next into bg, reset next
         bgEl.style.backgroundImage = "url('" + s.image + "')";
         bgEl.classList.remove('zooming');
         void bgEl.offsetHeight;
@@ -880,8 +867,20 @@ function goToSlide(idx) {
   initHero();
   startAutoplay();
 
+  // Hero click — navigate to current slide
+  var heroSection = document.getElementById('hero-section');
+  if (heroSection) {
+    heroSection.style.cursor = 'pointer';
+    heroSection.addEventListener('click', function() {
+      var s = HERO_SLIDES[currentSlide];
+      if (s && s.slug) window.location.href = s.slug;
+    });
+  }
+
+  // Dots — change slide, don't navigate
   document.querySelectorAll('.bottom-dot').forEach(function(dot) {
-    dot.addEventListener('click', function() {
+    dot.addEventListener('click', function(e) {
+      e.stopPropagation();
       var idx = parseInt(this.dataset.slide, 10);
       goToSlide(idx);
       startAutoplay();
@@ -906,7 +905,7 @@ function goToSlide(idx) {
     });
   }
 
-// FILM RAIL NAV
+  // FILM RAIL NAV
   var rail = document.getElementById('film-rail');
   var prevBtn = document.getElementById('film-prev');
   var nextBtn = document.getElementById('film-next');
