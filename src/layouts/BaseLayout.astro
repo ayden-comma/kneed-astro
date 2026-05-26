@@ -3,6 +3,7 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import { ClientRouter } from 'astro:transitions';
 const { title, description } = Astro.props;
+const isMapPage = Astro.url.pathname.startsWith('/map');
 ---
 <!DOCTYPE html>
 <html lang="en">
@@ -12,12 +13,27 @@ const { title, description } = Astro.props;
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <meta name="description" content={description} />
     <title>{title} | (K)NEED</title>
-    <ClientRouter />
+    {!isMapPage && <ClientRouter />}
+    {!isMapPage && <script is:inline>
+      document.addEventListener('click', function(e) {
+        var link = e.target.closest('a[href]');
+        if (!link) return;
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href === '/map' || href.startsWith('/map/') || href.startsWith('/map?')) {
+          e.preventDefault();
+          e.stopPropagation();
+          window.location.href = href;
+        }
+      }, true);
+    </script>}
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:ital,wght@0,100;0,200;0,300;0,400;1,200;1,300&family=Barlow:wght@300;400;500;600&family=Barlow+Condensed:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmlld0JveD0iMCAwIDUwIDUwIj48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6IzBlMGMwYTt9LmNscy0ye2ZpbGw6I2YyZWRlNjt9PC9zdHlsZT48L2RlZnM+PGcgaWQ9IkJhY2tncm91bmQiPjxyZWN0IGNsYXNzPSJjbHMtMSIgeD0iMCIgeT0iMCIgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiByeD0iMjUiIHJ5PSIyNSIvPjwvZz48ZyBpZD0iV2hpdGUiPjxnIGlkPSJCcmFja2V0c18tX091dGxpbmUiPjxwYXRoIGNsYXNzPSJjbHMtMiIgZD0iTTUuODQsMTkuMzljLjQ4LTEuNzQsMS4xLTMuMjksMS44Ni00LjY3Ljc2LTEuMzcsMS41Ni0yLjUsMi40LTMuNDFsLjU3LjgxYy0uNzYuODgtMS40OSwxLjk3LTIuMTksMy4yNi0uNywxLjI5LTEuMjcsMi43NC0xLjY5LDQuMzYtLjQzLDEuNjItLjY1LDMuMzgtLjY1LDUuMjhzLjIxLDMuNjMuNjUsNS4yNWMuNDMsMS42Mi45OSwzLjA3LDEuNjksNC4zNS43LDEuMjgsMS40MywyLjM2LDIuMTksMy4yNGwtLjU3LjgxYy0uODQtLjg4LTEuNjQtMi4wMS0yLjQtMy4zOC0uNzYtMS4zNy0xLjM4LTIuOTMtMS44Ni00LjY3LS40OC0xLjc0LS43Mi0zLjYyLS43Mi01LjY0cy4yNC0zLjg3LjcyLTUuNjFaIi8+PHBhdGggY2xhc3M9ImNscy0yIiBkPSJNNDQuMTYsMzAuNjRjLS40OCwxLjc0LTEuMSwzLjI5LTEuODUsNC42Ny0uNzUsMS4zNy0xLjU0LDIuNDktMi4zOCwzLjM4bC0uNi0uODFjLjc4LS44OCwxLjUyLTEuOTYsMi4yMS0zLjI0LjY5LTEuMjgsMS4yNS0yLjczLDEuNjgtNC4zNS40My0xLjYyLjY1LTMuMzcuNjUtNS4yNXMtLjIxLTMuNjYtLjY1LTUuMjgtLjk5LTMuMDctMS42OC00LjM1Yy0uNjktMS4yOC0xLjQzLTIuMzYtMi4yMS0zLjI0bC42LS44NGMuODQuOSwxLjYzLDIuMDQsMi4zOCwzLjQxLjc1LDEuMzcsMS4zNywyLjkyLDEuODUsNC42Ny40OCwxLjc0LjcyLDMuNjIuNzIsNS42NHMtLjI0LDMuODctLjcyLDUuNjFaIi8+PC9nPjxnIGlkPSJLXy1fT3V0bGluZSI+PHBhdGggY2xhc3M9ImNscy0yIiBkPSJNMTkuODYsMjQuM2wtLjA2LDEuMDJ2LS4xOGwxMS4wNC0xMC43MWgxLjMybC04Ljc2LDguNTUsOS45LDEyLjYzaC0xLjI5bC05LjM5LTExLjk3LTIuNzksMi42Ny4wMyw5LjNoLTEuMDVWMTQuNDNoMS4wNXY5Ljg3WiIvPjwvZz48L2c+PC9zdmc+" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
     <link rel="stylesheet" href="/global.css" />
     
     <!--
@@ -42,16 +58,112 @@ const { title, description } = Astro.props;
       ═══════════════════════════════════════════════════════════════
     -->
     <script is:inline>
+      /*
+       * ╔══════════════════════════════════════════════════════════════════╗
+       * ║  PAGE INIT REGISTRY + NAV DRAWER — persistent <head> script     ║
+       * ║  Runs once. astro:page-load / astro:before-swap fire every nav. ║
+       * ╚══════════════════════════════════════════════════════════════════╝
+       */
       window.__pageInits = window.__pageInits || {};
 
       window.registerPageInit = function(pageId, initFn, destroyFn) {
         window.__pageInits[pageId] = { init: initFn, destroy: destroyFn || null };
       };
 
+      // ── NAV DRAWER ────────────────────────────────────────────────────
+      // Defined here (persistent head script) so they survive every SPA
+      // navigation. initNavDrawer() fetches all DOM refs fresh — the header
+      // is re-rendered by the body swap, so stale refs are never used.
+
+      function initNavDrawer() {
+        var drawer   = document.getElementById('menu-drawer');
+        var backdrop = document.getElementById('menu-backdrop');
+        var menuBtn  = document.getElementById('menu-btn');
+        var closeBtn = document.getElementById('menu-close-btn');
+        var panel    = drawer && drawer.querySelector('.menu-panel');
+        if (!drawer || !menuBtn || !panel) return;
+
+        // Highlight the active page link
+        var currentPath = window.location.pathname;
+        drawer.querySelectorAll('.menu-nav-item[href]').forEach(function(link) {
+          var href = link.getAttribute('href');
+          var active = href === currentPath ||
+                       (href !== '/' && currentPath.startsWith(href + '/'));
+          link.classList.toggle('is-active', active);
+        });
+
+        function openMenu() {
+          drawer.classList.add('is-open');
+          drawer.setAttribute('aria-hidden', 'false');
+          menuBtn.setAttribute('aria-expanded', 'true');
+          document.body.style.overflow = 'hidden';
+          // Move focus into the panel after the slide-in transition starts
+          setTimeout(function() { if (closeBtn) closeBtn.focus(); }, 50);
+        }
+
+        function closeMenu() {
+          drawer.classList.remove('is-open');
+          drawer.setAttribute('aria-hidden', 'true');
+          menuBtn.setAttribute('aria-expanded', 'false');
+          document.body.style.overflow = '';
+          menuBtn.focus();
+        }
+
+        // onclick= replaces itself on every re-init — no listener stacking
+        menuBtn.onclick  = openMenu;
+        if (closeBtn) closeBtn.onclick = closeMenu;
+        if (backdrop)  backdrop.onclick  = closeMenu;
+
+        // Focus trap — onkeydown= also self-replaces
+        panel.onkeydown = function(e) {
+          if (e.key !== 'Tab' || !drawer.classList.contains('is-open')) return;
+          var focusable = Array.from(
+            panel.querySelectorAll('a[href], button:not([disabled])')
+          ).filter(function(el) { return el.offsetParent !== null; });
+          if (focusable.length < 2) return;
+          var first = focusable[0];
+          var last  = focusable[focusable.length - 1];
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault(); last.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault(); first.focus();
+          }
+        };
+
+        // Escape key — guarded with a once-only flag so it never stacks
+        if (!window.__kneedEscapeAdded) {
+          window.__kneedEscapeAdded = true;
+          document.addEventListener('keydown', function(e) {
+            if (e.key !== 'Escape') return;
+            var d = document.getElementById('menu-drawer');
+            var b = document.getElementById('menu-btn');
+            if (d && d.classList.contains('is-open')) {
+              d.classList.remove('is-open');
+              d.setAttribute('aria-hidden', 'true');
+              document.body.style.overflow = '';
+              if (b) { b.setAttribute('aria-expanded', 'false'); b.focus(); }
+            }
+          });
+        }
+      }
+
+      function destroyNavDrawer() {
+        var drawer = document.getElementById('menu-drawer');
+        if (drawer && drawer.classList.contains('is-open')) {
+          drawer.classList.remove('is-open');
+          drawer.setAttribute('aria-hidden', 'true');
+        }
+        document.body.style.overflow = '';
+      }
+
+      // ── LIFECYCLE ─────────────────────────────────────────────────────
       if (!window.__lifecycleListenersAdded) {
         window.__lifecycleListenersAdded = true;
 
         document.addEventListener('astro:before-swap', function() {
+          // Destroy nav drawer first (it's not in __pageInits — see page-load)
+          destroyNavDrawer();
+          // Destroy and clear all page-specific inits
           Object.values(window.__pageInits).forEach(function(p) {
             if (typeof p.destroy === 'function') p.destroy();
           });
@@ -59,11 +171,20 @@ const { title, description } = Astro.props;
         });
 
         document.addEventListener('astro:page-load', function() {
+          // Nav drawer runs on every page — re-register after the registry
+          // was cleared by before-swap, then call all inits together.
+          window.registerPageInit('nav-drawer', initNavDrawer, destroyNavDrawer);
           Object.values(window.__pageInits).forEach(function(p) {
             if (typeof p.init === 'function') p.init();
           });
         });
       }
+
+      // Fallback for pages without ClientRouter (e.g. /map) where
+      // astro:page-load never fires — DOMContentLoaded covers that case.
+      // Safe to run alongside astro:page-load since initNavDrawer uses
+      // onclick= assignment and never stacks listeners.
+      document.addEventListener('DOMContentLoaded', initNavDrawer);
     </script>
 
     <!-- Google Analytics -->
@@ -92,6 +213,57 @@ const { title, description } = Astro.props;
   <body>
     <Header />
     <slot />
+
+    <!-- SUBMIT BANNER — appears on every page above the footer -->
+    <section class="wf-container" style="padding-bottom: clamp(2rem,4vw,3rem);">
+      <a href="/submit" class="submit-banner">
+        <img src="https://images.unsplash.com/photo-1599819055803-717bba43890f?q=80&w=2370&auto=format&fit=crop" alt="" aria-hidden="true" class="submit-banner-bg" loading="lazy" />
+        <div class="submit-banner-overlay"></div>
+        <div class="submit-banner-content">
+          <div class="submit-banner-eyebrow">Submit a Bakery</div>
+          <div class="submit-banner-heading">Is there a bakery we're missing?</div>
+          <span class="wf-pill pill-amber" style="pointer-events:none;">Let us know →</span>
+        </div>
+      </a>
+    </section>
+
     <Footer />
   </body>
 </html>
+
+<script>
+  import { supabase } from '../lib/supabase';
+
+  async function updateAuthUI() {
+    const { data: { session } } = await supabase.auth.getSession();
+    const signin  = document.getElementById('header-signin') as HTMLAnchorElement | null;
+    const userBtn = document.getElementById('header-user') as HTMLButtonElement | null;
+    const menuOut = document.getElementById('menu-member-loggedout') as HTMLElement | null;
+    const menuIn  = document.getElementById('menu-member-loggedin') as HTMLElement | null;
+
+    if (session) {
+      if (signin)  signin.style.display  = 'none';
+      if (userBtn) {
+        const name = (session.user.user_metadata?.full_name as string) || session.user.email || '';
+        const initials = name.split(/\s+/).map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || '?';
+        userBtn.textContent = initials;
+        userBtn.style.display = 'flex';
+        userBtn.onclick = () => { (document.getElementById('menu-btn') as HTMLButtonElement | null)?.click(); };
+      }
+      if (menuOut) menuOut.style.display = 'none';
+      if (menuIn)  menuIn.style.display  = '';
+      const nameEl  = document.getElementById('menu-user-name');
+      const emailEl = document.getElementById('menu-user-email');
+      if (nameEl)  nameEl.textContent  = (session.user.user_metadata?.full_name as string) || '';
+      if (emailEl) emailEl.textContent = session.user.email || '';
+    } else {
+      if (signin)  signin.style.display  = '';
+      if (userBtn) userBtn.style.display = 'none';
+      if (menuOut) menuOut.style.display = '';
+      if (menuIn)  menuIn.style.display  = 'none';
+    }
+  }
+
+  document.addEventListener('astro:page-load', updateAuthUI);
+  updateAuthUI();
+</script>

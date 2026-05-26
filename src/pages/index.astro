@@ -149,50 +149,36 @@ const kneedToKnow = await getCollection('kneedToKnow');
       </div>
     </section>
 
-    <!-- MAP TEASER -->
-    <section class="wf-container mt-section">
-      <div class="wf-section-head">
-        <div>
-          <div class="wf-eyebrow">Find a Bakery</div>
-          <h2>Melbourne's Bread Map</h2>
-        </div>
-        <a href="/map" class="see-all-btn">
-          Open map
-          <span class="arrow-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 5 7 7-7 7"/></svg>
-          </span>
-        </a>
-      </div>
-      <a href="/map" class="map-teaser-card">
-        <div class="map-teaser-info">
-          <div>
-            <div class="wf-eyebrow" style="margin-bottom:0.5rem;">Every Bakery</div>
-            <p class="map-teaser-desc">Every Melbourne bakery on one map. Find addresses, opening times and watch their story.</p>
-          </div>
-          <div class="map-teaser-locations" id="map-teaser-locations"></div>
-          <span class="wf-pill pill-dark" style="margin-top:1.25rem; align-self:flex-start;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-            Explore the map
-          </span>
-        </div>
-        <div id="map-teaser-canvas"></div>
-      </a>
-    </section>
+    <!-- MAP TEASER + NEWSLETTER -->
+    <section class="wf-container mt-section" style="padding-bottom: clamp(2rem,4vw,3rem);">
+      <div class="two-card-row">
 
-    <!-- NEWSLETTER -->
-    <section class="wf-container mt-section" style="padding-bottom: clamp(3rem,5vw,5rem);">
-      <div class="newsletter-block">
-        <div class="newsletter-grid">
-          <div>
+        <!-- MAP CARD -->
+        <a href="/map" class="map-card">
+          <img src="/images/map-preview.jpg" alt="Melbourne bakery map" class="map-card-img" />
+          <div class="map-card-overlay"></div>
+          <div class="map-card-top">
+            <div class="map-card-eyebrow">Find Good Bread</div>
+            <div class="map-card-title">MELBOURNE'S BEST BREAD</div>
+            <div class="map-card-ghost">Explore the map →</div>
+          </div>
+        </a>
+
+        <!-- NEWSLETTER CARD -->
+        <div class="nl-card">
+          <img src="https://images.unsplash.com/photo-1613396874083-2d5fbe59ae79?q=80&w=1319&auto=format&fit=crop" alt="" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.18;z-index:0;" loading="lazy" />
+          <div style="position:absolute;inset:0;background:rgba(14,12,10,0.75);z-index:1;"></div>
+          <div style="position:relative;z-index:2;">
             <div class="nl-eyebrow">Stay in the know</div>
             <h2 class="nl-title">Good bread is worth<br/>knowing about.</h2>
             <p class="nl-sub">New bakery films, the stories behind the bakers, and places worth visiting — straight to your inbox.</p>
           </div>
-          <div class="nl-form">
+          <div class="nl-form" style="position:relative;z-index:2;">
             <input type="email" id="nl-email" placeholder="Your email address" class="nl-input" />
             <button class="nl-btn" id="nl-btn">Get updates</button>
           </div>
         </div>
+
       </div>
     </section>
 
@@ -562,139 +548,6 @@ const kneedToKnow = await getCollection('kneedToKnow');
   aspect-ratio: 3/4;
 }
 
-/* ── MAP TEASER ─────────────────────────────────────────────── */
-.map-teaser-card {
-  border-radius: 1.5rem;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  overflow: hidden;
-  transition: border-color 0.25s;
-  display: grid;
-  grid-template-columns: 1fr;
-  height: clamp(260px, 32vw, 400px);
-  isolation: isolate;
-  cursor: pointer;
-  text-decoration: none;
-  color: inherit;
-}
-@media (min-width: 768px) { .map-teaser-card { grid-template-columns: 280px 1fr; } }
-.map-teaser-card:hover { border-color: var(--border-md); }
-.map-teaser-info {
-  padding: clamp(1.25rem, 2vw, 2rem);
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid var(--border);
-  overflow: hidden;
-}
-.map-teaser-desc {
-  font-size: 0.85rem;
-  font-weight: 300;
-  color: var(--p-50);
-  line-height: 1.65;
-  margin-top: 0.5rem;
-}
-.map-teaser-locations {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin-top: 1rem;
-  overflow: hidden;
-}
-.map-teaser-loc-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.72rem;
-  font-weight: 300;
-  color: var(--p-50);
-}
-.map-teaser-loc-row::before {
-  content: '';
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--amber);
-  flex-shrink: 0;
-}
-#map-teaser-canvas { width: 100%; height: 100%; }
-
-/* ── NEWSLETTER ─────────────────────────────────────────────── */
-.newsletter-block {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--r-hero);
-  padding: clamp(2rem, 4vw, 3.5rem);
-}
-.newsletter-grid {
-  display: grid;
-  gap: 2rem;
-  grid-template-columns: 1fr;
-}
-@media (min-width: 768px) {
-  .newsletter-grid { grid-template-columns: 1fr 1fr; align-items: center; }
-}
-.nl-eyebrow {
-  font-family: var(--font-cond);
-  font-size: 0.58rem;
-  font-weight: 700;
-  letter-spacing: 0.38em;
-  text-transform: uppercase;
-  color: var(--amber);
-  margin-bottom: 0.75rem;
-}
-.nl-title {
-  font-family: var(--font-display);
-  font-weight: 200;
-  font-size: clamp(1.25rem, 2.5vw, 2rem);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  line-height: 1.2;
-  color: var(--parchment);
-}
-.nl-sub {
-  margin-top: 0.875rem;
-  font-size: 0.875rem;
-  font-weight: 300;
-  color: var(--p-50);
-  line-height: 1.65;
-}
-.nl-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-.nl-input {
-  width: 100%;
-  background: var(--surface);
-  border: 1px solid var(--border-md);
-  border-radius: var(--r-pill);
-  padding: 0.875rem 1.25rem;
-  font-size: 0.9rem;
-  font-weight: 300;
-  color: var(--parchment);
-  font-family: var(--font-body);
-  outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-.nl-input:focus { border-color: var(--amber); box-shadow: 0 0 0 3px var(--amber-10); }
-.nl-input::placeholder { color: var(--p-35); }
-.nl-btn {
-  width: 100%;
-  background: var(--amber);
-  color: #fff;
-  border: none;
-  border-radius: var(--r-pill);
-  padding: 0.875rem 1.25rem;
-  font-family: var(--font-cond);
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-.nl-btn:hover { opacity: 0.88; }
 </style>
 
 <script is:inline>
@@ -745,12 +598,6 @@ const kneedToKnow = await getCollection('kneedToKnow');
       bgWord: 'FOCACCIA',
       slug: '/bakeries/to-be-frank'
     }
-  ];
-
-  var BAKERY_DATA = [
-    { name: 'Tivoli Road Bakery', lat: -37.8395, lng: 144.9929 },
-    { name: 'Lune Croissanterie', lat: -37.7963, lng: 144.9795 },
-    { name: 'Baker Bleu', lat: -37.8566, lng: 145.0231 },
   ];
 
   function initHomePage() {
@@ -924,68 +771,35 @@ const kneedToKnow = await getCollection('kneedToKnow');
       prevBtn.onclick = function() { rail.scrollBy({ left: -340, behavior: 'smooth' }); };
     }
 
-    // MAP TEASER — location list
-    var locWrap = document.getElementById('map-teaser-locations');
-    if (locWrap) {
-      locWrap.innerHTML = '';
-      BAKERY_DATA.forEach(function(b) {
-        var row = document.createElement('div');
-        row.className = 'map-teaser-loc-row';
-        row.textContent = b.name;
-        locWrap.appendChild(row);
-      });
-    }
-
-    // MAP TEASER — Leaflet
-    function buildTeaserMap() {
-      var el = document.getElementById('map-teaser-canvas');
-      if (!el) return;
-      if (el._leaflet_id) return; // element-level guard, resets when DOM is replaced
-      if (el.offsetWidth === 0 || el.offsetHeight === 0) { setTimeout(buildTeaserMap, 200); return; }
-
-      var map = L.map('map-teaser-canvas', {
-        center: [-37.814, 144.970],
-        zoom: 11,
-        zoomControl: false,
-        attributionControl: false,
-        dragging: false,
-        scrollWheelZoom: false,
-        doubleClickZoom: false,
-        touchZoom: false,
-        keyboard: false,
-      });
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
-      BAKERY_DATA.forEach(function(b) {
-        var icon = L.divIcon({
-          className: '',
-          html: '<div style="width:10px;height:10px;border-radius:50%;background:#c8833a;border:2px solid rgba(242,237,230,0.9);box-shadow:0 2px 8px rgba(0,0,0,0.5);"></div>',
-          iconSize: [10, 10], iconAnchor: [5, 5]
-        });
-        L.marker([b.lat, b.lng], { icon: icon }).addTo(map);
-      });
-      setTimeout(function() { map.invalidateSize(); }, 200);
-    }
-
-    if (!document.getElementById('leaflet-css')) {
-      var css = document.createElement('link');
-      css.id = 'leaflet-css'; css.rel = 'stylesheet';
-      css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
-      document.head.appendChild(css);
-    }
-    if (!document.getElementById('leaflet-js')) {
-      var script = document.createElement('script');
-      script.id = 'leaflet-js';
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
-      script.onload = function() { setTimeout(buildTeaserMap, 100); };
-      document.head.appendChild(script);
-    } else if (window.L) {
-      setTimeout(buildTeaserMap, 100);
-    }
   }
 
   function destroyHomePage() {
     if (window._heroTimer) { clearInterval(window._heroTimer); window._heroTimer = null; }
   }
 
-  window.registerPageInit('home', initHomePage, destroyHomePage);
+  // Expose so the module script below can call these on astro:page-load /
+  // astro:before-swap without relying on registerPageInit timing.
+  window.__kneedInitHome    = initHomePage;
+  window.__kneedDestroyHome = destroyHomePage;
+</script>
+
+<script>
+  function tryInitHome() {
+    if (!document.getElementById('hero-section')) return;
+    const fn = (window as any).__kneedInitHome;
+    if (typeof fn === 'function') fn();
+  }
+
+  document.addEventListener('astro:before-swap', function() {
+    const fn = (window as any).__kneedDestroyHome;
+    if (typeof fn === 'function') fn();
+  });
+
+  document.addEventListener('astro:page-load', function() {
+    tryInitHome();
+  });
+
+  // Immediate call — handle the case where astro:page-load already fired
+  // before this module finished loading (async chunk fetch on first visit).
+  tryInitHome();
 </script>

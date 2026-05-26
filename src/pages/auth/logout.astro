@@ -1,0 +1,15 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+<BaseLayout title="Signing out" description="Signing out of (K)Need.">
+  <main class="auth-page">
+    <div class="auth-card" style="text-align:center;">
+      <p style="font-size:0.875rem; color:var(--p-50); font-weight:300;">Signing you out…</p>
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  import { supabase } from '../../lib/supabase';
+  supabase.auth.signOut().finally(() => { window.location.href = '/'; });
+</script>
