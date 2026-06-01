@@ -236,17 +236,6 @@ if (data.edit)     credits.push({ role: 'Edit',      name: data.edit });
             </div>
           )}
 
-          {hasMultiLocations ? (
-            <a class="wf-pill pill-dark" href={'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(data.locations![0].addr)} target="_blank" rel="noopener" style="margin-top:0.25rem; justify-content:center;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-              Open in Maps
-            </a>
-          ) : hasMapLink ? (
-            <a class="wf-pill pill-dark" href={data.mapLink} target="_blank" rel="noopener" style="margin-top:0.25rem; justify-content:center;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-              Open in Maps
-            </a>
-          ) : null}
 
           <button class="aside-share-btn" id="share-btn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4"/><path d="m15.4 6.5-6.8 4"/></svg>
@@ -688,8 +677,7 @@ span[data-location-index]:hover { color: var(--amber); }
     if (diff < 60) return 'just now';
     if (diff < 3600) return Math.floor(diff / 60) + (Math.floor(diff / 60) === 1 ? ' minute ago' : ' minutes ago');
     if (diff < 86400) return Math.floor(diff / 3600) + (Math.floor(diff / 3600) === 1 ? ' hour ago' : ' hours ago');
-    if (diff < 604800) return Math.floor(diff / 86400) + (Math.floor(diff / 86400) === 1 ? ' day ago' : ' days ago');
-    return new Date(dateStr).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+    return new Date(dateStr).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
   }
 
   function avatarInitials(name: string): string {
@@ -718,11 +706,177 @@ span[data-location-index]:hover { color: var(--amber); }
       if (signinPrompt) signinPrompt.style.display = '';
     }
 
+    function formatName(fullName: string | undefined): string {
+      if (!fullName) return 'Anonymous';
+      const parts = fullName.trim().split(/\s+/);
+      if (parts.length === 1) return parts[0];
+      return parts[0] + ' ' + parts[parts.length - 1][0] + '.';
+    }
+
+    type CommentRow = { id: string; user_id: string; content: string; created_at: string; profiles?: { display_name?: string } };
+    type VoteData = { up: number; down: number; userVote: 1 | -1 | 0 };
+    type VoteMap = Record<string, VoteData>;
+
+    let voteMap: VoteMap = {};
+
+    async function fetchVotes(ids: string[]): Promise<void> {
+      if (ids.length === 0) return;
+      const { data: votes } = await supabase
+        .from('comment_votes')
+        .select('comment_id, vote, user_id')
+        .in('comment_id', ids);
+      for (const v of (votes ?? [])) {
+        if (!voteMap[v.comment_id]) voteMap[v.comment_id] = { up: 0, down: 0, userVote: 0 };
+        if (v.vote === 1) voteMap[v.comment_id].up++;
+        else voteMap[v.comment_id].down++;
+        if (session && v.user_id === session.user.id) voteMap[v.comment_id].userVote = v.vote;
+      }
+    }
+
+    function voteHTML(commentId: string): string {
+      const vd = voteMap[commentId] ?? { up: 0, down: 0, userVote: 0 };
+      const score = vd.up - vd.down;
+      const upActive = vd.userVote === 1 ? ' is-voted' : '';
+      const downActive = vd.userVote === -1 ? ' is-voted' : '';
+      return `<div class="comment-votes">
+        <button class="vote-btn up-btn${upActive}" data-id="${esc(commentId)}" data-vote="1" aria-label="Upvote">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+        </button>
+        <span class="vote-score">${score}</span>
+        <button class="vote-btn down-btn${downActive}" data-id="${esc(commentId)}" data-vote="-1" aria-label="Downvote">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3H10z"/><path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>
+        </button>
+        <span class="vote-score-num" style="display:none">${score}</span>
+      </div>`;
+    }
+
+    function commentHTML(c: CommentRow, isReply = false): string {
+      const name = formatName(c.profiles?.display_name);
+      const isOwner = session && c.user_id === session.user.id;
+      const deleteBtn = isOwner
+        ? `<button class="comment-delete-btn" data-id="${esc(c.id)}" aria-label="Delete">×</button>`
+        : '';
+      const replyBtn = !isReply && session
+        ? `<button class="comment-reply-btn" data-id="${esc(c.id)}">REPLY</button>`
+        : '';
+      return `<div class="comment-item${isReply ? ' comment-reply' : ''}" data-comment-id="${esc(c.id)}">
+        <div class="comment-avatar">${esc(avatarInitials(name))}</div>
+        <div class="comment-body">
+          <div class="comment-meta">
+            <span class="comment-author">${esc(name)}</span>
+            <span class="comment-date">${relativeTime(c.created_at)}</span>
+            ${deleteBtn}
+          </div>
+          <div class="comment-text">${esc(c.content)}</div>
+          <div class="comment-actions">
+            ${voteHTML(c.id)}
+            ${replyBtn}
+          </div>
+          ${!isReply ? `<div class="comment-replies" data-parent="${esc(c.id)}"></div>
+          <div class="reply-form-wrap" data-parent="${esc(c.id)}" style="display:none">
+            <textarea class="reply-input comment-input" rows="2" placeholder="Write a reply…"></textarea>
+            <button class="reply-submit wf-pill pill-amber" style="margin-top:0.5rem; font-size:0.75rem; padding:0.35rem 0.85rem;">Post reply</button>
+          </div>` : ''}
+        </div>
+      </div>`;
+    }
+
+    async function loadReplies(parentId: string, repliesEl: HTMLElement) {
+      const { data: replies } = await supabase
+        .from('comments')
+        .select('*, profiles(display_name)')
+        .eq('parent_comment_id', parentId)
+        .order('created_at', { ascending: true });
+      if (!replies || replies.length === 0) { repliesEl.innerHTML = ''; return; }
+      const replyIds = (replies as CommentRow[]).map(r => r.id);
+      await fetchVotes(replyIds);
+      repliesEl.innerHTML = (replies as CommentRow[]).map(r => commentHTML(r, true)).join('');
+      bindDeleteBtns(repliesEl);
+      bindVoteBtns(repliesEl);
+    }
+
+    function bindDeleteBtns(container: HTMLElement) {
+      container.querySelectorAll('.comment-delete-btn').forEach((btn) => {
+        btn.addEventListener('click', async (e) => {
+          const target = e.currentTarget as HTMLButtonElement;
+          const commentId = target.dataset.id!;
+          if (target.textContent === 'Confirm?') {
+            const { error } = await supabase.from('comments').delete()
+              .eq('id', commentId)
+              .eq('user_id', session!.user.id);
+            if (!error) {
+              const item = listEl!.querySelector(`[data-comment-id="${commentId}"]`);
+              item?.remove();
+              if (!listEl!.querySelector('.comment-item')) {
+                listEl!.innerHTML = '<p class="comments-empty">No comments yet. Be the first to share your thoughts!</p>';
+              }
+            }
+          } else {
+            target.textContent = 'Confirm?';
+            setTimeout(() => { if (target.isConnected) target.textContent = '×'; }, 2000);
+          }
+        });
+      });
+    }
+
+    function resortComments() {
+      const items = Array.from(listEl!.querySelectorAll(':scope > .comment-item')) as HTMLElement[];
+      items.sort((a, b) => {
+        const va = voteMap[a.dataset.commentId!] ?? { up: 0, down: 0, userVote: 0 as 0 };
+        const vb = voteMap[b.dataset.commentId!] ?? { up: 0, down: 0, userVote: 0 as 0 };
+        return (vb.up - vb.down) - (va.up - va.down);
+      });
+      items.forEach(item => listEl!.appendChild(item));
+    }
+
+    function bindVoteBtns(container: HTMLElement) {
+      container.querySelectorAll('.vote-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          if (!session) return;
+          const target = btn as HTMLButtonElement;
+          const commentId = target.dataset.id!;
+          const voteVal = parseInt(target.dataset.vote!) as 1 | -1;
+          const current = voteMap[commentId] ?? { up: 0, down: 0, userVote: 0 as 0 };
+          const hasVote = current.userVote !== 0;
+
+          // Optimistic DOM update
+          let newUp = current.up, newDown = current.down;
+          if (current.userVote === 1) newUp--;
+          if (current.userVote === -1) newDown--;
+          const newUserVote: 1 | -1 | 0 = hasVote ? 0 : voteVal;
+          if (!hasVote && voteVal === 1) newUp++;
+          if (!hasVote && voteVal === -1) newDown++;
+          voteMap[commentId] = { up: newUp, down: newDown, userVote: newUserVote };
+
+          const itemEl = listEl!.querySelector(`[data-comment-id="${commentId}"]`);
+          if (itemEl) {
+            const scoreEl = itemEl.querySelector('.vote-score');
+            if (scoreEl) scoreEl.textContent = String(newUp - newDown);
+            itemEl.querySelector('.up-btn')?.classList.toggle('is-voted', newUserVote === 1);
+            itemEl.querySelector('.down-btn')?.classList.toggle('is-voted', newUserVote === -1);
+          }
+
+          if (itemEl?.parentElement === listEl) resortComments();
+
+          // Persist
+          if (hasVote) {
+            await supabase.from('comment_votes').delete()
+              .eq('comment_id', commentId).eq('user_id', session.user.id);
+          } else {
+            await supabase.from('comment_votes').insert(
+              { comment_id: commentId, user_id: session.user.id, vote: voteVal }
+            );
+          }
+        });
+      });
+    }
+
     async function loadComments() {
       const { data: comments } = await supabase
         .from('comments')
-        .select('id, display_name, body, created_at')
+        .select('*, profiles(display_name)')
         .eq('bakery_slug', slug)
+        .is('parent_comment_id', null)
         .order('created_at', { ascending: false });
 
       if (!comments || comments.length === 0) {
@@ -730,37 +884,77 @@ span[data-location-index]:hover { color: var(--amber); }
         return;
       }
 
-      listEl!.innerHTML = comments.map((c: { display_name: string; body: string; created_at: string }) => {
-        const name = c.display_name || 'Anonymous';
-        return `<div class="comment-item">
-          <div class="comment-avatar">${esc(avatarInitials(name))}</div>
-          <div class="comment-body">
-            <div class="comment-meta">
-              <span class="comment-author">${esc(name)}</span>
-              <span class="comment-date">${relativeTime(c.created_at)}</span>
-            </div>
-            <div class="comment-text">${esc(c.body)}</div>
-          </div>
-        </div>`;
-      }).join('');
+      const commentIds = (comments as CommentRow[]).map(c => c.id);
+      voteMap = {};
+      await fetchVotes(commentIds);
+
+      const sorted = [...(comments as CommentRow[])].sort((a, b) => {
+        const va = voteMap[a.id] ?? { up: 0, down: 0, userVote: 0 as 0 };
+        const vb = voteMap[b.id] ?? { up: 0, down: 0, userVote: 0 as 0 };
+        return (vb.up - vb.down) - (va.up - va.down);
+      });
+
+      listEl!.innerHTML = sorted.map(c => commentHTML(c, false)).join('');
+      bindDeleteBtns(listEl!);
+      bindVoteBtns(listEl!);
+
+      await Promise.all(sorted.map(c => {
+        const repliesEl = listEl!.querySelector(`.comment-replies[data-parent="${c.id}"]`) as HTMLElement | null;
+        return repliesEl ? loadReplies(c.id, repliesEl) : Promise.resolve();
+      }));
+
+      listEl!.querySelectorAll('.comment-reply-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const parentId = (btn as HTMLButtonElement).dataset.id!;
+          const formWrapEl = listEl!.querySelector(`.reply-form-wrap[data-parent="${parentId}"]`) as HTMLElement | null;
+          if (!formWrapEl) return;
+          const isOpen = formWrapEl.style.display !== 'none';
+          formWrapEl.style.display = isOpen ? 'none' : '';
+          if (!isOpen) (formWrapEl.querySelector('.reply-input') as HTMLTextAreaElement | null)?.focus();
+        });
+      });
+
+      listEl!.querySelectorAll('.reply-submit').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const submitEl = btn as HTMLButtonElement;
+          const formWrapEl = submitEl.closest('.reply-form-wrap') as HTMLElement | null;
+          if (!formWrapEl) return;
+          const parentId = formWrapEl.dataset.parent!;
+          const replyTextarea = formWrapEl.querySelector('.reply-input') as HTMLTextAreaElement | null;
+          const replyText = replyTextarea?.value.trim();
+          if (!replyText) return;
+          submitEl.disabled = true;
+          submitEl.textContent = 'Posting…';
+          const { error } = await supabase.from('comments').insert({
+            user_id: session!.user.id,
+            bakery_slug: slug,
+            content: replyText,
+            parent_comment_id: parentId,
+          });
+          if (!error) {
+            if (replyTextarea) replyTextarea.value = '';
+            formWrapEl.style.display = 'none';
+            const repliesEl = listEl!.querySelector(`.comment-replies[data-parent="${parentId}"]`) as HTMLElement | null;
+            if (repliesEl) await loadReplies(parentId, repliesEl);
+          }
+          submitEl.disabled = false;
+          submitEl.textContent = 'Post reply';
+        });
+      });
     }
 
     await loadComments();
 
     if (session && submitBtn && textarea) {
       submitBtn.onclick = async () => {
-        const body = textarea.value.trim();
-        if (!body) return;
+        const commentText = textarea.value.trim();
+        if (!commentText) return;
         submitBtn.disabled = true;
         submitBtn.textContent = 'Posting…';
-        const displayName = (session.user.user_metadata?.full_name as string)
-          || session.user.email?.split('@')[0]
-          || 'Anonymous';
         const { error } = await supabase.from('comments').insert({
-          bakery_slug: slug,
           user_id: session.user.id,
-          display_name: displayName,
-          body,
+          bakery_slug: slug,
+          content: commentText,
         });
         if (!error) {
           textarea.value = '';

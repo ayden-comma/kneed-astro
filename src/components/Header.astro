@@ -31,7 +31,6 @@ const navLinks = [
       </button>
       <a href="/auth/login" class="header-signin-btn" id="header-signin">Sign in</a>
       <button class="header-user-btn" id="header-user" aria-label="Account" type="button"></button>
-      <a href="/submit" class="submit-btn wf-pill pill-amber">Submit</a>
     </div>
   </div>
 
@@ -126,8 +125,7 @@ const navLinks = [
     <div id="menu-member-loggedin" class="menu-secondary" style="display:none">
       <div class="menu-nav-label">Account</div>
       <div class="menu-user-info">
-        <div id="menu-user-name" class="menu-user-name"></div>
-        <div id="menu-user-email" class="menu-user-email"></div>
+        <a href="/profile" id="menu-user-name" class="menu-user-name" style="text-decoration:none; color:inherit;"></a>
       </div>
       <a class="menu-nav-item" href="/recipe-book">
         Recipe Book

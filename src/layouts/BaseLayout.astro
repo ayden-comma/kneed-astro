@@ -11,6 +11,7 @@ const isMapPage = Astro.url.pathname.startsWith('/map');
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Content-Security-Policy" content="img-src 'self' data: blob: https://lh3.googleusercontent.com https://images.unsplash.com https://images.pexels.com https://*.cartocdn.com https://*.supabase.co;" />
     <meta name="description" content={description} />
     <title>{title} | (K)NEED</title>
     {!isMapPage && <ClientRouter />}
@@ -244,11 +245,23 @@ const isMapPage = Astro.url.pathname.startsWith('/map');
     if (session) {
       if (signin)  signin.style.display  = 'none';
       if (userBtn) {
-        const name = (session.user.user_metadata?.full_name as string) || session.user.email || '';
-        const initials = name.split(/\s+/).map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || '?';
-        userBtn.textContent = initials;
+        const avatarUrl = (session.user.user_metadata?.picture as string | undefined)
+          || (session.user.user_metadata?.avatar_url as string | undefined);
+        userBtn.innerHTML = '';
+        if (avatarUrl) {
+          const img = document.createElement('img');
+          img.src = avatarUrl;
+          img.style.cssText = 'width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;';
+          userBtn.appendChild(img);
+        } else {
+          const name = (session.user.user_metadata?.full_name as string) || session.user.email || '';
+          const initials = name.split(/\s+/).map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || '?';
+          userBtn.textContent = initials;
+        }
         userBtn.style.display = 'flex';
-        userBtn.onclick = () => { (document.getElementById('menu-btn') as HTMLButtonElement | null)?.click(); };
+        userBtn.style.overflow = 'hidden';
+        userBtn.style.padding = '0';
+        userBtn.onclick = () => { window.location.href = '/profile'; };
       }
       if (menuOut) menuOut.style.display = 'none';
       if (menuIn)  menuIn.style.display  = '';
