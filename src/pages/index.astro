@@ -1,12 +1,90 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getCollection } from 'astro:content';
+import { supabase } from '../lib/supabase';
 
-const bakeries = await getCollection('bakeries');
-const kneedToKnow = await getCollection('kneedToKnow');
+export const prerender = false;
+
+const [{ data: bakeryRows }, { data: articleRows }, { data: heroFeatureRows }] = await Promise.all([
+  supabase.from('bakeries_cms').select('slug, name, suburb, category, thumbnail, video_id').eq('published', true).order('name'),
+  supabase.from('articles_cms').select('slug, title, category, thumbnail').eq('published', true).order('updated_at', { ascending: false }),
+  supabase.from('hero_features').select('bakery_slug, article_slug, content_type, sort_order').eq('active', true).order('sort_order'),
+]);
+
+const bakeries = (bakeryRows ?? []).map((b: any) => ({
+  slug: b.slug, name: b.name, suburb: b.suburb, category: b.category,
+  thumbnail: b.thumbnail || (b.video_id ? `https://img.youtube.com/vi/${b.video_id}/maxresdefault.jpg` : '/images/og-default.jpg'),
+}));
+const kneedToKnow = (articleRows ?? []).map((a: any) => ({
+  slug: a.slug, name: a.title, category: a.category, thumbnail: a.thumbnail,
+  suburb: null as string | null, duration: null as string | null,
+}));
+
+// Build hero slides from hero_features + bakeries_cms
+type HeroSlide = { tag: string; title: string; bakery: string; subtitle: string; image: string; bgWord: string; slug: string };
+let heroSlides: HeroSlide[] = [];
+
+if (heroFeatureRows && heroFeatureRows.length > 0) {
+  const bakerySlugList  = (heroFeatureRows as any[]).filter(h => h.content_type !== 'article' && h.bakery_slug).map(h => h.bakery_slug as string);
+  const articleSlugList = (heroFeatureRows as any[]).filter(h => h.content_type === 'article' && h.article_slug).map(h => h.article_slug as string);
+
+  const [bakeryResult, articleResult] = await Promise.all([
+    bakerySlugList.length > 0
+      ? supabase.from('bakeries_cms').select('slug, name, hero_tag, hero_title, hero_subtitle, hero_bg_word, hero_image_url, thumbnail, video_id').in('slug', bakerySlugList).eq('published', true)
+      : Promise.resolve({ data: null }),
+    articleSlugList.length > 0
+      ? supabase.from('articles_cms').select('slug, title, hero_tag, hero_title, hero_subtitle, hero_bg_word, hero_image_url, thumbnail').in('slug', articleSlugList).eq('published', true)
+      : Promise.resolve({ data: null }),
+  ]) as [{ data: any }, { data: any }];
+
+  const heroBakeries = (bakeryResult.data ?? []) as any[];
+  const heroArticles  = (articleResult.data ?? []) as any[];
+
+  heroSlides = (heroFeatureRows as any[])
+    .map((hf) => {
+      if (hf.content_type === 'article') {
+        const a = heroArticles.find((x: any) => x.slug === hf.article_slug);
+        if (!a) return null;
+        return {
+          tag: a.hero_tag || (a.title ? a.title.split(' ')[0] : 'Article'),
+          title: a.hero_title || a.title,
+          bakery: '',
+          subtitle: a.hero_subtitle || '',
+          image: a.hero_image_url || a.thumbnail || '/images/og-default.jpg',
+          bgWord: a.hero_bg_word || (a.title ? a.title.split(' ')[0].toUpperCase() : 'KNEED'),
+          slug: `/kneed-to-know/${a.slug}`,
+        } as HeroSlide;
+      } else {
+        const b = heroBakeries.find((x: any) => x.slug === hf.bakery_slug);
+        if (!b) return null;
+        return {
+          tag: b.hero_tag || b.category || 'Bakery',
+          title: b.hero_title || b.name,
+          bakery: b.name,
+          subtitle: b.hero_subtitle || '',
+          image: b.hero_image_url || b.thumbnail || (b.video_id ? `https://img.youtube.com/vi/${b.video_id}/maxresdefault.jpg` : '/images/og-default.jpg'),
+          bgWord: b.hero_bg_word || b.name.split(' ')[0].toUpperCase(),
+          slug: `/bakeries/${b.slug}`,
+        } as HeroSlide;
+      }
+    })
+    .filter(Boolean) as HeroSlide[];
+}
+
+// Fallback: use first 5 published bakeries
+if (heroSlides.length === 0) {
+  heroSlides = bakeries.slice(0, 5).map((b: any) => ({
+    tag: b.category || 'Bakery',
+    title: b.name,
+    bakery: b.name,
+    subtitle: '',
+    image: b.thumbnail,
+    bgWord: b.name.split(' ')[0].toUpperCase(),
+    slug: `/bakeries/${b.slug}`,
+  }));
+}
 ---
 
-<BaseLayout title="Home" description="(K)Need — a cinematic exploration of Melbourne's best bakeries.">
+<BaseLayout title="Home" description="Melbourne's best bread — discover sourdough bakeries, films and stories from the city's most passionate bakers.">
   <main>
 
     <!-- CINEMATIC HERO -->
@@ -58,11 +136,9 @@ const kneedToKnow = await getCollection('kneedToKnow');
 
       <div class="hero-bottom-bar">
         <div class="bottom-dots" id="hero-dots">
-          <button class="bottom-dot active" data-slide="0" aria-label="Slide 1"></button>
-          <button class="bottom-dot" data-slide="1" aria-label="Slide 2"></button>
-          <button class="bottom-dot" data-slide="2" aria-label="Slide 3"></button>
-          <button class="bottom-dot" data-slide="3" aria-label="Slide 4"></button>
-          <button class="bottom-dot" data-slide="4" aria-label="Slide 5"></button>
+          {heroSlides.map((_, i) => (
+            <button class={`bottom-dot${i === 0 ? ' active' : ''}`} data-slide={String(i)} aria-label={`Slide ${i + 1}`}></button>
+          ))}
         </div>
       </div>
     </section>
@@ -95,21 +171,20 @@ const kneedToKnow = await getCollection('kneedToKnow');
         <div class="film-rail-wrap">
           <div class="film-rail" id="film-rail">
 {bakeries.map((bakery) => (
-              <a href={'/bakeries/' + bakery.data.slug} class="film-card film-card-side">
-                <img class="film-card-img" src={bakery.data.thumbnail} alt={bakery.data.name} loading="lazy" />
+              <a href={'/bakeries/' + bakery.slug} class="film-card film-card-side">
+                <img class="film-card-img" src={bakery.thumbnail} alt={bakery.name} loading="lazy" />
                 <div class="film-card-grade"></div>
-                {bakery.data.duration && <div class="film-card-dur">{bakery.data.duration}</div>}
                 <div class="film-card-body">
-                  <div class="film-card-tag">{bakery.data.category}</div>
-                  <div class="film-card-title">{bakery.data.name}</div>
-                  <div class="film-card-bakery">{bakery.data.suburb}</div>
+                  <div class="film-card-tag">{bakery.category}</div>
+                  <div class="film-card-title">{bakery.name}</div>
+                  <div class="film-card-bakery">{bakery.suburb}</div>
                 </div>
                 <div class="film-card-play">
                   <svg viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg>
                 </div>
                 <div class="film-card-accent"></div>
               </a>
-            ))}        
+            ))}
             </div>
           </div>
       </div>
@@ -131,14 +206,14 @@ const kneedToKnow = await getCollection('kneedToKnow');
       </div>
       <div class="home-grid">
         {kneedToKnow.slice(0, 3).map((story) => (
-          <a href={'/kneed-to-know/' + story.data.slug} class="film-card">
-            <img class="film-card-img" src={story.data.thumbnail} alt={story.data.name} loading="lazy" />
+          <a href={'/kneed-to-know/' + story.slug} class="film-card">
+            <img class="film-card-img" src={story.thumbnail} alt={story.name} loading="lazy" />
             <div class="film-card-grade"></div>
-            <div class="film-card-dur">{story.data.duration}</div>
+            {story.duration && <div class="film-card-dur">{story.duration}</div>}
             <div class="film-card-body">
-              <div class="film-card-tag">{story.data.category}</div>
-              <div class="film-card-title">{story.data.name}</div>
-              <div class="film-card-bakery">{story.data.suburb}</div>
+              <div class="film-card-tag">{story.category}</div>
+              <div class="film-card-title">{story.name}</div>
+              <div class="film-card-bakery">{story.suburb}</div>
             </div>
             <div class="film-card-play">
               <svg viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg>
@@ -217,6 +292,7 @@ const kneedToKnow = await getCollection('kneedToKnow');
   </div>
 
   </main>
+  <script id="hero-slides-data" type="application/json" set:html={JSON.stringify(heroSlides).replace(/</g, '\\u003c')}></script>
 </BaseLayout>
 
 <style>
@@ -422,6 +498,7 @@ const kneedToKnow = await getCollection('kneedToKnow');
   gap: 0.5rem;
 }
 .bottom-dot {
+  position: relative;
   width: 28px;
   height: 3px;
   border-radius: 2px;
@@ -430,6 +507,16 @@ const kneedToKnow = await getCollection('kneedToKnow');
   cursor: pointer;
   transition: background 0.25s, width 0.25s;
   padding: 0;
+}
+.bottom-dot::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  min-width: 44px;
+  height: 44px;
 }
 .bottom-dot:hover { background: rgba(242,237,230,0.5); }
 .bottom-dot.active {
@@ -586,53 +673,7 @@ const kneedToKnow = await getCollection('kneedToKnow');
 
 <script is:inline>
   // HERO SLIDESHOW
-  var HERO_SLIDES = [
-    {
-      tag: 'Sourdough',
-      title: 'Country Sourdough Loaf',
-      bakery: 'Tivoli Road Bakery',
-      subtitle: "South Yarra's most enduring sourdough — a country-style loaf built on a 14-year-old starter and stone-milled Victorian wheat.",
-      image: 'https://images.pexels.com/photos/36445170/pexels-photo-36445170.jpeg?auto=compress&cs=tinysrgb&w=1920',
-      bgWord: 'COUNTRY',
-      slug: '/bakeries/tivoli-road-bakery'
-    },
-    {
-      tag: 'Pastry',
-      title: 'The Twice-Baked Croissant',
-      bakery: 'Lune Croissanterie',
-      subtitle: 'A scientific obsession with laminated dough — hundreds of paper-thin layers built one fold at a time.',
-      image: 'https://images.pexels.com/photos/2245295/pexels-photo-2245295.jpeg?auto=compress&cs=tinysrgb&w=1920',
-      bgWord: 'CROISSANT',
-      slug: '/bakeries/lune-croissanterie'
-    },
-    {
-      tag: 'Sourdough',
-      title: 'Stone-Milled Loaves',
-      bakery: 'Baker Bleu',
-      subtitle: 'A neighbourhood sourdough built on Australian-grown grain and slow overnight fermentation.',
-      image: 'https://images.pexels.com/photos/7447297/pexels-photo-7447297.jpeg?auto=compress&cs=tinysrgb&w=1920',
-      bgWord: 'STONE',
-      slug: '/bakeries/baker-bleu'
-    },
-    {
-      tag: 'Oat Bread',
-      title: 'Oat Porridge Loaf',
-      bakery: 'Falco Bakery',
-      subtitle: 'A distinctive Smith Street loaf folded with fermented oats and cooked porridge for a custard-soft crumb.',
-      image: 'https://images.pexels.com/photos/263168/pexels-photo-263168.jpeg?auto=compress&cs=tinysrgb&w=1920',
-      bgWord: 'OAT',
-      slug: '/bakeries/falco-bakery'
-    },
-    {
-      tag: 'Focaccia',
-      title: 'Focaccia with Rosemary',
-      bakery: 'To Be Frank',
-      subtitle: 'Organic wheat, Frattali olive oil, rosemary and sea salt — out of the oven at 10am, not before.',
-      image: 'https://images.pexels.com/photos/30666809/pexels-photo-30666809.jpeg?auto=compress&cs=tinysrgb&w=1920',
-      bgWord: 'FOCACCIA',
-      slug: '/bakeries/to-be-frank'
-    }
-  ];
+  var HERO_SLIDES = JSON.parse(document.getElementById('hero-slides-data').textContent);
 
   function initHomePage() {
     // Clear any hero timer left over from a previous visit

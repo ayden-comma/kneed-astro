@@ -2,21 +2,101 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
-<BaseLayout title="Privacy Policy" description="Privacy policy for (K)Need.">
-  <main class="wf-container py-page">
+<BaseLayout title="Privacy Policy" description="How (K)Need collects, uses and protects your personal information.">
+  <main class="wf-container py-page" style="max-width:46rem;">
     <div class="wf-page-head">
       <div class="wf-eyebrow">Legal</div>
       <h1 class="wf-page-h1">Privacy Policy</h1>
-      <p class="wf-page-intro">Last updated January 2025.</p>
+      <p class="wf-page-intro">Last updated June 2025. This policy applies to kneed.tv and all related services.</p>
     </div>
+
     <div class="simple-body">
-      <p>This Privacy Policy explains how (K)Need ("we", "us", "our") collects, uses and protects information about you when you use our website at kneed.tv.</p>
-      <p><strong style="color:var(--parchment); font-weight:500;">Information we collect.</strong> We collect information you provide directly, such as your name and email address when you submit a bakery or sign up to our newsletter. We also collect usage data automatically through Google Analytics and Meta Pixel, including pages visited, time on site and general location.</p>
-      <p><strong style="color:var(--parchment); font-weight:500;">How we use it.</strong> We use your information to respond to submissions, send newsletters you have opted into, and improve the website. We do not sell your personal information to third parties.</p>
-      <p><strong style="color:var(--parchment); font-weight:500;">Cookies.</strong> We use cookies for analytics and to remember your preferences such as dark or light mode. See our <a href="/cookies" style="color:var(--amber);">Cookie Policy</a> for more detail.</p>
-      <p><strong style="color:var(--parchment); font-weight:500;">Third party services.</strong> We use Google Analytics, Meta Pixel and Cloudflare Pages. Each has their own privacy policy.</p>
-      <p><strong style="color:var(--parchment); font-weight:500;">Your rights.</strong> You may request access to, correction of, or deletion of your personal information at any time by contacting us at hello@kneed.tv.</p>
-      <p><strong style="color:var(--parchment); font-weight:500;">Contact.</strong> For any privacy questions, email us at hello@kneed.tv.</p>
+
+      <section>
+        <h2 style="font-family:var(--font-display);font-weight:200;font-size:1.125rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--parchment);margin-bottom:0.75rem;">Who We Are</h2>
+        <p>(K)Need is a digital journal about Melbourne's neighbourhood bakeries, produced by Comma Films Pty Ltd, based in Melbourne, Victoria, Australia. We operate the website at kneed.tv ("the Site"). In this policy, "we", "us" and "our" refers to Comma Films Pty Ltd.</p>
+        <p>We are committed to protecting your personal information in accordance with the <em>Privacy Act 1988</em> (Cth) and the Australian Privacy Principles (APPs).</p>
+        <p>For any privacy enquiries, contact us at <a href="mailto:hello@kneed.com.au" style="color:var(--amber);">hello@kneed.com.au</a>.</p>
+      </section>
+
+      <section>
+        <h2 style="font-family:var(--font-display);font-weight:200;font-size:1.125rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--parchment);margin-bottom:0.75rem;">What Data We Collect</h2>
+        <p><strong style="color:var(--parchment);font-weight:500;">Account information.</strong> When you create an account — either via Google sign-in or email and password — we collect your email address and, if provided by Google, your name and profile photo. This information is stored securely in our database.</p>
+        <p><strong style="color:var(--parchment);font-weight:500;">Profile information.</strong> You may choose to add a display name, username, and short bio to your public profile.</p>
+        <p><strong style="color:var(--parchment);font-weight:500;">Usage data.</strong> When you interact with the Site — including saving bakeries, leaving comments, or rating bakeries — we record those interactions in association with your account.</p>
+        <p><strong style="color:var(--parchment);font-weight:500;">Optional demographic data.</strong> With your explicit consent, we may collect your age (date of birth), gender, and suburb/location. This data is used solely for anonymous, aggregate analytics to help us understand our audience. We will never use this data to identify you individually, and you can withdraw consent at any time by editing your profile.</p>
+        <p><strong style="color:var(--parchment);font-weight:500;">Usage analytics.</strong> We use Google Analytics to collect anonymised data about how visitors use the Site, including pages visited, session duration and approximate geographic location. This data does not identify you personally.</p>
+        <p><strong style="color:var(--parchment);font-weight:500;">Bakery submissions.</strong> If you submit a bakery via the submission form, we collect the information you provide including bakery name, address, and your contact details.</p>
+        <p><strong style="color:var(--parchment);font-weight:500;">Newsletter.</strong> If you subscribe to our newsletter, we collect your email address for that purpose only.</p>
+      </section>
+
+      <section>
+        <h2 style="font-family:var(--font-display);font-weight:200;font-size:1.125rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--parchment);margin-bottom:0.75rem;">How We Use Your Data</h2>
+        <p>We use the information we collect to:</p>
+        <ul style="padding-left:1.5rem;display:flex;flex-direction:column;gap:0.5rem;">
+          <li>Operate and maintain your account and the features associated with it</li>
+          <li>Display your comments, ratings and saved bakeries on the Site</li>
+          <li>Send newsletters and updates you have opted into</li>
+          <li>Review and respond to bakery submissions</li>
+          <li>Produce anonymous, aggregate analytics to improve our content and editorial focus</li>
+          <li>Comply with our legal obligations</li>
+        </ul>
+        <p>We do not use your data for automated decision-making or profiling that produces legal or similarly significant effects.</p>
+      </section>
+
+      <section>
+        <h2 style="font-family:var(--font-display);font-weight:200;font-size:1.125rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--parchment);margin-bottom:0.75rem;">Who We Share Data With</h2>
+        <p>We do not sell your personal information. We share data only with the following trusted service providers, each bound by their own privacy commitments:</p>
+        <ul style="padding-left:1.5rem;display:flex;flex-direction:column;gap:0.5rem;">
+          <li><strong style="color:var(--parchment);font-weight:500;">Supabase</strong> — our database and authentication provider. Your account data and content are stored on Supabase infrastructure. See <a href="https://supabase.com/privacy" target="_blank" rel="noopener" style="color:var(--amber);">supabase.com/privacy</a>.</li>
+          <li><strong style="color:var(--parchment);font-weight:500;">Cloudinary</strong> — we use Cloudinary to store and serve images uploaded to the Site. See <a href="https://cloudinary.com/privacy" target="_blank" rel="noopener" style="color:var(--amber);">cloudinary.com/privacy</a>.</li>
+          <li><strong style="color:var(--parchment);font-weight:500;">Google Analytics</strong> — anonymised usage data is sent to Google Analytics. See <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style="color:var(--amber);">Google's Privacy Policy</a>. You can opt out via <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener" style="color:var(--amber);">Google's opt-out tool</a>.</li>
+          <li><strong style="color:var(--parchment);font-weight:500;">Google OAuth</strong> — if you sign in with Google, your authentication is handled by Google. We receive only your name and email address.</li>
+        </ul>
+        <p>We may also disclose personal information if required to do so by law, or to protect the rights, property or safety of (K)Need, our users or the public.</p>
+      </section>
+
+      <section>
+        <h2 style="font-family:var(--font-display);font-weight:200;font-size:1.125rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--parchment);margin-bottom:0.75rem;">Cookies</h2>
+        <p>We use cookies and similar tracking technologies on the Site:</p>
+        <ul style="padding-left:1.5rem;display:flex;flex-direction:column;gap:0.5rem;">
+          <li><strong style="color:var(--parchment);font-weight:500;">Authentication cookies</strong> — Supabase sets session cookies to keep you logged in. These are essential for the Site to function.</li>
+          <li><strong style="color:var(--parchment);font-weight:500;">Analytics cookies</strong> — Google Analytics sets cookies to track anonymised usage data. These can be blocked without affecting site functionality.</li>
+        </ul>
+        <p>See our <a href="/cookies" style="color:var(--amber);">Cookie Policy</a> for full details.</p>
+      </section>
+
+      <section>
+        <h2 style="font-family:var(--font-display);font-weight:200;font-size:1.125rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--parchment);margin-bottom:0.75rem;">Data Retention</h2>
+        <p>We retain your account data for as long as your account is active. If you delete your account, we will delete your personal data within 30 days, except where we are required to retain it for legal or compliance reasons.</p>
+        <p>Anonymous, aggregate analytics data (with no personal identifiers) may be retained indefinitely.</p>
+        <p>Demographic data (age, gender, location) that you have provided under consent will be deleted immediately if you withdraw that consent via the Edit Profile page.</p>
+      </section>
+
+      <section>
+        <h2 style="font-family:var(--font-display);font-weight:200;font-size:1.125rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--parchment);margin-bottom:0.75rem;">Your Rights</h2>
+        <p>Under the Australian Privacy Act 1988, you have the right to:</p>
+        <ul style="padding-left:1.5rem;display:flex;flex-direction:column;gap:0.5rem;">
+          <li><strong style="color:var(--parchment);font-weight:500;">Access</strong> your personal information that we hold</li>
+          <li><strong style="color:var(--parchment);font-weight:500;">Correct</strong> inaccurate or out-of-date personal information</li>
+          <li><strong style="color:var(--parchment);font-weight:500;">Delete</strong> your account and associated personal data</li>
+          <li><strong style="color:var(--parchment);font-weight:500;">Withdraw consent</strong> for demographic data collection at any time via your profile settings</li>
+          <li><strong style="color:var(--parchment);font-weight:500;">Complain</strong> to the Office of the Australian Information Commissioner (OAIC) if you believe your privacy rights have been breached</li>
+        </ul>
+        <p>To exercise any of these rights, email us at <a href="mailto:hello@kneed.com.au" style="color:var(--amber);">hello@kneed.com.au</a>. We will respond within 30 days.</p>
+      </section>
+
+      <section>
+        <h2 style="font-family:var(--font-display);font-weight:200;font-size:1.125rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--parchment);margin-bottom:0.75rem;">Changes to This Policy</h2>
+        <p>We may update this Privacy Policy from time to time. When we do, we will update the "last updated" date at the top of this page. Continued use of the Site after any changes constitutes your acceptance of the updated policy.</p>
+      </section>
+
+      <section>
+        <h2 style="font-family:var(--font-display);font-weight:200;font-size:1.125rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--parchment);margin-bottom:0.75rem;">Contact</h2>
+        <p>For any privacy questions or requests, please contact us at <a href="mailto:hello@kneed.com.au" style="color:var(--amber);">hello@kneed.com.au</a>.</p>
+        <p>Comma Films Pty Ltd<br/>Melbourne, Victoria, Australia</p>
+      </section>
+
     </div>
   </main>
 </BaseLayout>

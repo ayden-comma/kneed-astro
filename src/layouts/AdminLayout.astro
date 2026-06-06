@@ -1,0 +1,92 @@
+---
+interface Props {
+  title: string;
+  activePage?: string;
+}
+const { title, activePage = '' } = Astro.props;
+
+const navLinks = [
+  { id: 'dashboard',   href: '/admin',             label: 'Dashboard',        icon: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>' },
+  { id: 'bakeries',    href: '/admin/bakeries',    label: 'Bakeries',          icon: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>' },
+  { id: 'hero',        href: '/admin/hero',        label: 'Hero Carousel',     icon: '<rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>' },
+  { id: 'articles',    href: '/admin/articles',    label: '(K)Need to Know',   icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>' },
+  { id: 'submissions', href: '/admin/submissions', label: 'Submissions',        icon: '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>' },
+  { id: 'comments',    href: '/admin/comments',    label: 'Comments',           icon: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },
+  { id: 'members',     href: '/admin/members',     label: 'Members',            icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
+];
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{title} — (K)Need Admin</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100;200;300;400&family=Barlow:wght@300;400;500;600&family=Archivo+Narrow:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/global.css" />
+  <link rel="stylesheet" href="/admin.css" />
+</head>
+<body>
+  <!-- Loading state — visible until adminCheck confirms admin role -->
+  <div id="admin-loading" style="display:flex; align-items:center; justify-content:center; min-height:100vh; color:var(--p-35); font-family:var(--font-cond); font-size:0.8rem; letter-spacing:0.15em; text-transform:uppercase;">
+    Loading…
+  </div>
+
+  <!-- Admin shell — hidden until auth passes -->
+  <div id="admin-content" style="display:none;">
+    <div class="admin-wrap">
+      <aside class="admin-sidebar">
+        <div class="admin-logo">
+          <div class="admin-logo-primary"><span>(K)</span>NEED</div>
+          <div class="admin-logo-sub">Admin</div>
+        </div>
+
+        <nav class="admin-nav">
+          {navLinks.map(link => (
+            <a
+              href={link.href}
+              class={`admin-nav-link${activePage === link.id ? ' is-active' : ''}`}
+              aria-current={activePage === link.id ? 'page' : undefined}
+            >
+              <svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" set:html={link.icon} />
+              <span>{link.label}</span>
+            </a>
+          ))}
+        </nav>
+
+        <div class="admin-sidebar-footer">
+          <strong id="admin-user-name">—</strong>
+          <a href="/auth/logout" class="admin-signout">Sign out →</a>
+        </div>
+      </aside>
+
+      <main class="admin-main">
+        <slot />
+      </main>
+    </div>
+  </div>
+
+  <script>
+    import '../scripts/adminCheck';
+    import { supabase } from '../lib/supabase';
+
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', session.user.id)
+        .maybeSingle();
+      const el = document.getElementById('admin-user-name');
+      if (el) {
+        el.textContent = (profile as { display_name: string | null } | null)?.display_name
+          || session.user.email
+          || 'Admin';
+      }
+    })();
+  </script>
+</body>
+</html>

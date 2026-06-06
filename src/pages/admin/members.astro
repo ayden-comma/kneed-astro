@@ -1,0 +1,123 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Members" activePage="members">
+  <div class="admin-page-header">
+    <h1 class="admin-page-title">Members</h1>
+    <span id="member-count" style="font-size:0.8rem;color:var(--p-35);"></span>
+  </div>
+
+  <div class="admin-section">
+    <div id="admin-msg" class="admin-msg"></div>
+    <div class="admin-filters">
+      <select class="admin-filter-select" id="role-filter">
+        <option value="">All roles</option>
+        <option value="admin">Admin</option>
+        <option value="member">Member</option>
+      </select>
+    </div>
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Display Name</th>
+            <th>Role</th>
+            <th>Joined</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="member-tbody">
+          <tr><td colspan="4"><div class="admin-empty">Loading…</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  import { supabase } from '../../lib/supabase';
+
+  type MemberRow = { id: string; display_name: string | null; role: string; created_at: string };
+
+  const msgEl  = document.getElementById('admin-msg')!;
+  const tbody  = document.getElementById('member-tbody')!;
+  const filter = document.getElementById('role-filter') as HTMLSelectElement;
+
+  function showMsg(text: string, type: 'error' | 'success') {
+    msgEl.textContent = text;
+    msgEl.className = `admin-msg admin-msg-${type} is-visible`;
+    setTimeout(() => msgEl.classList.remove('is-visible'), 4000);
+  }
+
+  function fmtDate(d: string) {
+    return new Date(d).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  function rowHTML(m: MemberRow, currentUserId: string) {
+    const isYou = m.id === currentUserId;
+    const youBadge = isYou ? ' <span style="font-size:0.7rem;color:var(--p-35);">(you)</span>' : '';
+    const toggleBtn = !isYou
+      ? `<button class="admin-btn admin-btn-ghost admin-btn-sm btn-toggle-role"
+           data-id="${m.id}" data-role="${m.role}" data-name="${m.display_name ?? 'this member'}">
+           ${m.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
+         </button>`
+      : '';
+    return `<tr data-id="${m.id}" data-role="${m.role}">
+      <td><strong>${m.display_name || 'Anonymous'}</strong>${youBadge}</td>
+      <td><span class="admin-badge admin-badge-${m.role === 'admin' ? 'admin' : 'member'}">${m.role}</span></td>
+      <td style="white-space:nowrap;">${fmtDate(m.created_at)}</td>
+      <td>${toggleBtn}</td>
+    </tr>`;
+  }
+
+  async function loadList() {
+    const { data: { session } } = await supabase.auth.getSession();
+    const currentUserId = session?.user?.id ?? '';
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, display_name, role, created_at')
+      .order('created_at', { ascending: false });
+    if (error) { tbody.innerHTML = `<tr><td colspan="4"><div class="admin-empty">Error: ${error.message}</div></td></tr>`; return; }
+
+    const rows = (data ?? []) as MemberRow[];
+    const countEl = document.getElementById('member-count');
+    if (countEl) countEl.textContent = `${rows.length} member${rows.length !== 1 ? 's' : ''}`;
+
+    tbody.innerHTML = rows.length === 0
+      ? '<tr><td colspan="4"><div class="admin-empty">No members yet.</div></td></tr>'
+      : rows.map(m => rowHTML(m, currentUserId)).join('');
+
+    tbody.querySelectorAll('.btn-toggle-role').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id      = (btn as HTMLElement).dataset.id!;
+        const curRole = (btn as HTMLElement).dataset.role!;
+        const name    = (btn as HTMLElement).dataset.name!;
+        const newRole = curRole === 'admin' ? 'member' : 'admin';
+        const action  = newRole === 'admin' ? `Make "${name}" an admin` : `Remove admin from "${name}"`;
+        if (!confirm(`${action}?`)) return;
+        const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', id);
+        if (error) { showMsg(error.message, 'error'); return; }
+        const row = tbody.querySelector(`tr[data-id="${id}"]`);
+        if (row) {
+          row.setAttribute('data-role', newRole);
+          const badge = row.querySelector('.admin-badge');
+          if (badge) { badge.className = `admin-badge admin-badge-${newRole === 'admin' ? 'admin' : 'member'}`; badge.textContent = newRole; }
+          const b = row.querySelector('.btn-toggle-role') as HTMLButtonElement;
+          if (b) { b.dataset.role = newRole; b.textContent = newRole === 'admin' ? 'Remove Admin' : 'Make Admin'; }
+        }
+        showMsg(`${name} is now ${newRole === 'admin' ? 'an admin' : 'a member'}.`, 'success');
+      });
+    });
+  }
+
+  filter.addEventListener('change', () => {
+    const val = filter.value;
+    tbody.querySelectorAll('tr[data-role]').forEach(row => {
+      (row as HTMLElement).style.display = (!val || row.getAttribute('data-role') === val) ? '' : 'none';
+    });
+  });
+
+  loadList();
+</script>

@@ -1,0 +1,208 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Submissions" activePage="submissions">
+  <div class="admin-page-header">
+    <h1 class="admin-page-title">Submissions</h1>
+    <div style="display:flex; align-items:center; gap:0.75rem;">
+      <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.8rem; color:var(--p-50); cursor:pointer;">
+        <input type="checkbox" id="select-all" style="cursor:pointer;" />
+        Select all
+      </label>
+      <button class="admin-btn admin-btn-ghost" id="btn-csv">Download Selected CSV</button>
+    </div>
+  </div>
+
+  <div class="admin-section">
+    <div id="admin-msg" class="admin-msg"></div>
+    <div class="admin-filters">
+      <select class="admin-filter-select" id="status-filter">
+        <option value="">All statuses</option>
+        <option value="pending">Pending</option>
+        <option value="shortlisted">Shortlisted</option>
+        <option value="rejected">Rejected</option>
+      </select>
+    </div>
+    <div id="sub-list">
+      <div class="admin-empty">Loading…</div>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  import { supabase } from '../../lib/supabase';
+
+  type SubRow = {
+    id: string; bakery_name: string; submitted_name: string | null;
+    email: string | null; phone: string | null;
+    suburb: string | null; address: string | null;
+    website: string | null; instagram: string | null; notes: string | null;
+    status: string; created_at: string;
+    profiles: { display_name: string | null } | null;
+  };
+
+  const msgEl  = document.getElementById('admin-msg')!;
+  const listEl = document.getElementById('sub-list')!;
+
+  let _allRows: SubRow[] = [];
+
+  function showMsg(text: string, type: 'error' | 'success') {
+    msgEl.textContent = text;
+    msgEl.className = `admin-msg admin-msg-${type} is-visible`;
+    setTimeout(() => msgEl.classList.remove('is-visible'), 4000);
+  }
+
+  function fmtDate(d: string) {
+    return new Date(d).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  function cardHTML(s: SubRow) {
+    const submitter = s.submitted_name || s.profiles?.display_name || s.email || 'Anonymous';
+    const location  = [s.suburb, s.address].filter(Boolean).join(' · ');
+    const links = [
+      s.website   ? `<a class="sub-card-link" href="${s.website.startsWith('http') ? s.website : 'https://' + s.website}" target="_blank" rel="noopener noreferrer">${s.website}</a>` : '',
+      s.instagram ? `<a class="sub-card-link" href="https://instagram.com/${s.instagram.replace('@', '')}" target="_blank" rel="noopener noreferrer">${s.instagram}</a>` : '',
+    ].filter(Boolean).join('');
+    const shortlistReject = s.status === 'pending'
+      ? `<button class="sub-btn sub-btn-approve btn-shortlist" data-id="${s.id}" data-name="${s.bakery_name}">Shortlist</button>
+         <button class="sub-btn sub-btn-reject btn-reject" data-id="${s.id}">Reject</button>`
+      : '';
+    const contactBtn = s.email
+      ? (() => {
+          const subject = encodeURIComponent('(K)Need — ' + s.bakery_name);
+          const body    = encodeURIComponent(
+            'Hi,\n\nThank you for submitting ' + s.bakery_name + ' to (K)Need.\n\nWe\'d love to learn more about your bakery and discuss filming a story with you.\n\nCould we arrange a time to chat?\n\nBest,\nThe (K)Need Team'
+          );
+          return `<a class="sub-btn sub-btn-contact" href="mailto:${s.email}?subject=${subject}&body=${body}">Contact →</a>`;
+        })()
+      : `<span class="sub-no-email">No email</span>`;
+    return `<div class="sub-card" data-id="${s.id}" data-status="${s.status}">
+      <div class="sub-card-top">
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+          <input type="checkbox" class="sub-select-cb" data-id="${s.id}" style="cursor:pointer; flex-shrink:0;" />
+          <div class="sub-card-name">${s.bakery_name}</div>
+        </div>
+        <span class="sub-status-badge sub-status-${s.status}">${s.status}</span>
+      </div>
+      ${location ? `<div class="sub-card-meta">${location}</div>` : ''}
+      ${(s.email || s.phone) ? `<div class="sub-card-meta">${[s.email, s.phone].filter(Boolean).join(' · ')}</div>` : ''}
+      ${links    ? `<div class="sub-card-links">${links}</div>`   : ''}
+      ${s.notes  ? `<div class="sub-card-notes">${s.notes}</div>` : ''}
+      <div class="sub-card-footer">
+        <div class="sub-card-by">${submitter} · ${fmtDate(s.created_at)}</div>
+        <div class="sub-card-actions">
+          ${contactBtn}
+          ${shortlistReject}
+          <button class="sub-btn sub-btn-delete btn-del" data-id="${s.id}">Delete</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  async function loadList() {
+    const { data, error } = await supabase
+      .from('submissions')
+      .select('*, profiles(display_name)')
+      .order('created_at', { ascending: false });
+    if (error) { listEl.innerHTML = `<div class="admin-empty">Error: ${error.message}</div>`; return; }
+    _allRows = (data ?? []) as unknown as SubRow[];
+    listEl.innerHTML = _allRows.length === 0
+      ? '<div class="admin-empty">No submissions yet.</div>'
+      : _allRows.map(cardHTML).join('');
+    bindActions();
+  }
+
+  function bindActions() {
+    // Status filter
+    document.getElementById('status-filter')!.onchange = (e) => {
+      const val = (e.target as HTMLSelectElement).value;
+      listEl.querySelectorAll<HTMLElement>('.sub-card').forEach(card => {
+        card.style.display = (!val || card.dataset.status === val) ? '' : 'none';
+      });
+    };
+
+    // Shortlist
+    listEl.querySelectorAll('.btn-shortlist').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id   = (btn as HTMLElement).dataset.id!;
+        const name = (btn as HTMLElement).dataset.name!;
+        if (!confirm(`Shortlist "${name}"?`)) return;
+        const { error } = await supabase.from('submissions').update({ status: 'shortlisted' }).eq('id', id);
+        if (error) { showMsg(error.message, 'error'); return; }
+        const card = listEl.querySelector<HTMLElement>(`.sub-card[data-id="${id}"]`);
+        if (card) {
+          card.dataset.status = 'shortlisted';
+          const badge = card.querySelector('.sub-status-badge');
+          if (badge) { badge.className = 'sub-status-badge sub-status-shortlisted'; badge.textContent = 'shortlisted'; }
+          card.querySelectorAll('.btn-shortlist, .btn-reject').forEach(b => b.remove());
+        }
+        showMsg(`"${name}" shortlisted.`, 'success');
+      });
+    });
+
+    // Reject
+    listEl.querySelectorAll('.btn-reject').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = (btn as HTMLElement).dataset.id!;
+        if (!confirm('Reject this submission?')) return;
+        const { error } = await supabase.from('submissions').update({ status: 'rejected' }).eq('id', id);
+        if (error) { showMsg(error.message, 'error'); return; }
+        const card = listEl.querySelector<HTMLElement>(`.sub-card[data-id="${id}"]`);
+        if (card) {
+          card.dataset.status = 'rejected';
+          const badge = card.querySelector('.sub-status-badge');
+          if (badge) { badge.className = 'sub-status-badge sub-status-rejected'; badge.textContent = 'rejected'; }
+          card.querySelectorAll('.btn-shortlist, .btn-reject').forEach(b => b.remove());
+        }
+        showMsg('Submission rejected.', 'success');
+      });
+    });
+
+    // Delete
+    listEl.querySelectorAll('.btn-del').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = (btn as HTMLElement).dataset.id!;
+        if (!confirm('Delete this submission permanently?')) return;
+        const { error } = await supabase.from('submissions').delete().eq('id', id);
+        if (error) { showMsg(error.message, 'error'); return; }
+        listEl.querySelector(`.sub-card[data-id="${id}"]`)?.remove();
+        showMsg('Submission deleted.', 'success');
+      });
+    });
+  }
+
+  // Select all checkbox
+  document.getElementById('select-all')!.addEventListener('change', (e) => {
+    const checked = (e.target as HTMLInputElement).checked;
+    listEl.querySelectorAll<HTMLInputElement>('.sub-select-cb').forEach(cb => {
+      const card = cb.closest<HTMLElement>('.sub-card');
+      if (!card || card.style.display === 'none') return;
+      cb.checked = checked;
+    });
+  });
+
+  // CSV download (selected only)
+  document.getElementById('btn-csv')!.addEventListener('click', () => {
+    const checkedIds = new Set(
+      Array.from(listEl.querySelectorAll<HTMLInputElement>('.sub-select-cb:checked')).map(cb => cb.dataset.id!)
+    );
+    if (checkedIds.size === 0) { alert('Please select at least one submission.'); return; }
+    const selected = _allRows.filter(s => checkedIds.has(s.id));
+    const headers  = ['Name', 'Email', 'Phone', 'Bakery Name', 'Suburb', 'Address', 'Website', 'Instagram', 'Notes', 'Status', 'Date'];
+    const escape   = (v: string | null) => `"${(v ?? '').replace(/"/g, '""')}"`;
+    const csvRows  = selected.map(s => {
+      const name = s.submitted_name || s.profiles?.display_name || s.email || 'Anonymous';
+      return [name, s.email, s.phone, s.bakery_name, s.suburb, s.address, s.website, s.instagram, s.notes, s.status, fmtDate(s.created_at)]
+        .map(escape).join(',');
+    });
+    const csv  = [headers.join(','), ...csvRows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = 'submissions.csv'; a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  loadList();
+</script>

@@ -1,0 +1,435 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Hero Carousel" activePage="hero">
+  <div class="admin-page-header">
+    <div>
+      <h1 class="admin-page-title">Hero Carousel</h1>
+      <p class="hero-page-sub">Controls the homepage feature slides</p>
+    </div>
+  </div>
+
+  <div id="admin-msg" class="admin-msg"></div>
+
+  <div class="hero-mgr-grid">
+    <div class="hero-panel">
+      <div class="hero-panel-head">
+        <span class="hero-panel-label">Active slots</span>
+        <span id="hero-slot-count" class="hero-slot-badge">0 / 5</span>
+      </div>
+      <div id="hero-active-list" class="hero-panel-body">
+        <div class="admin-empty">Loading…</div>
+      </div>
+      <div id="hpv-section" style="display:none;">
+        <div class="hpv-viewport">
+          <div id="hpv-slides-wrap"></div>
+          <div class="hpv-dots" id="hpv-dots"></div>
+          <button class="hpv-prev" id="hpv-prev">‹</button>
+          <button class="hpv-next" id="hpv-next">›</button>
+          <div class="hpv-indicator" id="hpv-indicator">1 / 1</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-panel">
+      <div class="hero-panel-head">
+        <span class="hero-panel-label">Available bakeries</span>
+      </div>
+      <div id="hero-available-list">
+        <div class="admin-empty">Loading…</div>
+      </div>
+      <div class="hero-panel-note">Only bakeries with a hero title and image appear here. Edit hero content in the Bakeries section.</div>
+
+      <div class="hero-panel-head" style="margin-top:1.25rem;">
+        <span class="hero-panel-label">Available articles</span>
+      </div>
+      <div id="hero-available-articles-list">
+        <div class="admin-empty">Loading…</div>
+      </div>
+      <div class="hero-panel-note">Only articles with a hero title and image appear here. Edit hero content in the Articles section.</div>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  import { supabase } from '../../lib/supabase';
+
+  type HeroFeature = {
+    id: string;
+    bakery_slug: string | null;
+    article_slug: string | null;
+    content_type: string;
+    sort_order: number;
+    bakeries_cms: {
+      name: string;
+      hero_tag: string | null;
+      hero_title: string | null;
+      hero_subtitle: string | null;
+      hero_bg_word: string | null;
+      hero_image_url: string | null;
+      thumbnail: string | null;
+      video_id: string | null;
+    } | null;
+    articles_cms: {
+      slug: string;
+      title: string;
+      hero_tag: string | null;
+      hero_title: string | null;
+      hero_subtitle: string | null;
+      hero_bg_word: string | null;
+      hero_image_url: string | null;
+      thumbnail: string | null;
+    } | null;
+  };
+
+  type BakeryRow = {
+    slug: string;
+    name: string;
+    hero_tag: string | null;
+    hero_title: string | null;
+    hero_image_url: string | null;
+    thumbnail: string | null;
+    video_id: string | null;
+  };
+
+  type ArticleRow = {
+    slug: string;
+    title: string;
+    hero_tag: string | null;
+    hero_title: string | null;
+    hero_image_url: string | null;
+    thumbnail: string | null;
+  };
+
+  const msgEl             = document.getElementById('admin-msg')!;
+  const activeList        = document.getElementById('hero-active-list')!;
+  const availList         = document.getElementById('hero-available-list')!;
+  const availArticlesList = document.getElementById('hero-available-articles-list')!;
+  const slotCount         = document.getElementById('hero-slot-count')!;
+
+  let _active: HeroFeature[] = [];
+  let _avail: BakeryRow[] = [];
+  let _availArticles: ArticleRow[] = [];
+  let _previewIdx = 0;
+
+  function showMsg(text: string, type: 'error' | 'success') {
+    msgEl.textContent = text;
+    msgEl.className = `admin-msg admin-msg-${type} is-visible`;
+    setTimeout(() => msgEl.classList.remove('is-visible'), 4000);
+  }
+
+  function thumbUrl(b: any): string {
+    if (!b) return '';
+    return b.hero_image_url
+      || b.thumbnail
+      || (b.video_id ? `https://img.youtube.com/vi/${b.video_id}/maxresdefault.jpg` : '');
+  }
+
+  function renderActive() {
+    slotCount.textContent = `${_active.length} / 5`;
+
+    const activeHTML = _active.map((hf, i) => {
+      const isBakery = hf.content_type !== 'article';
+      const bc = hf.bakeries_cms;
+      const ac = hf.articles_cms;
+      const name     = isBakery ? (bc?.name ?? hf.bakery_slug ?? '') : (ac?.title ?? hf.article_slug ?? '');
+      const tag      = isBakery
+        ? [bc?.hero_tag, bc?.hero_title].filter(Boolean).join(' · ')
+        : [ac?.hero_tag, ac?.hero_title].filter(Boolean).join(' · ');
+      const img      = thumbUrl(isBakery ? bc : ac);
+      const editHref = isBakery
+        ? `/admin/bakeries?edit=${hf.bakery_slug}`
+        : `/admin/articles?edit=${hf.article_slug}`;
+      const badge = isBakery
+        ? `<span style="font-family:var(--font-cond);font-size:0.48rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--p-35);flex-shrink:0;margin-left:4px;">BAKERY</span>`
+        : `<span style="font-family:var(--font-cond);font-size:0.48rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--amber);opacity:0.75;flex-shrink:0;margin-left:4px;">ARTICLE</span>`;
+      return `<div style="display:flex;flex-direction:row;align-items:center;gap:0.625rem;padding:0.625rem;background:var(--surface-1);border:1px solid var(--border);border-radius:0.5rem;min-width:0;" data-id="${hf.id}">
+        <span style="font-size:0.7rem;font-weight:500;color:var(--p-35);width:14px;flex-shrink:0;text-align:center;">${i + 1}</span>
+        ${img
+          ? `<div style="width:56px;height:38px;min-width:56px;border-radius:4px;flex-shrink:0;background-color:var(--border);background-image:url('${img}');background-size:cover;background-position:center;"></div>`
+          : `<div style="width:56px;height:38px;min-width:56px;border-radius:4px;flex-shrink:0;background-color:var(--border);"></div>`}
+        <div style="flex:1;min-width:0;overflow:hidden;">
+          <div style="display:flex;align-items:center;overflow:hidden;">
+            <a href="${editHref}" style="font-family:var(--font-cond);font-size:0.82rem;font-weight:600;letter-spacing:0.04em;color:var(--amber);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;text-decoration:none;min-width:0;flex-shrink:1;" title="Edit ${name}">${name}</a>
+            ${badge}
+          </div>
+          ${tag ? `<div style="font-size:0.68rem;color:var(--p-35);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;">${tag}</div>` : ''}
+        </div>
+        <div style="display:flex;flex-direction:row;align-items:center;gap:4px;flex-shrink:0;margin-left:auto;">
+          <button class="hero-btn-move btn-move-up" data-idx="${i}" ${i === 0 ? 'disabled' : ''} title="Move up">↑</button>
+          <button class="hero-btn-move btn-move-down" data-idx="${i}" ${i === _active.length - 1 ? 'disabled' : ''} title="Move down">↓</button>
+          <button class="hero-btn-remove btn-remove" data-id="${hf.id}" title="Remove">−</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    const emptyHTML = Array.from({ length: Math.max(0, 5 - _active.length) }, (_, i) => `
+      <div style="display:flex;flex-direction:row;align-items:center;gap:0.625rem;padding:0.625rem;border:1px dashed var(--border);border-radius:0.5rem;opacity:0.45;min-width:0;">
+        <span style="font-size:0.7rem;font-weight:500;color:var(--p-35);width:14px;flex-shrink:0;text-align:center;">${_active.length + i + 1}</span>
+        <div style="width:56px;height:38px;min-width:56px;border-radius:4px;flex-shrink:0;border:1px dashed var(--border-md);display:block;"></div>
+        <div style="flex:1;min-width:0;overflow:hidden;"><div style="font-size:0.68rem;color:var(--p-35);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;">Empty slot</div></div>
+      </div>`).join('');
+
+    activeList.innerHTML = activeHTML + emptyHTML;
+    bindActiveButtons();
+    buildPreview();
+  }
+
+  function renderAvail() {
+    if (_avail.length === 0) {
+      availList.innerHTML = '<div class="admin-empty" style="padding:1rem;">No hero-ready bakeries available. Add hero content to bakeries in the Bakeries section.</div>';
+      return;
+    }
+    const atLimit = _active.length >= 5;
+    availList.innerHTML = _avail.map((b, i) => {
+      const img = thumbUrl(b);
+      const tag = [b.hero_tag, b.hero_title].filter(Boolean).join(' · ');
+      const isLast = i === _avail.length - 1;
+      return `<div style="display:flex;flex-direction:row;align-items:center;gap:0.625rem;padding:0.625rem 1rem;border-bottom:${isLast ? 'none' : '1px solid var(--border)'};min-width:0;" data-slug="${b.slug}">
+        ${img
+          ? `<div style="width:48px;height:32px;min-width:48px;border-radius:4px;flex-shrink:0;background-color:var(--border);background-image:url('${img}');background-size:cover;background-position:center;"></div>`
+          : `<div style="width:48px;height:32px;min-width:48px;border-radius:4px;flex-shrink:0;background-color:var(--border);"></div>`}
+        <div style="flex:1;min-width:0;overflow:hidden;">
+          <div style="font-family:var(--font-cond);font-size:0.82rem;font-weight:600;color:var(--parchment);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;" title="${b.name}">${b.name}</div>
+          ${tag ? `<div style="font-size:0.68rem;color:var(--p-35);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;">${tag}</div>` : ''}
+        </div>
+        <button class="hero-btn-add btn-add" data-slug="${b.slug}" ${atLimit ? 'disabled title="Maximum 5 slides"' : ''} title="Add to hero">+</button>
+      </div>`;
+    }).join('');
+    bindAvailButtons();
+  }
+
+  function renderAvailArticles() {
+    if (_availArticles.length === 0) {
+      availArticlesList.innerHTML = '<div class="admin-empty" style="padding:1rem;">No hero-ready articles available. Add hero content to articles in the Articles section.</div>';
+      return;
+    }
+    const atLimit = _active.length >= 5;
+    availArticlesList.innerHTML = _availArticles.map((a, i) => {
+      const img = thumbUrl(a);
+      const tag = [a.hero_tag, a.hero_title].filter(Boolean).join(' · ');
+      const isLast = i === _availArticles.length - 1;
+      return `<div style="display:flex;flex-direction:row;align-items:center;gap:0.625rem;padding:0.625rem 1rem;border-bottom:${isLast ? 'none' : '1px solid var(--border)'};min-width:0;" data-slug="${a.slug}">
+        ${img
+          ? `<div style="width:48px;height:32px;min-width:48px;border-radius:4px;flex-shrink:0;background-color:var(--border);background-image:url('${img}');background-size:cover;background-position:center;"></div>`
+          : `<div style="width:48px;height:32px;min-width:48px;border-radius:4px;flex-shrink:0;background-color:var(--border);"></div>`}
+        <div style="flex:1;min-width:0;overflow:hidden;">
+          <div style="font-family:var(--font-cond);font-size:0.82rem;font-weight:600;color:var(--parchment);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;" title="${a.title}">${a.title}</div>
+          ${tag ? `<div style="font-size:0.68rem;color:var(--p-35);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;">${tag}</div>` : ''}
+        </div>
+        <button class="hero-btn-add btn-add-article" data-slug="${a.slug}" ${atLimit ? 'disabled title="Maximum 5 slides"' : ''} title="Add to hero">+</button>
+      </div>`;
+    }).join('');
+    bindAvailArticleButtons();
+  }
+
+  function bindActiveButtons() {
+    activeList.querySelectorAll<HTMLButtonElement>('.btn-move-up').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const idx = parseInt(btn.dataset.idx!);
+        if (idx === 0) return;
+        await swapOrder(idx, idx - 1);
+      });
+    });
+    activeList.querySelectorAll<HTMLButtonElement>('.btn-move-down').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const idx = parseInt(btn.dataset.idx!);
+        if (idx === _active.length - 1) return;
+        await swapOrder(idx, idx + 1);
+      });
+    });
+    activeList.querySelectorAll<HTMLButtonElement>('.btn-remove').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id!;
+        btn.disabled = true;
+        const res = await fetch('/api/admin-hero', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'remove', id }),
+        });
+        const data = await res.json();
+        if (!res.ok) { showMsg(data.error, 'error'); btn.disabled = false; return; }
+        const removed = _active.find(hf => hf.id === id);
+        _active = _active.filter(hf => hf.id !== id);
+        if (removed) {
+          if (removed.content_type === 'article' && removed.articles_cms) {
+            const ac = removed.articles_cms;
+            _availArticles.push({ slug: removed.article_slug!, title: ac.title, hero_tag: ac.hero_tag, hero_title: ac.hero_title, hero_image_url: ac.hero_image_url, thumbnail: ac.thumbnail });
+            _availArticles.sort((a, b) => a.title.localeCompare(b.title));
+          } else if (removed.bakeries_cms) {
+            const bc = removed.bakeries_cms;
+            _avail.push({ slug: removed.bakery_slug!, name: bc.name, hero_tag: bc.hero_tag, hero_title: bc.hero_title, hero_image_url: bc.hero_image_url, thumbnail: bc.thumbnail, video_id: bc.video_id });
+            _avail.sort((a, b) => a.name.localeCompare(b.name));
+          }
+        }
+        renderActive();
+        renderAvail();
+        renderAvailArticles();
+        showMsg('Removed from hero carousel.', 'success');
+      });
+    });
+  }
+
+  async function swapOrder(idxA: number, idxB: number) {
+    const a = _active[idxA];
+    const b = _active[idxB];
+    const [res1, res2] = await Promise.all([
+      fetch('/api/admin-hero', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reorder', id: a.id, sort_order: b.sort_order }) }),
+      fetch('/api/admin-hero', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reorder', id: b.id, sort_order: a.sort_order }) }),
+    ]);
+    if (!res1.ok || !res2.ok) { showMsg('Reorder failed.', 'error'); return; }
+    const tmpOrder = a.sort_order;
+    a.sort_order = b.sort_order;
+    b.sort_order = tmpOrder;
+    _active[idxA] = b;
+    _active[idxB] = a;
+    renderActive();
+  }
+
+  function bindAvailButtons() {
+    availList.querySelectorAll<HTMLButtonElement>('.btn-add').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const slug = btn.dataset.slug!;
+        if (_active.length >= 5) { showMsg('Maximum 5 hero slides.', 'error'); return; }
+        btn.disabled = true;
+        const nextOrder = _active.length > 0 ? Math.max(..._active.map(h => h.sort_order)) + 1 : 0;
+        const res = await fetch('/api/admin-hero', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'add', content_type: 'bakery', bakery_slug: slug, sort_order: nextOrder }),
+        });
+        const data = await res.json();
+        if (!res.ok) { showMsg(data.error, 'error'); btn.disabled = false; return; }
+        await loadData();
+        showMsg('Added to hero carousel.', 'success');
+      });
+    });
+  }
+
+  function bindAvailArticleButtons() {
+    availArticlesList.querySelectorAll<HTMLButtonElement>('.btn-add-article').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const slug = btn.dataset.slug!;
+        if (_active.length >= 5) { showMsg('Maximum 5 hero slides.', 'error'); return; }
+        btn.disabled = true;
+        const nextOrder = _active.length > 0 ? Math.max(..._active.map(h => h.sort_order)) + 1 : 0;
+        const res = await fetch('/api/admin-hero', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'add', content_type: 'article', article_slug: slug, sort_order: nextOrder }),
+        });
+        const data = await res.json();
+        if (!res.ok) { showMsg(data.error, 'error'); btn.disabled = false; return; }
+        await loadData();
+        showMsg('Added to hero carousel.', 'success');
+      });
+    });
+  }
+
+  function buildPreview() {
+    const section   = document.getElementById('hpv-section')!;
+    const wrap      = document.getElementById('hpv-slides-wrap')!;
+    const dotsEl    = document.getElementById('hpv-dots')!;
+    const indicator = document.getElementById('hpv-indicator')!;
+
+    if (_active.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+
+    section.style.display = '';
+    _previewIdx = 0;
+
+    wrap.innerHTML = _active.map((hf, i) => {
+      const isBakery    = hf.content_type !== 'article';
+      const b           = isBakery ? hf.bakeries_cms : hf.articles_cms;
+      const displayName = isBakery ? (b as any)?.name : (b as any)?.title;
+      const img         = thumbUrl(b);
+      const tag         = (b as any)?.hero_tag ?? displayName ?? '';
+      const heroTitle   = (b as any)?.hero_title ?? displayName ?? '';
+      const bakery      = isBakery ? (displayName ?? '') : '';
+      const subtitle    = (b as any)?.hero_subtitle ?? '';
+      const bgWord      = (b as any)?.hero_bg_word ?? (displayName ? displayName.split(' ')[0].toUpperCase() : '');
+      const epNum       = String(i + 1).padStart(2, '0');
+      return `<div class="hpv-slide" data-idx="${i}" style="opacity:${i === 0 ? '1' : '0'};pointer-events:${i === 0 ? 'auto' : 'none'};">
+        <div class="hpv-bg" style="background-image:url('${img}');"></div>
+        <div class="hpv-grade"></div>
+        <div class="hpv-scrim"></div>
+        <div class="hpv-bgword">${bgWord}</div>
+        <div class="hpv-content">
+          <div class="hpv-eyebrow">
+            <span class="hpv-eyebrow-dot"></span>
+            <span class="hpv-eyebrow-tag">${tag}</span>
+            <span class="hpv-eyebrow-rule"></span>
+            <span class="hpv-eyebrow-meta">Ep. ${epNum} · Now Playing</span>
+          </div>
+          <div class="hpv-title">${heroTitle}</div>
+          <div class="hpv-bakery">${bakery}</div>
+          ${subtitle ? `<div class="hpv-subtitle">${subtitle}</div>` : ''}
+          <div class="hpv-watch-btn">
+            <svg viewBox="0 0 24 24" width="8" height="8" fill="currentColor"><polygon points="6,4 20,12 6,20"/></svg>
+            Watch Now
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    dotsEl.innerHTML = _active.map((_, i) =>
+      `<button class="hpv-dot${i === 0 ? ' active' : ''}" data-idx="${i}"></button>`
+    ).join('');
+
+    indicator.textContent = `1 / ${_active.length}`;
+
+    function goToSlide(idx: number) {
+      wrap.querySelectorAll<HTMLElement>('.hpv-slide').forEach((s, i) => {
+        s.style.opacity = i === idx ? '1' : '0';
+        s.style.pointerEvents = i === idx ? 'auto' : 'none';
+      });
+      dotsEl.querySelectorAll<HTMLElement>('.hpv-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
+      _previewIdx = idx;
+      indicator.textContent = `${idx + 1} / ${_active.length}`;
+    }
+
+    dotsEl.querySelectorAll<HTMLButtonElement>('.hpv-dot').forEach(dot => {
+      dot.addEventListener('click', () => { goToSlide(parseInt(dot.dataset.idx!)); });
+    });
+
+    document.getElementById('hpv-prev')!.onclick = () => { goToSlide((_previewIdx - 1 + _active.length) % _active.length); };
+    document.getElementById('hpv-next')!.onclick = () => { goToSlide((_previewIdx + 1) % _active.length); };
+  }
+
+  async function loadData() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const [{ data: activeData }, { data: allBakeries }, { data: allArticles }] = await Promise.all([
+      supabase
+        .from('hero_features')
+        .select('id, bakery_slug, article_slug, content_type, sort_order, bakeries_cms(name, hero_tag, hero_title, hero_subtitle, hero_bg_word, hero_image_url, thumbnail, video_id), articles_cms(slug, title, hero_tag, hero_title, hero_subtitle, hero_bg_word, hero_image_url, thumbnail)')
+        .eq('active', true)
+        .order('sort_order'),
+      supabase
+        .from('bakeries_cms')
+        .select('slug, name, hero_tag, hero_title, hero_image_url, thumbnail, video_id')
+        .eq('published', true)
+        .order('name'),
+      supabase
+        .from('articles_cms')
+        .select('slug, title, hero_tag, hero_title, hero_image_url, thumbnail')
+        .eq('published', true)
+        .order('title'),
+    ]);
+    _active = (activeData ?? []) as unknown as HeroFeature[];
+    const activeBakerySlugs  = new Set(_active.filter(h => h.content_type !== 'article').map(h => h.bakery_slug));
+    const activeArticleSlugs = new Set(_active.filter(h => h.content_type === 'article').map(h => h.article_slug));
+    _avail = ((allBakeries ?? []) as unknown as BakeryRow[])
+      .filter(b => !activeBakerySlugs.has(b.slug) && (b.hero_image_url || b.hero_title));
+    _availArticles = ((allArticles ?? []) as unknown as ArticleRow[])
+      .filter(a => !activeArticleSlugs.has(a.slug) && (a.hero_image_url || a.hero_title));
+    renderActive();
+    renderAvail();
+    renderAvailArticles();
+  }
+
+  loadData();
+</script>

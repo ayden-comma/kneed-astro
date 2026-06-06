@@ -1,11 +1,26 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { getCollection } from 'astro:content';
+import { supabase } from '../../lib/supabase';
 
-const stories = await getCollection('kneedToKnow');
+export const prerender = false;
+
+const { data: articleRows } = await supabase
+  .from('articles_cms')
+  .select('slug, title, category, thumbnail, description')
+  .eq('published', true)
+  .order('updated_at', { ascending: false });
+
+const stories = (articleRows ?? []).map((a: any) => ({
+  slug:        a.slug,
+  name:        a.title,
+  category:    a.category,
+  thumbnail:   a.thumbnail,
+  suburb:      null as string | null,
+  duration:    null as string | null,
+}));
 ---
 
-<BaseLayout title="(K)Need to Know" description="Films and stories about bread, bakers and the places they make.">
+<BaseLayout title="(K)Need to Know" description="Bread knowledge, baking guides and stories from Melbourne's best bakers.">
 
   <main class="wf-container py-page">
 
@@ -17,15 +32,15 @@ const stories = await getCollection('kneedToKnow');
 
     <div class="stories-grid">
       {stories.map((story, i) => (
-        <a href={'/kneed-to-know/' + story.data.slug} class="film-card">
-          <img class="film-card-img" src={story.data.thumbnail} alt={story.data.name} loading="lazy" />
+        <a href={'/kneed-to-know/' + story.slug} class="film-card">
+          <img class="film-card-img" src={story.thumbnail} alt={story.name} loading="lazy" />
           <div class="film-card-grade"></div>
-          {story.data.duration && <div class="film-card-dur">{story.data.duration}</div>}
+          {story.duration && <div class="film-card-dur">{story.duration}</div>}
           <div class="film-card-num">{String(i + 1).padStart(2, '0')}</div>
           <div class="film-card-body">
-            <div class="film-card-tag">{story.data.category}</div>
-            <div class="film-card-title">{story.data.name}</div>
-            <div class="film-card-bakery">{story.data.suburb}</div>
+            <div class="film-card-tag">{story.category}</div>
+            <div class="film-card-title">{story.name}</div>
+            <div class="film-card-bakery">{story.suburb}</div>
           </div>
           <div class="film-card-play">
             <svg viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg>

@@ -1,75 +1,19 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getCollection } from 'astro:content';
+import { supabase } from '../lib/supabase';
 
-const collectionBakeries = await getCollection('bakeries');
+export const prerender = false;
 
-// Bakeries not yet in the content collection — supplemental data.
-// Add a `locations` array to any entry that has multiple locations.
-// If `locations` is present with 2+ entries it takes precedence over lat/lng/address.
-const extraBakeries = [
-  {
-    name: 'Falco Bakery',
-    slug: 'falco-bakery',
-    suburb: 'Collingwood',
-    address: '167 Smith St, Collingwood VIC 3066',
-    category: 'Sourdough',
-    hours: 'Mon–Fri 7am–4pm, Sat–Sun 8am–3pm',
-    website: 'falcobakery.com.au',
-    thumbnail: 'https://images.pexels.com/photos/263168/pexels-photo-263168.jpeg?auto=compress&cs=tinysrgb&w=800',
-    lat: -37.8024,
-    lng: 144.9869,
-  },
-  {
-    name: 'To Be Frank',
-    slug: 'to-be-frank',
-    suburb: 'Thornbury',
-    address: '756 High St, Thornbury VIC 3071',
-    category: 'Focaccia',
-    hours: 'Wed–Sun 8am–2pm',
-    website: null,
-    thumbnail: 'https://images.pexels.com/photos/30666809/pexels-photo-30666809.jpeg?auto=compress&cs=tinysrgb&w=800',
-    lat: -37.7654,
-    lng: 144.9984,
-  },
-  {
-    name: 'Loafer Bread',
-    slug: null,
-    suburb: 'Yarraville',
-    category: 'Sourdough',
-    hours: 'Tue–Fri 7am–2pm, Sat–Sun 8am–1pm',
-    website: 'loaferbread.com.au',
-    thumbnail: 'https://images.pexels.com/photos/1775043/pexels-photo-1775043.jpeg?auto=compress&cs=tinysrgb&w=800',
-    locations: [
-      { addr: '63 Anderson St, Yarraville VIC 3013', lat: -37.8143, lng: 144.8943 },
-      { addr: '36 Paisley St, Footscray VIC 3011',  lat: -37.8013, lng: 144.9010 },
-    ],
-  },
-  {
-    name: 'Beatrix',
-    slug: null,
-    suburb: 'North Melbourne',
-    address: '28 Bignell Ln, North Melbourne VIC 3051',
-    category: 'Pastry',
-    hours: 'Tue–Sat 8am–4pm, Sun 9am–3pm',
-    website: null,
-    thumbnail: 'https://images.pexels.com/photos/2135/food-france-morning-breakfast.jpg?auto=compress&cs=tinysrgb&w=800',
-    lat: -37.8008,
-    lng: 144.9445,
-  },
-  {
-    name: 'Dench Bakers',
-    slug: null,
-    suburb: 'Fitzroy North',
-    address: '482 Brunswick St, Fitzroy North VIC 3068',
-    category: 'Sourdough',
-    hours: 'Daily 7am–3pm',
-    website: 'denchbakers.com.au',
-    thumbnail: 'https://images.pexels.com/photos/1084101/pexels-photo-1084101.jpeg?auto=compress&cs=tinysrgb&w=800',
-    lat: -37.7810,
-    lng: 144.9828,
-  },
-];
+const { data: dbBakeries } = await supabase
+  .from('bakeries_cms')
+  .select('name, slug, suburb, category, hours, website, thumbnail, address, lat, lng, locations')
+  .eq('published', true);
+
+const { data: allLocations } = await supabase
+  .from('locations')
+  .select('bakery_slug, label, address, lat, lng, hours')
+  .order('bakery_slug')
+  .order('sort_order');
 
 // ── Data normalisation ────────────────────────────────────────────────────────
 // allBakeries = one entry per unique bakery → drives the sidebar (one row each)
@@ -78,14 +22,9 @@ const extraBakeries = [
 //
 // Each pin carries a bakeryIdx so clicking a marker can look up its bakery.
 // Sidebar buttons are indexed by bakeryIdx.
+// Pin coords come from the locations table; bakery metadata from bakeries_cms.
 
-type LocEntry = { addr: string; lat: number; lng: number };
-interface BakeryInput {
-  name: string; slug: string | null; suburb: string; category: string;
-  hours: string | null; website: string | null; thumbnail: string;
-  address?: string; lat?: number; lng?: number;
-  locations?: LocEntry[];
-}
+interface LocEntry { addr: string; lat: number; lng: number; }
 interface BakeryEntry {
   name: string; slug: string | null; suburb: string; category: string;
   hours: string | null; website: string | null; thumbnail: string;
@@ -98,45 +37,34 @@ interface PinEntry {
   addr: string;      // address for this specific pin
 }
 
-function toBakeryEntry(b: BakeryInput): BakeryEntry {
-  const locs: LocEntry[] = [];
-  if (b.locations && b.locations.length > 0) {
-    b.locations.forEach(l => locs.push({ addr: l.addr, lat: l.lat, lng: l.lng }));
-  } else if (b.lat != null && b.lng != null) {
-    locs.push({ addr: b.address ?? '', lat: b.lat, lng: b.lng });
-  }
-  return {
-    name: b.name, slug: b.slug, suburb: b.suburb, category: b.category,
-    hours: b.hours ?? null, website: b.website ?? null, thumbnail: b.thumbnail,
-    locations: locs,
-  };
+// Group locations table rows by bakery_slug, filtering null coords
+const locationsBySlug = new Map<string, LocEntry[]>();
+for (const loc of (allLocations ?? [])) {
+  if (loc.lat == null || loc.lng == null) continue;
+  if (!locationsBySlug.has(loc.bakery_slug)) locationsBySlug.set(loc.bakery_slug, []);
+  locationsBySlug.get(loc.bakery_slug)!.push({ addr: loc.address ?? '', lat: loc.lat, lng: loc.lng });
 }
 
-const allBakeries: BakeryEntry[] = [
-  ...collectionBakeries
-    .filter(b =>
-      (b.data.lat != null && b.data.lng != null) ||
-      (b.data.locations && b.data.locations.length > 0)
-    )
-    .map(b => toBakeryEntry({
-      name: b.data.name, slug: b.data.slug, suburb: b.data.suburb,
-      category: b.data.category, hours: b.data.hours ?? null,
-      website: b.data.website ?? null, thumbnail: b.data.thumbnail,
-      address: b.data.address, lat: b.data.lat, lng: b.data.lng,
-      locations: b.data.locations as LocEntry[] | undefined,
-    })),
-  ...extraBakeries.map(b => toBakeryEntry(b as BakeryInput)),
-];
+// One BakeryEntry per bakery that has at least one location row with valid coords
+const allBakeries: BakeryEntry[] = (dbBakeries ?? [])
+  .filter((b: any) => locationsBySlug.has(b.slug))
+  .map((b: any) => ({
+    name: b.name, slug: b.slug, suburb: b.suburb, category: b.category,
+    hours: b.hours ?? null, website: b.website ?? null, thumbnail: b.thumbnail,
+    locations: locationsBySlug.get(b.slug)!,
+  }));
 
 // Flat marker list — one pin per location, each pointing back to its bakery
 const allPins: PinEntry[] = allBakeries.flatMap((bakery, bakeryIdx) =>
   bakery.locations.map(loc => ({ bakeryIdx, lat: loc.lat, lng: loc.lng, addr: loc.addr }))
 );
+
+const totalLocations = (allLocations ?? []).filter((l: any) => l.lat && l.lng).length;
 ---
 
 <BaseLayout
   title="Find a Bakery"
-  description="Every Melbourne bakery on one map — find addresses, opening hours and watch their story."
+  description="Find Melbourne's best bakeries on one map. Browse addresses, opening hours and watch their stories."
 >
   <main>
     <div class="map-page-wrap" id="map-page">
@@ -146,7 +74,7 @@ const allPins: PinEntry[] = allBakeries.flatMap((bakery, bakeryIdx) =>
         <div class="map-sidebar-head">
           <div class="wf-eyebrow">Find a Bakery</div>
           <h1 class="map-sidebar-title">Melbourne's Bread Map</h1>
-          <p class="map-sidebar-count">{allBakeries.length} {allBakeries.length === 1 ? 'bakery' : 'bakeries'}</p>
+          <p class="map-sidebar-count">{allBakeries.length} {allBakeries.length === 1 ? 'Bakery' : 'Bakeries'} · {totalLocations} {totalLocations === 1 ? 'Location' : 'Locations'}</p>
         </div>
         <div class="map-sidebar-list" id="map-sidebar-list">
           {allBakeries.map((b, i) => (

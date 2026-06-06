@@ -38,7 +38,7 @@ html { scroll-behavior: smooth; }
 
   --font-display: 'Josefin Sans', 'Arial Narrow', sans-serif;
   --font-body:    'Barlow', system-ui, sans-serif;
-  --font-cond:    'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-cond:    'Archivo Narrow', 'Arial Narrow', sans-serif;
 
   --px:     clamp(1.25rem, 4vw, 2.5rem);
   --max-w:  82rem;
@@ -1174,6 +1174,21 @@ body.light-mode .disc-suggest-title { color: #1a1612; }
 }
 .map-popup-close:hover { background: rgba(14,12,10,0.9); }
 .map-popup-close svg { width: 0.75rem; height: 0.75rem; }
+@media (max-width: 768px) {
+  .map-popup {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    width: 100%;
+    max-width: 100%;
+    max-height: 45vh;
+    overflow-y: auto;
+    border-radius: 0.875rem 0.875rem 0 0;
+    z-index: 500;
+  }
+}
 
 /* home teaser */
 .map-teaser {
@@ -1259,6 +1274,90 @@ body.light-mode .story-map-info-name { color: #1a1612; }
  * Overriding internal Leaflet z-indexes (tiles: 200, controls: 1000) causes controls
  * to disappear behind the tile layer.
  */
+
+/* Bakery map popups */
+.leaflet-popup-content-wrapper {
+  background: var(--surface-2) !important;
+  border: 1px solid var(--border-md) !important;
+  border-radius: 0.875rem !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.55) !important;
+  padding: 0 !important;
+  width: 260px !important;
+  overflow: hidden !important;
+}
+.leaflet-popup-tip-container { display: none !important; }
+.leaflet-popup-content { margin: 0 !important; }
+.leaflet-popup-close-button {
+  color: var(--p-35) !important;
+  font-size: 1.1rem !important;
+  padding: 0.5rem 0.625rem !important;
+  z-index: 2 !important;
+}
+.leaflet-popup-close-button:hover { color: var(--parchment) !important; }
+.kneed-popup-img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  display: block;
+  filter: brightness(0.85) saturate(0.85);
+}
+.kneed-popup-body {
+  padding: 0.875rem 1rem 1rem;
+}
+.kneed-popup-eyebrow {
+  font-family: var(--font-cond);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 0.2rem;
+}
+.kneed-popup-suburb {
+  font-family: var(--font-display);
+  font-weight: 200;
+  font-size: 1.1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--parchment);
+  line-height: 1.2;
+  margin-bottom: 0.55rem;
+}
+.kneed-popup-detail {
+  font-size: 0.72rem;
+  font-weight: 300;
+  color: var(--p-50);
+  line-height: 1.5;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  margin-bottom: 0.25rem;
+}
+.kneed-popup-detail svg { flex-shrink: 0; margin-top: 0.15rem; color: var(--p-35); }
+.kneed-popup-actions { margin-top: 0.875rem; }
+.kneed-popup-maps-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #000000 !important;
+  text-decoration: none !important;
+  font-family: var(--font-cond);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  border: none;
+  transition: background 0.15s, color 0.15s;
+}
+.kneed-popup-maps-btn:hover {
+  background: var(--amber);
+  color: #ffffff !important;
+}
 
 /* Leaflet zoom control — match site design */
 .leaflet-bar {
@@ -1620,14 +1719,15 @@ body.light-mode .map-card-ghost { color: rgba(242,237,230,0.45); }
 .social-icon-btn:hover { background: var(--parchment); color: var(--ink); border-color: var(--parchment); }
 .social-icon-btn svg { width: 0.875rem; height: 0.875rem; display: block; }
 
-.story-video-block { flex: 1; position: relative; background: #000; min-width: 0; }
+.story-video-block { flex: 1; position: relative; min-width: 0; }
 .story-video-wrap {
   position: relative; width: 100%; aspect-ratio: 16/9;
-  background: #000; overflow: hidden;
+  background: transparent; overflow: hidden;
   box-shadow: 0 12px 60px rgba(0,0,0,0.5);
 }
 .story-video-wrap video, .story-video-wrap iframe {
   position: absolute; inset: 0; width: 100%; height: 100%; border: none;
+  border-radius: var(--r-hero);
 }
 .story-video-poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity 0.4s; pointer-events: none; }
 .story-video-poster.is-hidden { opacity: 0; }
@@ -3080,3 +3180,185 @@ body.light-mode .comment-text { color: rgba(26,22,18,0.7); }
   .about-cta { flex-direction: column; }
   .about-cta .wf-pill { text-align: center; width: 100%; box-sizing: border-box; justify-content: center; }
 }
+
+/* ── Google PlaceAutocompleteElement ──────────────────────────── */
+gmp-place-autocomplete {
+  width: 100%;
+  display: block;
+  outline: none;
+}
+
+gmp-place-autocomplete::part(input) {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  color: var(--parchment);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  padding: 0.75rem 1rem;
+  width: 100%;
+  box-sizing: border-box;
+  outline: none;
+}
+
+gmp-place-autocomplete::part(input):focus {
+  border-color: var(--amber);
+}
+
+/* ── Story body content ── */
+.story-body-content p { margin-bottom: 1.25rem; line-height: 1.8; color: var(--p-70); }
+.story-body-content img { width: 100%; border-radius: var(--r-card); margin: 1.5rem 0; }
+.story-body-content h2 { font-family: var(--font-display); font-weight: 200; font-size: clamp(1.25rem, 2vw, 1.75rem); letter-spacing: 0.08em; text-transform: uppercase; color: var(--parchment); margin: 2rem 0 1rem; }
+.story-body-content h3 { font-family: var(--font-display); font-weight: 200; font-size: clamp(1rem, 1.5vw, 1.3rem); letter-spacing: 0.08em; text-transform: uppercase; color: var(--parchment); margin: 1.5rem 0 0.75rem; }
+.story-body-content ul, .story-body-content ol { padding-left: 1.5rem; margin-bottom: 1.25rem; color: var(--p-70); line-height: 1.8; }
+.story-body-content blockquote { border-left: 3px solid var(--amber); padding-left: 1.25rem; margin: 1.5rem 0; color: var(--p-50); font-style: italic; }
+.story-body-content a { color: var(--amber); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ── Location popup (bakery detail page) ── */
+.aside-locations { display: flex; flex-direction: column; gap: 0.375rem; }
+.aside-location-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--amber);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  line-height: 1.5;
+  transition: opacity 0.15s;
+}
+.aside-location-btn:hover { opacity: 0.7; }
+.location-popup-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1.125rem 1.25rem;
+  min-width: 220px;
+  max-width: 280px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  position: relative;
+}
+.location-popup-close {
+  position: absolute;
+  top: 0.625rem;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  color: var(--p-35);
+  font-size: 1.1rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+.location-popup-close:hover { color: var(--parchment); }
+.location-popup-name {
+  font-family: var(--font-cond);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--parchment);
+  margin-bottom: 0.2rem;
+}
+.location-popup-label {
+  font-size: 0.7rem;
+  color: var(--amber);
+  font-family: var(--font-cond);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.625rem;
+}
+.location-popup-address {
+  font-size: 0.8rem;
+  color: var(--p-70);
+  line-height: 1.5;
+  margin-bottom: 0.375rem;
+}
+.location-popup-hours {
+  font-size: 0.75rem;
+  color: var(--p-50);
+  line-height: 1.5;
+  margin-bottom: 0.875rem;
+}
+.location-popup-maps {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-cond);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber);
+  text-decoration: none;
+  border: 1px solid rgba(200,131,58,0.3);
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+.location-popup-maps:hover {
+  background: rgba(200,131,58,0.1);
+  border-color: rgba(200,131,58,0.6);
+}
+
+/* ── Map location line buttons (bakery detail page, multi-location) ── */
+.map-location-line {
+  display: block;
+  background: none;
+  border: none;
+  padding: 0.25rem 0;
+  font-size: 0.82rem;
+  color: var(--amber);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  line-height: 1.5;
+  transition: opacity 0.15s;
+}
+.map-location-line:hover { opacity: 0.7; }
+
+/* Story credits */
+.story-credits {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1.25rem;
+  margin-top: 1.25rem;
+}
+.story-credit-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+.story-credit-title {
+  font-family: var(--font-cond);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--p-35);
+  min-width: 72px;
+  flex-shrink: 0;
+}
+.story-credit-name {
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--p-70);
+}
+
+/* ── TIPTAP IMAGE SIZES ─────────────────────────────────────────── */
+.tiptap-img-small { width: 33% !important; }
+.tiptap-img-medium { width: 50% !important; }
+.tiptap-img-large { width: 75% !important; }
+.tiptap-img-full { width: 100% !important; }
+img[data-align="left"] { float: left; margin: 0 1.5rem 1rem 0; }
+img[data-align="right"] { float: right; margin: 0 0 1rem 1.5rem; }
+img[data-align="center"] { display: block; margin: 0 auto 1rem; float: none; }

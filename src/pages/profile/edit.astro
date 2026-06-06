@@ -1,0 +1,269 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Edit Profile" description="Edit your (K)Need profile.">
+  <main class="wf-container py-page" style="max-width: 46rem;">
+
+    <a href="/profile" class="back-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      Back to profile
+    </a>
+
+    <div class="wf-eyebrow" style="margin-top:2rem;">Your Account</div>
+    <h1 class="wf-page-h1" style="margin-top:0.5rem; margin-bottom:0.25rem;">Edit Profile</h1>
+
+    <div id="edit-loading" style="padding:3rem 0; color:var(--p-35); font-size:0.9rem;">Loading…</div>
+
+    <div id="edit-wrap" style="display:none;">
+      <div id="edit-error"   style="display:none; margin-bottom:1.5rem; padding:0.875rem 1rem; border-radius:0.75rem; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.22); color:#f87171; font-size:0.875rem;"></div>
+      <div id="edit-success" style="display:none; margin-bottom:1.5rem; padding:0.875rem 1rem; border-radius:0.75rem; background:rgba(74,222,128,0.1); border:1px solid rgba(74,222,128,0.22); color:#4ade80; font-size:0.875rem;">Profile updated successfully.</div>
+
+      <form id="edit-form" style="display:flex; flex-direction:column; gap:1.5rem;">
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
+          <div class="form-field">
+            <label class="form-label" for="f-display-name">Display Name <span style="color:var(--amber);">*</span></label>
+            <input class="form-input" type="text" id="f-display-name" required placeholder="How you appear on the site" />
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="f-username">Username <span style="color:var(--amber);">*</span></label>
+            <input class="form-input" type="text" id="f-username" required placeholder="@yourhandle" />
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="f-bio">Bio</label>
+          <textarea class="form-input form-textarea" id="f-bio" placeholder="A few words about yourself…"></textarea>
+        </div>
+
+        <div style="border-top:1px solid var(--border); padding-top:1.5rem;">
+          <div class="wf-eyebrow" style="margin-bottom:1.25rem;">Optional Information</div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-bottom:1.25rem;">
+            <div class="form-field">
+              <label class="form-label" for="f-dob">Date of Birth</label>
+              <input class="form-input" type="date" id="f-dob" />
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="f-gender">Gender</label>
+              <input class="form-input" type="text" id="f-gender" list="gender-options" placeholder="e.g. Female, Male, Non-binary" />
+              <datalist id="gender-options">
+                <option value="Male" />
+                <option value="Female" />
+                <option value="Non-binary" />
+                <option value="Prefer not to say" />
+              </datalist>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label" for="location-input">Location / Suburb</label>
+            <div style="position:relative;">
+              <input
+                type="text"
+                id="location-input"
+                name="location"
+                class="auth-input"
+                placeholder="Start typing your suburb..."
+                autocomplete="off"
+              />
+              <ul id="location-suggestions" style="display:none; position:absolute; z-index:100; background:var(--surface); border:1px solid var(--border); border-radius:0.5rem; list-style:none; padding:0.25rem 0; margin:0; width:100%;"></ul>
+            </div>
+          </div>
+        </div>
+
+        <script is:inline>
+          const apiKey = 'AIzaSyB6Dv_E_XEjozZqi_Tenk4AepcpYWHNUas';
+          const input = document.getElementById('location-input');
+          const suggestions = document.getElementById('location-suggestions');
+          let debounceTimer;
+
+          input.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            const val = input.value.trim();
+            if (val.length < 2) { suggestions.style.display = 'none'; return; }
+
+            debounceTimer = setTimeout(async () => {
+              const res = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Goog-Api-Key': apiKey,
+                },
+                body: JSON.stringify({
+                  input: val,
+                  includedRegionCodes: ['au'],
+                  includedPrimaryTypes: ['locality', 'sublocality']
+                })
+              });
+              const data = await res.json();
+              const preds = data.suggestions || [];
+
+              suggestions.innerHTML = '';
+              if (!preds.length) { suggestions.style.display = 'none'; return; }
+
+              preds.slice(0, 5).forEach(s => {
+                const fullText = s.placePrediction?.text?.text || '';
+                const structuredMain = s.placePrediction?.structuredFormat?.mainText?.text || '';
+                const structuredSecondary = s.placePrediction?.structuredFormat?.secondaryText?.text || '';
+
+                const suburb = structuredMain;
+                const stateMatch = structuredSecondary.match(/\b(VIC|NSW|QLD|SA|WA|TAS|ACT|NT)\b/);
+                const state = stateMatch ? stateMatch[0] : '';
+                const postcodeMatch = structuredSecondary.match(/\d{4}/);
+                const postcode = postcodeMatch ? postcodeMatch[0] : '';
+
+                const displayText = suburb + (state ? ', ' + state : '') + (postcode ? ' ' + postcode : '');
+                const li = document.createElement('li');
+                li.textContent = displayText;
+                li.style.cssText = 'padding:0.6rem 1rem; cursor:pointer; color:var(--parchment); font-size:0.875rem;';
+                li.onmouseenter = () => li.style.background = 'var(--surface-2)';
+                li.onmouseleave = () => li.style.background = '';
+                li.onclick = () => {
+                  input.value = displayText;
+                  suggestions.style.display = 'none';
+                };
+                suggestions.appendChild(li);
+              });
+              suggestions.style.display = 'block';
+            }, 300);
+          });
+
+          document.addEventListener('click', (e) => {
+            if (!input.contains(e.target) && !suggestions.contains(e.target)) {
+              suggestions.style.display = 'none';
+            }
+          });
+        </script>
+
+        <div style="border-top:1px solid var(--border); padding-top:1.5rem;">
+          <label id="consent-label" style="display:flex; gap:0.875rem; align-items:flex-start; cursor:pointer;">
+            <input type="checkbox" id="f-demographics-consent" style="width:1.125rem; height:1.125rem; margin-top:0.2rem; accent-color:var(--amber); flex-shrink:0; cursor:pointer;" />
+            <span style="font-size:0.875rem; font-weight:300; color:var(--p-50); line-height:1.65;">
+              I consent to (K)Need collecting and using my demographic data (age, gender, location) for anonymous site analytics.
+              This data will never be sold or shared individually. You can withdraw consent at any time.
+            </span>
+          </label>
+        </div>
+
+        <div class="form-actions" style="flex-direction:row; flex-wrap:wrap; gap:0.875rem; padding-top:0.25rem;">
+          <button type="submit" id="save-btn" class="wf-pill pill-amber">
+            Save changes
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 5 7 7-7 7"/></svg>
+          </button>
+          <a href="/profile" class="wf-pill pill-light">Cancel</a>
+        </div>
+
+      </form>
+    </div>
+
+  </main>
+</BaseLayout>
+
+<style>
+  @media (max-width: 560px) {
+    #edit-form > div[style*="grid-template-columns:1fr 1fr"] {
+      grid-template-columns: 1fr !important;
+    }
+  }
+</style>
+
+<script>
+  import { supabase } from '../../lib/supabase';
+
+  const loadingEl = document.getElementById('edit-loading')!;
+  const wrapEl    = document.getElementById('edit-wrap')!;
+  const errorEl   = document.getElementById('edit-error')!;
+  const successEl = document.getElementById('edit-success')!;
+  const form      = document.getElementById('edit-form') as HTMLFormElement;
+  const saveBtn   = document.getElementById('save-btn') as HTMLButtonElement;
+
+  function field(id: string) { return document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement; }
+  function showError(msg: string) {
+    errorEl.textContent = msg; errorEl.style.display = '';
+    successEl.style.display = 'none';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  async function init() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { window.location.href = '/auth/login'; return; }
+
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('display_name, username, bio, date_of_birth, gender, location, demographics_consent')
+      .eq('id', session.user.id)
+      .maybeSingle();
+
+    if (error) { loadingEl.textContent = 'Failed to load profile.'; return; }
+
+    loadingEl.style.display = 'none';
+    wrapEl.style.display = '';
+
+    if (profile) {
+      (field('f-display-name') as HTMLInputElement).value = (profile as any).display_name ?? '';
+      (field('f-username') as HTMLInputElement).value     = (profile as any).username ?? '';
+      (field('f-bio') as HTMLTextAreaElement).value       = (profile as any).bio ?? '';
+      (field('f-dob') as HTMLInputElement).value          = (profile as any).date_of_birth ?? '';
+      (field('f-gender') as HTMLInputElement).value       = (profile as any).gender ?? '';
+      (field('location-input') as HTMLInputElement).value     = (profile as any).location ?? '';
+      (document.getElementById('f-demographics-consent') as HTMLInputElement).checked =
+        !!(profile as any).demographics_consent;
+    }
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorEl.style.display = 'none';
+    successEl.style.display = 'none';
+    saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { window.location.href = '/auth/login'; return; }
+
+    const displayName = (field('f-display-name') as HTMLInputElement).value.trim();
+    const username    = (field('f-username') as HTMLInputElement).value.trim();
+    const consent     = (document.getElementById('f-demographics-consent') as HTMLInputElement).checked;
+
+    if (!displayName) { showError('Display name is required.'); saveBtn.disabled = false; saveBtn.textContent = 'Save changes'; return; }
+    if (!username)    { showError('Username is required.');     saveBtn.disabled = false; saveBtn.textContent = 'Save changes'; return; }
+
+    const payload: Record<string, unknown> = {
+      display_name:         displayName,
+      username,
+      bio:                  (field('f-bio') as HTMLTextAreaElement).value.trim() || null,
+      demographics_consent: consent,
+      updated_at:           new Date().toISOString(),
+    };
+
+    if (consent) {
+      payload.date_of_birth = (field('f-dob') as HTMLInputElement).value || null;
+      payload.gender        = (field('f-gender') as HTMLInputElement).value.trim() || null;
+      payload.location      = (field('location-input') as HTMLInputElement).value.trim() || null;
+    } else {
+      // Consent revoked — clear demographic fields
+      payload.date_of_birth = null;
+      payload.gender        = null;
+      payload.location      = null;
+      // Clear the form fields too
+      (field('f-dob') as HTMLInputElement).value    = '';
+      (field('f-gender') as HTMLInputElement).value = '';
+      (field('location-input') as HTMLInputElement).value = '';
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update(payload)
+      .eq('id', session.user.id);
+
+    saveBtn.disabled = false; saveBtn.textContent = 'Save changes';
+
+    if (error) { showError(error.message); return; }
+
+    successEl.style.display = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  init();
+</script>

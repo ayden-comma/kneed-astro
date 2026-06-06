@@ -1,3 +1,4 @@
+<!-- ARCHIVED v1 layout — 2026-06-05. Do not edit. Reference only. -->
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { supabase } from '../../lib/supabase';
@@ -28,46 +29,33 @@ const ci = slugList.indexOf(slug as string);
 const prevSlug = ci > 0 ? slugList[ci - 1] : null;
 const nextSlug = ci < slugList.length - 1 ? slugList[ci + 1] : null;
 
-const { data: prevData } = prevSlug ? await supabase.from('bakeries_cms').select('name').eq('slug', prevSlug).single() : { data: null };
-const { data: nextData } = nextSlug ? await supabase.from('bakeries_cms').select('name').eq('slug', nextSlug).single() : { data: null };
-const prevName = (prevData as any)?.name || '';
-const nextName = (nextData as any)?.name || '';
-
 const data = {
-  name:           row.name,
-  slug:           row.slug,
-  suburb:         row.suburb,
-  category:       row.category,
-  hours:          row.hours,
-  website:        row.website,
-  instagram:      row.instagram,
-  thumbnail:      row.thumbnail,
-  lat:            row.lat,
-  lng:            row.lng,
-  description:    row.description,
-  address:        row.address,
-  videoId:        (row as any).video_id        ?? null,
-  mapLink:        (row as any).map_link        ?? null,
-  images:         (row as any).images          ?? [],
-  locations:      (row as any).locations       ?? null,
-  quote:          (row as any).quote           ?? null,
+  name:        row.name,
+  slug:        row.slug,
+  suburb:      row.suburb,
+  category:    row.category,
+  hours:       row.hours,
+  website:     row.website,
+  instagram:   row.instagram,
+  thumbnail:   row.thumbnail,
+  lat:         row.lat,
+  lng:         row.lng,
+  description: row.description,
+  address:     row.address,
+  videoId:     (row as any).video_id     ?? null,
+  mapLink:     (row as any).map_link     ?? null,
+  images:      (row as any).images       ?? [],
+  locations:   (row as any).locations    ?? null,
+  quote:       (row as any).quote        ?? null,
   date:           (row as any).date            ?? null,
   duration:       (row as any).duration        ?? null,
   episode_number: (row as any).episode_number  ?? null,
-  director:       (row as any).director        ?? null,
-  camera:         (row as any).camera          ?? null,
-  sound:          (row as any).sound           ?? null,
-  edit:           (row as any).edit            ?? null,
-  credits:        (row as any).credits         ?? null,
-  hero_image_url: (row as any).hero_image_url  ?? null,
-  hero_tag:       (row as any).hero_tag        ?? null,
-  hero_title:     (row as any).hero_title      ?? null,
-  hero_bg_word:   (row as any).hero_bg_word    ?? null,
-  loop_video_url: (row as any).loop_video_url  ?? null,
+  director:    (row as any).director     ?? null,
+  camera:      (row as any).camera       ?? null,
+  sound:       (row as any).sound        ?? null,
+  edit:        (row as any).edit         ?? null,
+  credits:     (row as any).credits      ?? null,
 };
-
-const heroImage = data.hero_image_url || data.thumbnail || '';
-const locationLabel = locationRows[0]?.label || '';
 
 const websiteDisplay = data.website ? data.website.replace(/^https?:\/\//, '') : null;
 const websiteHref = data.website
@@ -96,6 +84,8 @@ const bodyHtml = (row as any).body ?? '';
 <script is:inline>
   if (history.scrollRestoration) history.scrollRestoration = 'manual';
   window.scrollTo(0, 0);
+  // Clear any hash that matches an element on this page (e.g. #bakery-map)
+  // to prevent the browser jumping to it on load.
   if (window.location.hash) {
     history.replaceState(null, '', window.location.pathname + window.location.search);
   }
@@ -111,92 +101,124 @@ const bodyHtml = (row as any).body ?? '';
   </div>
   <main>
 
-    <!-- ── NEW HERO ──────────────────────────────────────────────────── -->
-    <section class="v2-hero">
-      <div class="v2-story-nav">
-        {prevSlug ? (
-          <a href={`/bakeries/${prevSlug}`} class="v2-story-nav-item v2-story-nav-prev">
-            <span class="v2-story-nav-arrow">←</span>
-            <span class="v2-story-nav-meta">
-              <span class="v2-story-nav-label">Previous</span>
-              <span class="v2-story-nav-name">{prevName}</span>
-            </span>
-          </a>
-        ) : (
-          <a href="/bakeries" class="v2-story-nav-item v2-story-nav-prev">
-            <span class="v2-story-nav-arrow">←</span>
-            <span class="v2-story-nav-meta">
-              <span class="v2-story-nav-label">Back to</span>
-              <span class="v2-story-nav-name">All Bakeries</span>
-            </span>
-          </a>
-        )}
-        {nextSlug ? (
-          <a href={`/bakeries/${nextSlug}`} class="v2-story-nav-item v2-story-nav-next">
-            <span class="v2-story-nav-meta" style="text-align:right;">
-              <span class="v2-story-nav-label">Next</span>
-              <span class="v2-story-nav-name">{nextName}</span>
-            </span>
-            <span class="v2-story-nav-arrow">→</span>
-          </a>
-        ) : (
-          <a href="/bakeries" class="v2-story-nav-item v2-story-nav-next">
-            <span class="v2-story-nav-meta" style="text-align:right;">
-              <span class="v2-story-nav-label">Back to</span>
-              <span class="v2-story-nav-name">All Bakeries</span>
-            </span>
-            <span class="v2-story-nav-arrow">→</span>
-          </a>
-        )}
-      </div>
-      <div class="v2-hero-bg" style={`background-image: url('${heroImage}')`}></div>
-      <video
-        class="v2-hero-loop-video"
-        autoplay
-        muted
-        loop
-        playsinline
-        poster={heroImage}
-        id="v2-loop-video"
-      >
-        {data.loop_video_url && <source src={data.loop_video_url} type="video/mp4" />}
-      </video>
-      <div class="v2-hero-overlay"></div>
-      <div class="v2-hero-bottom-fade"></div>
-      {data.hero_bg_word && <div class="v2-hero-bgword">{data.hero_bg_word}</div>}
+    <!-- VIDEO SHELL -->
+    <div class="story-video-shell">
+      <div class="story-video-inner">
 
-      <div class="v2-hero-content">
-        <div class="v2-hero-eyebrow">
-          <span class="v2-hero-dot"></span>
-          {data.category && <span class="v2-eyebrow-tag">{data.category}</span>}
-          {data.date && <><span class="v2-eyebrow-dash">——</span><span class="v2-eyebrow-meta">{data.date}</span></>}
-          {locationLabel && <><span class="v2-eyebrow-dash">·</span><span class="v2-eyebrow-meta">{locationLabel}</span></>}
-        </div>
-
-        <h1 class="v2-hero-title">{data.hero_title || data.name}</h1>
-
-        {data.name && data.hero_title && <div class="v2-hero-bakery">{data.name}</div>}
-
-        {data.description && (
-          <p class="v2-hero-desc">{data.description}</p>
-        )}
-
-        <div class="v2-hero-actions">
-          {hasVideo && (
-            <button id="v2-watch-btn" class="v2-btn-watch" data-video-id={data.videoId}>
-              <span class="v2-btn-watch-icon"></span>
-              Watch Now
-            </button>
-          )}
-          <button id="save-btn" class="v2-btn-save" type="button" data-slug={data.slug}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-            Save
+        <!-- SHARE RAIL -->
+        <div class="story-share-rail">
+          <button class="share-btn" id="share-fb" aria-label="Share on Facebook">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
           </button>
+          <button class="share-btn" id="share-wa" aria-label="Share on WhatsApp">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          </button>
+          <button class="share-btn" id="share-li" aria-label="Share on LinkedIn">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+          </button>
+          <button class="share-btn" id="share-link" aria-label="Copy link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          </button>
+        </div>
 
+        <!-- VIDEO / IMAGE BLOCK -->
+        <div class="story-video-block">
+          <div class="story-video-wrap">
+            {hasVideo ? (
+              <iframe
+                src={'https://www.youtube.com/embed/' + data.videoId + '?rel=0&modestbranding=1'}
+                title={data.name}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen
+                loading="lazy"
+              ></iframe>
+            ) : (
+              <>
+                <img class="story-video-poster" src={data.thumbnail} alt={data.name} />
+                <div class="bakery-hero-grade"></div>
+                <div class="bakery-hero-badge">{data.category}</div>
+              </>
+            )}
+          </div>
+        </div>
+
+        <!-- NAV RAIL -->
+        <div class="story-nav-rail">
+          <a href={nextSlug ? '/bakeries/' + nextSlug : '/bakeries'} class="story-nav-btn" aria-label="Next bakery">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </a>
+          <a href={prevSlug ? '/bakeries/' + prevSlug : '/bakeries'} class="story-nav-btn" aria-label="Previous bakery">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          </a>
+        </div>
+
+      </div>
+
+      <!-- MOBILE-ONLY: prev | share icons | next -->
+      <div class="story-mobile-actions">
+        <div class="story-mobile-bar">
+          <a href={prevSlug ? '/bakeries/' + prevSlug : '/bakeries'} class="story-nav-btn" aria-label="Previous bakery">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          </a>
+          <div class="story-mobile-share">
+            <button class="share-btn" id="m-share-wa" aria-label="Share on WhatsApp">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            </button>
+            <button class="share-btn" id="m-share-tt" aria-label="Share on TikTok">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z"/></svg>
+            </button>
+            <button class="share-btn" id="m-share-fb" aria-label="Share on Facebook">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+            </button>
+            <button class="share-btn" id="m-share-link" aria-label="Copy link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            </button>
+          </div>
+          <a href={nextSlug ? '/bakeries/' + nextSlug : '/bakeries'} class="story-nav-btn" aria-label="Next bakery">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </a>
         </div>
       </div>
 
-    </section>
+    </div>
+
+    <!-- TITLE BLOCK -->
+    <div class="story-title-block">
+      <a href="/bakeries" class="back-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        All Bakeries
+      </a>
+      <div class="story-meta-row">
+        {data.date && <span>{data.date}</span>}
+        {data.date && data.episode_number && <span class="meta-dot">—</span>}
+        {data.episode_number && <span>Ep #{String(data.episode_number).padStart(3, '0')}</span>}
+        {(data.date || data.episode_number) && data.duration && <span class="meta-dot">—</span>}
+        {data.duration && <span>{data.duration}</span>}
+      </div>
+      <h1 class="story-h1">
+        <span class="story-h1-bread">{data.name}</span>
+        <span class="story-h1-bakery">{data.suburb}</span>
+      </h1>
+      {data.description && <p class="story-h1-sub">{data.description}</p>}
+      <button id="save-btn" class="aside-share-btn" type="button" data-slug={data.slug} style="width:auto; margin-top:1.25rem;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        Save to Recipe Book
+      </button>
+    </div>
+
+    <!-- Star rating — below the title block dividing line -->
+    <div class="story-rating-row">
+      <div class="star-rating" id="star-rating" data-slug={data.slug}>
+        <span class="star" data-value="1">★</span>
+        <span class="star" data-value="2">★</span>
+        <span class="star" data-value="3">★</span>
+        <span class="star" data-value="4">★</span>
+        <span class="star" data-value="5">★</span>
+      </div>
+      <span class="rating-label">Rate this story</span>
+      <span class="rating-sep">·</span>
+      <span class="rating-summary" id="rating-summary"></span>
+    </div>
 
     <!-- BODY: ASIDE + ARTICLE -->
     <div class="story-body-section">
@@ -253,31 +275,10 @@ const bodyHtml = (row as any).body ?? '';
             </div>
           )}
 
-          <hr class="aside-divider" />
-
-          <div class="aside-label">Rate this film</div>
-          <div class="v2-aside-stars" id="v2-aside-stars" data-slug={data.slug}>
-            {[1,2,3,4,5].map(n => (
-              <button class="v2-aside-star" data-value={String(n)} aria-label={`Rate ${n} stars`}>★</button>
-            ))}
-          </div>
-          <div class="v2-aside-rating-count" id="v2-aside-rating-count"></div>
-
-          <div class="aside-label" style="margin-top: 1.25rem;">Share</div>
-          <div class="v2-aside-share">
-            <button class="v2-aside-share-btn" id="v2-aside-fb" aria-label="Share on Facebook">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
-            </button>
-            <button class="v2-aside-share-btn" id="v2-aside-wa" aria-label="Share on WhatsApp">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-            </button>
-            <button class="v2-aside-share-btn" id="v2-aside-li" aria-label="Share on LinkedIn">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
-            </button>
-            <button class="v2-aside-share-btn" id="v2-aside-copy" aria-label="Copy link">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-            </button>
-          </div>
+          <button class="aside-share-btn" id="share-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4"/><path d="m15.4 6.5-6.8 4"/></svg>
+            Share
+          </button>
 
         </div>
       </aside>
@@ -368,7 +369,7 @@ const bodyHtml = (row as any).body ?? '';
                 ))}
                 {websiteHref && (
                   <a class="story-map-detail" href={websiteHref} target="_blank" rel="noopener">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"/></svg>
                     {websiteDisplay}
                   </a>
                 )}
@@ -399,361 +400,11 @@ const bodyHtml = (row as any).body ?? '';
       </section>
     )}
 
-    <div class="v2-modal-overlay" id="v2-modal-overlay">
-      <div class="v2-modal-inner">
-        <button class="v2-modal-close" id="v2-modal-close" aria-label="Close video">×</button>
-        <div class="v2-modal-frame">
-          <iframe
-            id="v2-modal-iframe"
-            width="100%"
-            height="100%"
-            frameborder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowfullscreen
-          ></iframe>
-        </div>
-      </div>
-    </div>
-
   </main>
 
 </BaseLayout>
 
 <style>
-/* ── V2 HERO ────────────────────────────────────────────────────────── */
-.v2-hero {
-  position: relative;
-  width: 100%;
-  height: calc(100vh - 280px);
-  min-height: 400px;
-  max-height: 680px;
-  overflow: hidden;
-  background: var(--ink);
-}
-.v2-hero-bg {
-  position: absolute;
-  inset: 0;
-  background-size: cover;
-  background-position: center;
-}
-.v2-hero-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.45) 55%, rgba(0,0,0,0.15) 100%);
-}
-.v2-hero-bottom-fade {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 45%;
-  background: linear-gradient(to bottom, transparent 0%, var(--ink) 100%);
-  z-index: 1;
-  pointer-events: none;
-}
-@keyframes v2WordDrift {
-  0%   { transform: translateY(-50%) translateX(6%); }
-  100% { transform: translateY(-50%) translateX(-22%); }
-}
-.v2-hero-bgword {
-  position: absolute;
-  right: -0.02em;
-  top: 50%;
-  transform: translateY(-50%);
-  animation: v2WordDrift 45s linear 0.3s infinite alternate;
-  font-family: var(--font-display);
-  font-size: clamp(5rem, 12vw, 10rem);
-  font-weight: 200;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: transparent;
-  -webkit-text-stroke: 1px rgba(255,255,255,0.07);
-  white-space: nowrap;
-  line-height: 1;
-  pointer-events: none;
-  z-index: 1;
-}
-.v2-story-nav {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: stretch;
-  justify-content: space-between;
-  z-index: 5;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 100%);
-}
-.v2-story-nav-item {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-  padding: 0.875rem clamp(1rem, 3vw, 2rem);
-  text-decoration: none;
-  flex: 1;
-  transition: background 0.15s;
-  max-width: 50%;
-}
-.v2-story-nav-item:hover {
-  background: rgba(255,255,255,0.03);
-}
-.v2-story-nav-next {
-  justify-content: flex-end;
-}
-.v2-story-nav-arrow {
-  font-size: 1.25rem;
-  color: rgba(242,237,230,0.3);
-  transition: color 0.15s;
-  flex-shrink: 0;
-}
-.v2-story-nav-item:hover .v2-story-nav-arrow {
-  color: var(--amber);
-}
-.v2-story-nav-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  min-width: 0;
-}
-.v2-story-nav-label {
-  font-family: var(--font-cond);
-  font-size: 0.6rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(242,237,230,0.28);
-}
-.v2-story-nav-name {
-  font-family: var(--font-display);
-  font-size: 0.95rem;
-  font-weight: 200;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: rgba(242,237,230,0.7);
-  transition: color 0.15s;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-.v2-story-nav-item:hover .v2-story-nav-name {
-  color: var(--parchment);
-}
-.v2-hero-content {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: clamp(1.5rem, 3vw, 2.5rem) clamp(1.5rem, 4vw, 3rem);
-  z-index: 2;
-  max-width: 60%;
-}
-.v2-hero-eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  margin-bottom: 0.75rem;
-  font-family: var(--font-cond);
-  font-size: 0.6rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-.v2-hero-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--amber);
-  flex-shrink: 0;
-}
-.v2-eyebrow-tag { color: var(--amber); }
-.v2-eyebrow-dash { color: rgba(242,237,230,0.2); }
-.v2-eyebrow-meta { color: rgba(242,237,230,0.5); }
-.v2-hero-title {
-  font-family: var(--font-display);
-  font-size: clamp(3rem, 7.5vw, 5.625rem);
-  font-weight: 300;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--parchment);
-  line-height: 1.05;
-  margin: 0 0 0.5rem;
-  hyphens: none;
-  word-break: normal;
-}
-.v2-hero-bakery {
-  font-family: var(--font-display);
-  font-size: clamp(1.5rem, 3vw, 2.5rem);
-  font-weight: 200;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--amber);
-  margin-bottom: 1rem;
-}
-.v2-hero-desc {
-  font-size: 0.82rem;
-  color: rgba(242,237,230,0.6);
-  line-height: 1.65;
-  margin: 0 0 1.375rem;
-  max-width: 55ch;
-}
-.v2-hero-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-  flex-wrap: wrap;
-}
-.v2-btn-watch {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.625rem;
-  padding: 1rem 2.5rem;
-  border-radius: 999px;
-  background: var(--parchment);
-  color: var(--ink);
-  font-family: var(--font-cond);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  text-decoration: none;
-  border: none;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.v2-btn-watch:hover { background: #ffffff; }
-.v2-btn-watch-icon {
-  width: 0;
-  height: 0;
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
-  border-left: 10px solid var(--ink);
-  flex-shrink: 0;
-}
-.v2-btn-save {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.75rem;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--parchment);
-  font-family: var(--font-cond);
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  border: 1px solid rgba(242,237,230,0.3);
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-}
-.v2-btn-save:hover { background: rgba(242,237,230,0.1); border-color: rgba(242,237,230,0.5); }
-.v2-btn-save.is-saved { color: var(--amber); border-color: rgba(200,131,58,0.4); }
-.v2-hero-loop-video {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-}
-
-.v2-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.92);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.4s ease;
-}
-.v2-modal-overlay.active {
-  opacity: 1;
-  pointer-events: all;
-}
-.v2-modal-inner {
-  position: relative;
-  width: 90vw;
-  max-width: 1200px;
-}
-.v2-modal-frame {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16/9;
-  background: #000;
-  border-radius: 0.875rem;
-  overflow: hidden;
-}
-.v2-modal-frame iframe {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-.v2-modal-close {
-  position: fixed;
-  top: 1.25rem;
-  right: 1.5rem;
-  background: rgba(0,0,0,0.4);
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(255,255,255,0.7);
-  font-size: 1.25rem;
-  cursor: pointer;
-  line-height: 1;
-  padding: 0;
-  transition: background 0.15s, color 0.15s;
-  z-index: 1010;
-}
-.v2-modal-close:hover {
-  background: rgba(0,0,0,0.7);
-  color: #fff;
-}
-.v2-modal-overlay::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 120px;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.95) 0%, transparent 100%);
-  pointer-events: none;
-  z-index: 1;
-}
-.v2-modal-overlay::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 80px;
-  background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, transparent 100%);
-  pointer-events: none;
-  z-index: 1;
-}
-
-.v2-back-link {
-  position: absolute;
-  top: 1.25rem;
-  left: 1.5rem;
-  font-family: var(--font-cond);
-  font-size: 0.6rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(242,237,230,0.45);
-  text-decoration: none;
-  z-index: 5;
-  transition: color 0.15s;
-}
-.v2-back-link:hover { color: var(--parchment); }
-
-/* ── VIDEO SHELL (from [slug].astro) ────────────────────────────────── */
 .story-video-shell {
   background: var(--ink);
   padding: clamp(1rem, 2vw, 1.75rem) 0;
@@ -892,8 +543,6 @@ const bodyHtml = (row as any).body ?? '';
   .story-video-block { padding: 0; }
   .story-mobile-actions { display: block; }
 }
-
-/* ── MAP ────────────────────────────────────────────────────────────── */
 .story-map-section {
   position: relative;
   z-index: 0;
@@ -989,85 +638,18 @@ a.story-map-detail:hover svg { color: var(--amber); }
   flex-direction: column;
   gap: 1.5rem;
 }
+/* Multiple address links stacked in the aside for multi-location bakeries */
 .aside-locations {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
   margin-top: 0.15rem;
 }
+/* Plain <span> address gets pointer + amber hover when it has a location-index (triggers marker highlight) */
 span[data-location-index] { cursor: pointer; transition: color 0.18s; }
 span[data-location-index]:hover { color: var(--amber); }
+/* setOpacity() targets the outer Leaflet wrapper — transition must live here, not on the inner div */
 :global(.leaflet-marker-icon) { transition: opacity 0.3s ease; }
-@keyframes v2FadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-main {
-  animation: v2FadeIn 0.4s ease both;
-}
-.aside-divider {
-  border: none;
-  border-top: 1px solid var(--border);
-  margin: 1rem 0;
-}
-.v2-aside-stars {
-  display: flex;
-  gap: 3px;
-  margin-bottom: 0.25rem;
-}
-.v2-aside-star {
-  background: none;
-  border: none;
-  font-size: 16px;
-  color: rgba(242,237,230,0.12);
-  cursor: pointer;
-  padding: 0;
-  transition: color 0.15s;
-}
-.v2-aside-star.active { color: var(--amber); }
-.v2-aside-rating-count {
-  font-size: 11px;
-  color: rgba(242,237,230,0.3);
-  margin-bottom: 0;
-}
-.v2-aside-share {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.v2-aside-share-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(255,255,255,0.03);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: rgba(242,237,230,0.4);
-  transition: border-color 0.15s, color 0.15s;
-}
-.v2-aside-share-btn:hover {
-  border-color: rgba(200,131,58,0.45);
-  color: var(--amber);
-}
-@media (max-width: 768px) {
-  .v2-hero-content {
-    max-width: 100%;
-  }
-  .v2-hero-title {
-    font-size: clamp(2rem, 9vw, 3rem);
-  }
-  .v2-hero-bakery {
-    font-size: clamp(1.1rem, 4vw, 1.5rem);
-  }
-  .v2-modal-close {
-    width: 44px;
-    height: 44px;
-    font-size: 1.5rem;
-  }
-}
 </style>
 
 <script is:inline>
@@ -1102,82 +684,25 @@ main {
       });
     };
 
-    document.getElementById('v2-aside-fb')?.addEventListener('click', function() {
-      window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(window.location.href), '_blank', 'width=600,height=400');
-    });
-    document.getElementById('v2-aside-wa')?.addEventListener('click', function() {
-      window.open('https://wa.me/?text=' + encodeURIComponent(document.title + ' ' + window.location.href), '_blank');
-    });
-    document.getElementById('v2-aside-li')?.addEventListener('click', function() {
-      window.open('https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(window.location.href), '_blank', 'width=600,height=400');
-    });
-    document.getElementById('v2-aside-copy')?.addEventListener('click', function() {
-      navigator.clipboard.writeText(window.location.href).then(function() {
-        var btn = document.getElementById('v2-aside-copy');
-        if (btn) { btn.style.color = 'var(--amber)'; setTimeout(function() { btn.style.color = ''; }, 1500); }
-      });
-    });
+    var shareBtn = document.getElementById('share-btn');
+    if (shareBtn) {
+      shareBtn.onclick = function() {
+        if (navigator.share) {
+          navigator.share({ url: url });
+        } else {
+          navigator.clipboard.writeText(url).then(function() {
+            shareBtn.textContent = 'Link copied!';
+            setTimeout(function() {
+              shareBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4"/><path d="m15.4 6.5-6.8 4"/></svg>Share';
+            }, 2000);
+          });
+        }
+      };
+    }
 
   }
 
   window.registerPageInit('bakery-story', initBakeryPage, null);
-
-  (function() {
-    var watchBtn = document.getElementById('v2-watch-btn');
-    var overlay  = document.getElementById('v2-modal-overlay');
-    var iframe   = document.getElementById('v2-modal-iframe');
-    var closeBtn = document.getElementById('v2-modal-close');
-    if (!watchBtn || !overlay || !iframe) return;
-
-    var videoId = watchBtn.dataset.videoId;
-
-    function openModal() {
-      iframe.src = 'https://www.youtube.com/embed/' + videoId + '?autoplay=1&rel=0&modestbranding=1';
-      overlay.classList.add('active');
-      document.body.style.overflow = 'hidden';
-    }
-
-    function closeModal() {
-      overlay.classList.remove('active');
-      iframe.src = '';
-      document.body.style.overflow = '';
-    }
-
-    watchBtn.addEventListener('click', openModal);
-    if (closeBtn) closeBtn.addEventListener('click', closeModal);
-    overlay.addEventListener('click', function(e) {
-      if (e.target === overlay) closeModal();
-    });
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') closeModal();
-    });
-  })();
-
-  // Randomise bgword drift start position
-  (function() {
-    var bgWord = document.querySelector('.v2-hero-bgword');
-    if (!bgWord) return;
-    var randomDelay = -(Math.random() * 25) + 's';
-    bgWord.style.animationDelay = randomDelay;
-  })();
-
-  // Fade-out on nav arrow clicks (.v2-nav-btn)
-  (function() {
-    function navigateTo(url) {
-      var main = document.querySelector('main');
-      if (main) {
-        main.style.transition = 'opacity 0.3s ease';
-        main.style.opacity = '0';
-      }
-      setTimeout(function() { window.location.href = url; }, 300);
-    }
-    document.querySelectorAll('a.v2-story-nav-item').forEach(function(arrow) {
-      arrow.addEventListener('click', function(e) {
-        var href = arrow.href;
-        if (href) { e.preventDefault(); navigateTo(href); }
-      });
-    });
-  })();
 </script>
 
 <script>
@@ -1354,6 +879,7 @@ main {
           const current = voteMap[commentId] ?? { up: 0, down: 0, userVote: 0 as 0 };
           const hasVote = current.userVote !== 0;
 
+          // Optimistic DOM update
           let newUp = current.up, newDown = current.down;
           if (current.userVote === 1) newUp--;
           if (current.userVote === -1) newDown--;
@@ -1372,6 +898,7 @@ main {
 
           if (itemEl?.parentElement === listEl) resortComments();
 
+          // Persist
           if (hasVote) {
             await supabase.from('comment_votes').delete()
               .eq('comment_id', commentId).eq('user_id', session.user.id);
@@ -1503,6 +1030,7 @@ main {
     }
   });
 
+  // Fresh (non-SPA) load:
   if (document.readyState !== 'loading') {
     startMap();
   } else {
@@ -1517,36 +1045,37 @@ main {
   const SAVE_ICON_FULL  = '<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>';
 
   async function initSaveAndRating() {
-    const asideStarsEl = document.getElementById('v2-aside-stars') as HTMLElement | null;
-    const asideCountEl = document.getElementById('v2-aside-rating-count') as HTMLElement | null;
-    const saveBtn      = document.getElementById('save-btn') as HTMLButtonElement | null;
-    if (!asideStarsEl && !saveBtn) return;
+    const starEl      = document.getElementById('star-rating') as HTMLElement | null;
+    const summaryEl   = document.getElementById('rating-summary') as HTMLElement | null;
+    const saveBtn     = document.getElementById('save-btn') as HTMLButtonElement | null;
+    if (!starEl && !saveBtn) return;
 
-    const slug = (asideStarsEl?.dataset.slug || saveBtn?.dataset.slug)!;
+    const slug = (starEl?.dataset.slug || saveBtn?.dataset.slug)!;
     const { data: { session } } = await supabase.auth.getSession();
 
+    // ── RATINGS ─────────────────────────────────────────────────
     async function loadAverage() {
       const { data } = await supabase
         .from('ratings')
         .select('rating')
         .eq('bakery_slug', slug);
-      if (!asideCountEl) return;
+      if (!summaryEl) return;
       if (!data || data.length === 0) {
-        asideCountEl.textContent = 'No ratings yet';
+        summaryEl.textContent = 'No ratings yet';
       } else {
         const avg = data.reduce((s: number, r: { rating: number }) => s + r.rating, 0) / data.length;
-        asideCountEl.textContent = avg.toFixed(1) + ' ★ · ' + data.length + (data.length === 1 ? ' rating' : ' ratings');
+        summaryEl.textContent = avg.toFixed(1) + ' ★ · ' + data.length + (data.length === 1 ? ' rating' : ' ratings');
       }
     }
 
     await loadAverage();
 
-    if (asideStarsEl) {
-      const stars = Array.from(asideStarsEl.querySelectorAll('.v2-aside-star')) as HTMLElement[];
+    if (starEl) {
+      const stars = Array.from(starEl.querySelectorAll('.star')) as HTMLElement[];
       let userRating = 0;
 
       function renderStars(value: number) {
-        stars.forEach(s => s.classList.toggle('active', parseInt(s.dataset.value || '0') <= value));
+        stars.forEach(s => s.classList.toggle('filled', parseInt(s.dataset.value || '0') <= value));
       }
 
       if (session) {
@@ -1575,16 +1104,17 @@ main {
         });
       } else {
         renderStars(0);
-        stars.forEach(s => { (s as HTMLButtonElement).onclick = () => { window.location.href = '/auth/login'; }; });
+        stars.forEach(s => (s.style.cursor = 'default'));
       }
     }
 
+    // ── SAVE BUTTON ─────────────────────────────────────────────
     if (saveBtn) {
       function setSaved(saved: boolean) {
         saveBtn!.classList.toggle('is-saved', saved);
         saveBtn!.innerHTML = saved
-          ? SAVE_ICON_FULL  + ' Saved'
-          : SAVE_ICON_EMPTY + ' Save';
+          ? SAVE_ICON_FULL  + ' Saved ✓'
+          : SAVE_ICON_EMPTY + ' Save to Recipe Book';
       }
 
       if (session) {

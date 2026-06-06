@@ -1,0 +1,118 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Dashboard" activePage="dashboard">
+  <div class="admin-page-header">
+    <h1 class="admin-page-title">Dashboard</h1>
+  </div>
+
+  <div class="admin-stats">
+    <div class="admin-stat-card">
+      <div class="admin-stat-num" id="stat-bakeries">—</div>
+      <div class="admin-stat-label">Bakeries</div>
+    </div>
+    <div class="admin-stat-card">
+      <div class="admin-stat-num" id="stat-members">—</div>
+      <div class="admin-stat-label">Members</div>
+    </div>
+    <div class="admin-stat-card">
+      <div class="admin-stat-num" id="stat-comments">—</div>
+      <div class="admin-stat-label">Comments</div>
+    </div>
+    <div class="admin-stat-card">
+      <div class="admin-stat-num" id="stat-pending">—</div>
+      <div class="admin-stat-label">Pending Submissions</div>
+    </div>
+  </div>
+
+  <div class="admin-dash-grid">
+    <div class="admin-section">
+      <div class="admin-section-title">Recent Comments</div>
+      <div id="recent-comments"><div class="admin-empty">Loading…</div></div>
+    </div>
+    <div class="admin-section">
+      <div class="admin-section-title">New Members</div>
+      <div id="recent-members"><div class="admin-empty">Loading…</div></div>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  import { supabase } from '../../lib/supabase';
+
+  function timeAgo(dateStr: string) {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  }
+
+  async function loadDashboard() {
+    const [
+      { count: bakeryCount },
+      { count: memberCount },
+      { count: commentCount },
+      { count: pendingCount },
+      { data: recentComments },
+      { data: recentMembers },
+    ] = await Promise.all([
+      supabase.from('bakeries_cms').select('*', { count: 'exact', head: true }),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }),
+      supabase.from('comments').select('*', { count: 'exact', head: true }),
+      supabase.from('submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('comments').select('id, body, bakery_slug, created_at').order('created_at', { ascending: false }).limit(5),
+      supabase.from('profiles').select('id, display_name, created_at').order('created_at', { ascending: false }).limit(5),
+    ]);
+
+    const s = (id: string, val: number | null) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = String(val ?? 0);
+    };
+    s('stat-bakeries', bakeryCount);
+    s('stat-members',  memberCount);
+    s('stat-comments', commentCount);
+    s('stat-pending',  pendingCount);
+
+    const commentsEl = document.getElementById('recent-comments')!;
+    const arr = (recentComments ?? []) as { id: string; body: string; bakery_slug: string; created_at: string }[];
+    commentsEl.innerHTML = arr.length === 0
+      ? '<div class="admin-empty">No comments yet.</div>'
+      : arr.map(c => `
+          <div class="admin-activity-item">
+            <div class="admin-activity-dot"></div>
+            <div>
+              <div class="admin-activity-text" style="max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.body}</div>
+              <div class="admin-activity-meta">${c.bakery_slug} · ${timeAgo(c.created_at)}</div>
+            </div>
+          </div>`).join('');
+
+    const membersEl = document.getElementById('recent-members')!;
+    const marr = (recentMembers ?? []) as { id: string; display_name: string | null; created_at: string }[];
+    membersEl.innerHTML = marr.length === 0
+      ? '<div class="admin-empty">No members yet.</div>'
+      : marr.map(m => `
+          <div class="admin-activity-item">
+            <div class="admin-activity-dot"></div>
+            <div>
+              <div class="admin-activity-text">${m.display_name || 'Anonymous'}</div>
+              <div class="admin-activity-meta">Joined ${timeAgo(m.created_at)}</div>
+            </div>
+          </div>`).join('');
+  }
+
+  // Run after adminCheck has revealed the content
+  const observer = new MutationObserver(() => {
+    const content = document.getElementById('admin-content');
+    if (content && content.style.display !== 'none') {
+      observer.disconnect();
+      loadDashboard();
+    }
+  });
+  observer.observe(document.body, { childList: false, attributes: true, subtree: true });
+  // Also try immediately in case content is already visible
+  const content = document.getElementById('admin-content');
+  if (content && content.style.display !== 'none') loadDashboard();
+</script>

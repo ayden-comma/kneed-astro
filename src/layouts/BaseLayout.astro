@@ -2,8 +2,11 @@
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import { ClientRouter } from 'astro:transitions';
-const { title, description } = Astro.props;
-const isMapPage = Astro.url.pathname.startsWith('/map');
+const { title, description, image, canonicalURL } = Astro.props;
+const isMapPage    = Astro.url.pathname.startsWith('/map');
+const isBakeryPage = /^\/bakeries\/.+/.test(Astro.url.pathname);
+const noClientRouter = isMapPage || isBakeryPage;
+const ogImage = image || (Astro.url.origin + '/images/og-default.jpg');
 ---
 <!DOCTYPE html>
 <html lang="en">
@@ -11,17 +14,42 @@ const isMapPage = Astro.url.pathname.startsWith('/map');
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
-    <meta http-equiv="Content-Security-Policy" content="img-src 'self' data: blob: https://lh3.googleusercontent.com https://images.unsplash.com https://images.pexels.com https://*.cartocdn.com https://*.supabase.co;" />
-    <meta name="description" content={description} />
+    <meta http-equiv="Content-Security-Policy" content="img-src 'self' data: blob: https://lh3.googleusercontent.com https://images.unsplash.com https://images.pexels.com https://*.cartocdn.com https://*.supabase.co https://maps.googleapis.com https://maps.gstatic.com https://res.cloudinary.com https://img.youtube.com;" />
     <title>{title} | (K)NEED</title>
-    {!isMapPage && <ClientRouter />}
-    {!isMapPage && <script is:inline>
+
+    <!-- Primary SEO -->
+    <meta name="description" content={description} />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href={canonicalURL || Astro.url.href} />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={Astro.url.href} />
+    <meta property="og:title" content={title + ' | (K)Need'} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:site_name" content="(K)Need" />
+    <meta property="og:locale" content="en_AU" />
+
+    <!-- Twitter/X Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title + ' | (K)Need'} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
+    <!-- Additional SEO -->
+    <meta name="author" content="(K)Need" />
+    <meta name="geo.region" content="AU-VIC" />
+    <meta name="geo.placename" content="Melbourne" />
+    {!noClientRouter && <ClientRouter />}
+    {!noClientRouter && <script is:inline>
       document.addEventListener('click', function(e) {
         var link = e.target.closest('a[href]');
         if (!link) return;
         var href = link.getAttribute('href');
         if (!href) return;
-        if (href === '/map' || href.startsWith('/map/') || href.startsWith('/map?')) {
+        if (href === '/map' || href.startsWith('/map/') || href.startsWith('/map?') ||
+            /^\/bakeries\/[^\/\?#]+/.test(href)) {
           e.preventDefault();
           e.stopPropagation();
           window.location.href = href;
@@ -31,11 +59,12 @@ const isMapPage = Astro.url.pathname.startsWith('/map');
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:ital,wght@0,100;0,200;0,300;0,400;1,200;1,300&family=Barlow:wght@300;400;500;600&family=Barlow+Condensed:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:ital,wght@0,100;0,200;0,300;0,400;1,200;1,300&family=Barlow:wght@300;400;500;600&family=Archivo+Narrow:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmlld0JveD0iMCAwIDUwIDUwIj48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6IzBlMGMwYTt9LmNscy0ye2ZpbGw6I2YyZWRlNjt9PC9zdHlsZT48L2RlZnM+PGcgaWQ9IkJhY2tncm91bmQiPjxyZWN0IGNsYXNzPSJjbHMtMSIgeD0iMCIgeT0iMCIgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiByeD0iMjUiIHJ5PSIyNSIvPjwvZz48ZyBpZD0iV2hpdGUiPjxnIGlkPSJCcmFja2V0c18tX091dGxpbmUiPjxwYXRoIGNsYXNzPSJjbHMtMiIgZD0iTTUuODQsMTkuMzljLjQ4LTEuNzQsMS4xLTMuMjksMS44Ni00LjY3Ljc2LTEuMzcsMS41Ni0yLjUsMi40LTMuNDFsLjU3LjgxYy0uNzYuODgtMS40OSwxLjk3LTIuMTksMy4yNi0uNywxLjI5LTEuMjcsMi43NC0xLjY5LDQuMzYtLjQzLDEuNjItLjY1LDMuMzgtLjY1LDUuMjhzLjIxLDMuNjMuNjUsNS4yNWMuNDMsMS42Mi45OSwzLjA3LDEuNjksNC4zNS43LDEuMjgsMS40MywyLjM2LDIuMTksMy4yNGwtLjU3LjgxYy0uODQtLjg4LTEuNjQtMi4wMS0yLjQtMy4zOC0uNzYtMS4zNy0xLjM4LTIuOTMtMS44Ni00LjY3LS40OC0xLjc0LS43Mi0zLjYyLS43Mi01LjY0cy4yNC0zLjg3LjcyLTUuNjFaIi8+PHBhdGggY2xhc3M9ImNscy0yIiBkPSJNNDQuMTYsMzAuNjRjLS40OCwxLjc0LTEuMSwzLjI5LTEuODUsNC42Ny0uNzUsMS4zNy0xLjU0LDIuNDktMi4zOCwzLjM4bC0uNi0uODFjLjc4LS44OCwxLjUyLTEuOTYsMi4yMS0zLjI0LjY5LTEuMjgsMS4yNS0yLjczLDEuNjgtNC4zNS40My0xLjYyLjY1LTMuMzcuNjUtNS4yNXMtLjIxLTMuNjYtLjY1LTUuMjgtLjk5LTMuMDctMS42OC00LjM1Yy0uNjktMS4yOC0xLjQzLTIuMzYtMi4yMS0zLjI0bC42LS44NGMuODQuOSwxLjYzLDIuMDQsMi4zOCwzLjQxLjc1LDEuMzcsMS4zNywyLjkyLDEuODUsNC42Ny40OCwxLjc0LjcyLDMuNjIuNzIsNS42NHMtLjI0LDMuODctLjcyLDUuNjFaIi8+PC9nPjxnIGlkPSJLXy1fT3V0bGluZSI+PHBhdGggY2xhc3M9ImNscy0yIiBkPSJNMTkuODYsMjQuM2wtLjA2LDEuMDJ2LS4xOGwxMS4wNC0xMC43MWgxLjMybC04Ljc2LDguNTUsOS45LDEyLjYzaC0xLjI5bC05LjM5LTExLjk3LTIuNzksMi42Ny4wMyw5LjNoLTEuMDVWMTQuNDNoMS4wNXY5Ljg3WiIvPjwvZz48L2c+PC9zdmc+" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
     <link rel="stylesheet" href="/global.css" />
+    <slot name="head" />
     
     <!--
       ═══════════════════════════════════════════════════════════════

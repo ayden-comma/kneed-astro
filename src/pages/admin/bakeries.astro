@@ -1,0 +1,1284 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Bakeries" activePage="bakeries">
+  <div class="admin-page-header">
+    <h1 class="admin-page-title">Bakeries</h1>
+    <button class="admin-btn admin-btn-primary" id="btn-add-bakery">+ Add Bakery</button>
+  </div>
+
+  <div class="admin-section">
+    <div id="admin-msg" class="admin-msg"></div>
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th class="th-sortable" data-sort="name">Name <span class="sort-indicator"></span></th>
+            <th>Category</th>
+            <th>Suburb</th>
+            <th class="th-sortable" data-sort="status">Status <span class="sort-indicator"></span></th>
+            <th class="th-sortable" data-sort="modified">Modified <span class="sort-indicator"></span></th>
+            <th class="th-sortable" data-sort="publishedAt">Published <span class="sort-indicator"></span></th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="bakery-tbody">
+          <tr><td colspan="7"><div class="admin-empty">Loading…</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</AdminLayout>
+
+<!-- Add/Edit Modal -->
+<div id="bakery-modal" class="admin-modal" role="dialog" aria-modal="true">
+  <div class="admin-modal-overlay" id="bakery-modal-overlay"></div>
+  <div class="admin-modal-card bk-modal-card">
+    <div class="admin-modal-header">
+      <div class="admin-modal-title" id="modal-title">Add Bakery</div>
+      <button class="admin-modal-close" id="bakery-modal-close">×</button>
+    </div>
+    <div id="modal-msg" class="admin-msg bk-modal-msg"></div>
+
+    <!-- Tab bar -->
+    <div class="bk-tab-bar">
+      <button type="button" class="bk-tab is-active" data-tab="bakery">Bakery</button>
+      <button type="button" class="bk-tab" data-tab="location">Location</button>
+      <button type="button" class="bk-tab" data-tab="episode">Episode</button>
+      <button type="button" class="bk-tab" data-tab="hero-carousel">Hero Carousel<span class="bk-tab-dot" id="hero-tab-dot" style="display:none;"></span></button>
+    </div>
+
+    <form class="admin-form bk-form" id="bakery-form" autocomplete="off">
+      <input type="hidden" id="f-id" />
+
+      <div class="bk-tab-content">
+
+        <!-- ── TAB 1: BASICS ──────────────────────────────────── -->
+        <div class="bk-tab-panel" data-panel="bakery">
+          <div class="admin-form-row">
+            <div class="admin-form-field">
+              <label class="admin-form-label" for="f-name">Bakery Name *</label>
+              <input class="admin-form-input" id="f-name" required />
+            </div>
+            <div class="admin-form-field">
+              <label class="admin-form-label" for="f-slug">Slug *</label>
+              <input class="admin-form-input" id="f-slug" required />
+            </div>
+          </div>
+          <div class="admin-form-field">
+            <label class="admin-form-label" for="f-category">Category *</label>
+            <input class="admin-form-input" id="f-category" placeholder="e.g. Sourdough" required />
+          </div>
+          <div class="admin-form-field">
+            <label class="admin-form-label" for="f-description">Short Description</label>
+            <textarea class="admin-form-textarea" id="f-description" rows="2" placeholder="One or two sentences for cards and SEO…"></textarea>
+          </div>
+          <div class="admin-form-field">
+            <label class="admin-form-label">Thumbnail</label>
+            <div class="admin-thumb-row">
+              <img id="f-thumb-preview" class="admin-img-preview" src="" alt="" style="display:none;" />
+              <div>
+                <label class="admin-upload-btn">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Upload image
+                  <input type="file" id="f-thumb-file" accept="image/*" style="display:none;" />
+                </label>
+                <div id="f-upload-status" class="admin-upload-progress" style="margin-top:0.375rem;"></div>
+              </div>
+            </div>
+            <input type="hidden" id="f-thumbnail" />
+          </div>
+        </div>
+
+        <!-- ── TAB 2: LOCATION ───────────────────────────────── -->
+        <div class="bk-tab-panel" data-panel="location" style="display:none;">
+          <div class="admin-form-section">
+            <span class="admin-form-section-label">Locations</span>
+            <div id="f-locations-list"></div>
+            <button type="button" class="admin-btn admin-btn-ghost admin-btn-sm" id="btn-add-location" style="margin-top:0.5rem;">+ Add location</button>
+          </div>
+          <div class="admin-form-field" style="margin-top:0.625rem;">
+            <label class="admin-form-label" for="f-hours">Hours <span style="color:var(--p-35);font-size:0.65rem;">(Bakery-wide default)</span></label>
+            <input class="admin-form-input" id="f-hours" placeholder="Mon–Fri 7am–3pm" />
+          </div>
+          <div class="admin-form-row" style="margin-top:0.625rem;">
+            <div class="admin-form-field">
+              <label class="admin-form-label" for="f-website">Website</label>
+              <input class="admin-form-input" id="f-website" type="url" placeholder="https://" />
+            </div>
+            <div class="admin-form-field">
+              <label class="admin-form-label" for="f-instagram">Instagram</label>
+              <input class="admin-form-input" id="f-instagram" placeholder="@handle" />
+            </div>
+          </div>
+          <div class="admin-form-field">
+            <label class="admin-form-label" for="f-map-link">Google Maps Link</label>
+            <input class="admin-form-input" id="f-map-link" placeholder="https://maps.google.com/?q=..." />
+          </div>
+        </div>
+
+        <!-- ── TAB 3: FILM ────────────────────────────────────── -->
+        <div class="bk-tab-panel" data-panel="episode" style="display:none;">
+          <!-- 2×2 grid: Date/Ep#, Duration/VideoID -->
+          <div class="admin-form-row">
+            <div class="admin-form-field">
+              <label class="admin-form-label" for="f-date">Date</label>
+              <input class="admin-form-input" id="f-date" placeholder="e.g. April 2025" />
+            </div>
+            <div class="admin-form-field">
+              <label class="admin-form-label" for="f-episode-number">Ep #</label>
+              <input class="admin-form-input" id="f-episode-number" type="number" placeholder="e.g. 1" />
+            </div>
+          </div>
+          <div class="admin-form-row" style="margin-top:0.625rem;">
+            <div class="admin-form-field">
+              <label class="admin-form-label" for="f-duration">Duration</label>
+              <input class="admin-form-input" id="f-duration" placeholder="e.g. 06:42" />
+            </div>
+            <div class="admin-form-field">
+              <label class="admin-form-label" for="f-video-id">Video ID</label>
+              <input class="admin-form-input" id="f-video-id" placeholder="YouTube or Vimeo ID" />
+            </div>
+          </div>
+
+          <!-- Pull Quote -->
+          <div class="admin-form-field" style="margin-top:0.875rem;">
+            <label class="admin-form-label" for="f-quote">Pull Quote</label>
+            <textarea class="admin-form-textarea" id="f-quote" rows="2" placeholder="A memorable line about this bakery…"></textarea>
+          </div>
+
+          <!-- Film Credits -->
+          <div class="admin-form-section">
+            <span class="admin-form-section-label">Film Credits</span>
+            <div id="f-credits-list"></div>
+            <button type="button" class="admin-btn admin-btn-ghost admin-btn-sm" id="btn-add-credit" style="margin-top:0.5rem;">+ Add credit</button>
+          </div>
+
+          <!-- Image Gallery -->
+          <div class="admin-form-section">
+            <span class="admin-form-section-label">Image Gallery</span>
+            <div class="admin-form-field" style="margin-top:0.875rem;">
+              <div id="f-images-list"></div>
+              <button type="button" class="admin-btn admin-btn-ghost admin-btn-sm" id="btn-add-image" style="margin-top:0.5rem;">+ Add Image</button>
+              <input type="file" id="f-img-upload-trigger" accept="image/*" style="display:none;" />
+            </div>
+          </div>
+
+          <!-- Body Content (TipTap) -->
+          <div class="admin-form-section">
+            <span class="admin-form-section-label">Body Content</span>
+            <div class="admin-form-field">
+              <div class="rte-wrap" id="tiptap-editor">
+                <div class="rte-toolbar" id="rte-toolbar">
+                  <button type="button" class="rte-btn" data-cmd="bold" title="Bold">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>
+                  </button>
+                  <button type="button" class="rte-btn" data-cmd="italic" title="Italic">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>
+                  </button>
+                  <button type="button" class="rte-btn" data-cmd="underline" title="Underline">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v6a6 6 0 0 0 12 0V4"/><line x1="4" y1="20" x2="20" y2="20"/></svg>
+                  </button>
+                  <div class="rte-sep"></div>
+                  <button type="button" class="rte-btn" data-cmd="h2" title="Heading 2">H2</button>
+                  <button type="button" class="rte-btn" data-cmd="h3" title="Heading 3">H3</button>
+                  <div class="rte-sep"></div>
+                  <button type="button" class="rte-btn" data-cmd="bulletList" title="Bullet list">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                  </button>
+                  <button type="button" class="rte-btn" data-cmd="orderedList" title="Ordered list">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>
+                  </button>
+                  <button type="button" class="rte-btn" data-cmd="blockquote" title="Blockquote">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></svg>
+                  </button>
+                  <div class="rte-sep"></div>
+                  <button type="button" class="rte-btn" data-cmd="image" title="Insert image">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                  </button>
+                  <button type="button" class="rte-btn" data-cmd="youtube" title="Embed YouTube/Vimeo">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 0 0-1.95 1.96A29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/></svg>
+                  </button>
+                  <button type="button" class="rte-btn" data-cmd="link" title="Insert link">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                  </button>
+                  <div class="rte-sep"></div>
+                  <button type="button" class="rte-btn" data-cmd="clearFormat" title="Clear formatting">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"/><path d="M5 20h6"/><path d="M13 4 8 20"/><line x1="17" y1="12" x2="22" y2="17"/><line x1="22" y1="12" x2="17" y2="17"/></svg>
+                  </button>
+                </div>
+                <div class="rte-content" id="f-body-content"></div>
+                <div id="tiptap-img-toolbar" class="tiptap-img-toolbar" style="display:none;">
+                  <span class="tiptap-img-toolbar-label">Size</span>
+                  <button type="button" class="tiptap-img-size-btn" data-size="small">S</button>
+                  <button type="button" class="tiptap-img-size-btn" data-size="medium">M</button>
+                  <button type="button" class="tiptap-img-size-btn" data-size="large">L</button>
+                  <button type="button" class="tiptap-img-size-btn" data-size="full">Full</button>
+                  <span class="tiptap-img-toolbar-divider"></span>
+                  <span class="tiptap-img-toolbar-label">Align</span>
+                  <button type="button" class="tiptap-img-align-btn" data-align="left">←</button>
+                  <button type="button" class="tiptap-img-align-btn" data-align="center">↔</button>
+                  <button type="button" class="tiptap-img-align-btn" data-align="right">→</button>
+                </div>
+                <input type="file" id="rte-img-upload" accept="image/*" style="display:none;" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TAB 4: HERO ───────────────────────────────────── -->
+        <div class="bk-tab-panel" data-panel="hero-carousel" style="display:none;">
+          <p style="font-size:0.75rem; color:var(--p-35); margin:0 0 0.875rem;">Controls how this bakery appears in the homepage hero carousel.</p>
+          <div class="admin-form-row">
+            <div class="admin-form-field">
+              <label class="admin-form-label" for="f-hero-tag">Tag (e.g. Sourdough, Pastry)</label>
+              <input class="admin-form-input" id="f-hero-tag" placeholder="e.g. Sourdough" />
+            </div>
+            <div class="admin-form-field">
+              <label class="admin-form-label" for="f-hero-title">Hero Title</label>
+              <input class="admin-form-input" id="f-hero-title" />
+            </div>
+          </div>
+          <div class="admin-form-field" style="margin-top:0.625rem;">
+            <label class="admin-form-label" for="f-hero-subtitle">Hero Subtitle</label>
+            <textarea class="admin-form-textarea" id="f-hero-subtitle" rows="3"></textarea>
+          </div>
+          <div class="admin-form-field" style="margin-top:0.625rem;">
+            <label class="admin-form-label" for="f-hero-bg-word">Background Word (displays large behind hero)</label>
+            <input class="admin-form-input" id="f-hero-bg-word" placeholder="e.g. BREAD" />
+          </div>
+          <div class="admin-form-field" style="margin-top:0.625rem;">
+            <label class="admin-form-label" for="f-loop-video-url">Loop Video (short clip, autoplays silently behind hero)</label>
+            <input class="admin-form-input" id="f-loop-video-url" placeholder="https://res.cloudinary.com/... (MP4 URL)" />
+          </div>
+          <div class="admin-form-field" style="margin-top:0.875rem;">
+            <label class="admin-form-label">Hero Image</label>
+            <div class="admin-thumb-row">
+              <img id="f-hero-img-preview" class="admin-img-preview" src="" alt="" style="display:none;" />
+              <div>
+                <label class="admin-upload-btn">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Upload image
+                  <input type="file" id="f-hero-img-file" accept="image/*" style="display:none;" />
+                </label>
+                <div id="f-hero-upload-status" class="admin-upload-progress" style="margin-top:0.375rem;"></div>
+              </div>
+            </div>
+            <input type="hidden" id="f-hero-image-url" />
+          </div>
+
+          <div class="hero-preview-wrap" id="hero-preview-wrap" style="display:none; margin-top:1.25rem;">
+            <div class="admin-form-section-label" style="margin-bottom:0.625rem;">Preview</div>
+            <div class="hero-preview" id="hero-preview">
+              <div class="hero-preview-bg" id="hero-preview-bg"></div>
+              <div class="hero-preview-bgword" id="hero-preview-bgword"></div>
+              <div class="hero-preview-content">
+                <div class="hero-preview-eyebrow" id="hero-preview-eyebrow">
+                  <span class="hero-preview-eyebrow-dot"></span>
+                  <span class="hero-preview-eyebrow-tag" id="hero-preview-tag"></span>
+                  <span class="hero-preview-eyebrow-rule"></span>
+                  <span class="hero-preview-eyebrow-meta" id="hero-preview-meta"></span>
+                </div>
+                <div class="hero-preview-title" id="hero-preview-title"></div>
+                <div class="hero-preview-bakery" id="hero-preview-bakery"></div>
+                <div class="hero-preview-subtitle" id="hero-preview-subtitle"></div>
+                <div class="hero-preview-cta">
+                  <span class="hero-preview-watch-btn">
+                    <svg viewBox="0 0 24 24" width="7" height="7" fill="currentColor"><polygon points="6,4 20,12 6,20"/></svg>
+                    WATCH NOW
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /.bk-tab-content -->
+
+      <!-- Action buttons — outside scrollable area, always visible -->
+      <div class="bk-modal-actions">
+        <button type="button" class="wf-pill pill-light" id="form-draft-btn">Save Draft</button>
+        <button type="button" class="wf-pill pill-light" id="form-preview-btn" style="display:inline-flex; align-items:center; gap:0.3rem;">
+          Preview
+          <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </button>
+        <button type="button" class="wf-pill pill-amber" id="form-publish-btn">Publish</button>
+        <button type="button" class="admin-btn admin-btn-ghost" id="form-cancel-btn">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  import { supabase } from '../../lib/supabase';
+  import { Editor } from '@tiptap/core';
+  import StarterKit from '@tiptap/starter-kit';
+  import Image from '@tiptap/extension-image';
+
+  const CustomImage = Image.extend({
+    addAttributes() {
+      return {
+        ...this.parent?.(),
+        size: {
+          default: 'full',
+          parseHTML: element => element.getAttribute('data-size') || 'full',
+          renderHTML: attributes => ({
+            'data-size': attributes.size,
+            class: (attributes.class || '') + ' tiptap-img-' + attributes.size,
+          }),
+        },
+        align: {
+          default: 'center',
+          parseHTML: element => element.getAttribute('data-align') || 'center',
+          renderHTML: attributes => ({
+            'data-align': attributes.align,
+          }),
+        },
+      };
+    },
+  });
+  import Link from '@tiptap/extension-link';
+  import Underline from '@tiptap/extension-underline';
+  import TextAlign from '@tiptap/extension-text-align';
+  import Youtube from '@tiptap/extension-youtube';
+  import Placeholder from '@tiptap/extension-placeholder';
+
+  // ── Types ─────────────────────────────────────────────────────
+  type BakeryRow = {
+    id: string; name: string; slug: string; category: string;
+    suburb: string | null; published: boolean;
+    updated_at: string | null; published_at: string | null;
+  };
+  type ImgRow = { src: string; caption: string };
+
+  // ── DOM refs ──────────────────────────────────────────────────
+  const modal     = document.getElementById('bakery-modal')!;
+  const overlay   = document.getElementById('bakery-modal-overlay')!;
+  const closeBtn  = document.getElementById('bakery-modal-close')!;
+  const cancelBtn = document.getElementById('form-cancel-btn')!;
+  const addBtn    = document.getElementById('btn-add-bakery')!;
+  const form      = document.getElementById('bakery-form') as HTMLFormElement;
+  const titleEl   = document.getElementById('modal-title')!;
+  const msgEl     = document.getElementById('admin-msg')!;
+  const modalMsg  = document.getElementById('modal-msg')!;
+  const tbody     = document.getElementById('bakery-tbody')!;
+
+  // ── Tab switching ─────────────────────────────────────────────
+  let currentTab = 'bakery';
+
+  function setActiveTab(tab: string) {
+    document.querySelectorAll<HTMLElement>('.bk-tab-panel').forEach(p => {
+      const active = p.dataset.panel === tab;
+      p.style.display = active ? '' : 'none';
+      p.style.opacity = active ? '1' : '';
+      p.style.transform = '';
+    });
+    document.querySelectorAll<HTMLElement>('.bk-tab').forEach(b => {
+      b.classList.toggle('is-active', b.dataset.tab === tab);
+    });
+    currentTab = tab;
+  }
+
+  function switchTab(toTab: string) {
+    if (toTab === currentTab) return;
+    const leaving  = document.querySelector<HTMLElement>(`.bk-tab-panel[data-panel="${currentTab}"]`);
+    const arriving = document.querySelector<HTMLElement>(`.bk-tab-panel[data-panel="${toTab}"]`);
+    const leavingBtn  = document.querySelector<HTMLElement>(`.bk-tab[data-tab="${currentTab}"]`);
+    const arrivingBtn = document.querySelector<HTMLElement>(`.bk-tab[data-tab="${toTab}"]`);
+    if (!leaving || !arriving) return;
+
+    leaving.style.opacity = '0';
+    leaving.style.transform = 'translateY(6px)';
+
+    setTimeout(() => {
+      leaving.style.display = 'none';
+      leaving.style.opacity = '';
+      leaving.style.transform = '';
+      arriving.style.display = '';
+      arriving.style.opacity = '0';
+      arriving.style.transform = 'translateY(6px)';
+      arriving.getBoundingClientRect(); // force reflow
+      setTimeout(() => {
+        arriving.style.opacity = '1';
+        arriving.style.transform = 'translateY(0)';
+      }, 10);
+      leavingBtn?.classList.remove('is-active');
+      arrivingBtn?.classList.add('is-active');
+      currentTab = toTab;
+    }, 150);
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('.bk-tab[data-tab]').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab!));
+  });
+
+  // ── TipTap editor ─────────────────────────────────────────────
+  let bodyEditor: Editor | null = null;
+  let _pendingContent = '';
+  let _savedEditorPos: number | null = null;
+
+  function initBodyEditor() {
+    const el = document.getElementById('f-body-content');
+    if (!el || bodyEditor) return;
+    bodyEditor = new Editor({
+      element: el,
+      extensions: [
+        StarterKit,
+        CustomImage,
+        Link.configure({ openOnClick: false }),
+        Underline,
+        TextAlign.configure({ types: ['heading', 'paragraph'] }),
+        Youtube.configure({ width: 640, height: 360, nocookie: true }),
+        Placeholder.configure({ placeholder: 'Write the bakery story here…' }),
+      ],
+      content: _pendingContent,
+      onTransaction: () => updateToolbar(),
+    });
+    bindToolbar();
+
+    bodyEditor.on('selectionUpdate', () => {
+      const { selection } = bodyEditor!.state;
+      const node = selection.$anchor.nodeAfter || selection.$from.nodeAfter;
+      const toolbar = document.getElementById('tiptap-img-toolbar');
+      if (!toolbar) return;
+
+      if (node?.type.name === 'image') {
+        const imgEl = (bodyEditor!.view.nodeDOM(selection.$anchor.pos) as HTMLElement) ||
+                      (bodyEditor!.view.nodeDOM(selection.from) as HTMLElement);
+
+        if (imgEl && (imgEl.tagName === 'IMG' || imgEl.querySelector?.('img'))) {
+          const actualImg = imgEl.tagName === 'IMG' ? imgEl : imgEl.querySelector('img');
+          if (actualImg) {
+            const imgRect = actualImg.getBoundingClientRect();
+            const wrapEl = document.querySelector('.rte-wrap') as HTMLElement;
+            const wrapRect = wrapEl?.getBoundingClientRect();
+            if (wrapRect) {
+              toolbar.style.display = 'flex';
+              toolbar.style.top = (imgRect.top - wrapRect.top - 48 + wrapEl.scrollTop) + 'px';
+              toolbar.style.left = (imgRect.left - wrapRect.left) + 'px';
+            }
+          }
+        }
+
+        toolbar.querySelectorAll('.tiptap-img-size-btn').forEach(btn => {
+          btn.classList.toggle('active', (btn as HTMLElement).dataset.size === node.attrs.size);
+        });
+        toolbar.querySelectorAll('.tiptap-img-align-btn').forEach(btn => {
+          btn.classList.toggle('active', (btn as HTMLElement).dataset.align === node.attrs.align);
+        });
+
+        toolbar.querySelectorAll('.tiptap-img-size-btn').forEach(btn => {
+          (btn as HTMLElement).onclick = () => {
+            bodyEditor!.chain().focus().updateAttributes('image', { size: (btn as HTMLElement).dataset.size }).run();
+          };
+        });
+        toolbar.querySelectorAll('.tiptap-img-align-btn').forEach(btn => {
+          (btn as HTMLElement).onclick = () => {
+            bodyEditor!.chain().focus().updateAttributes('image', { align: (btn as HTMLElement).dataset.align }).run();
+          };
+        });
+      } else {
+        toolbar.style.display = 'none';
+      }
+    });
+  }
+
+  function updateToolbar() {
+    if (!bodyEditor) return;
+    document.querySelectorAll<HTMLButtonElement>('.rte-btn[data-cmd]').forEach(btn => {
+      const cmd = btn.dataset.cmd!;
+      let active = false;
+      if (cmd === 'bold')           active = bodyEditor!.isActive('bold');
+      else if (cmd === 'italic')    active = bodyEditor!.isActive('italic');
+      else if (cmd === 'underline') active = bodyEditor!.isActive('underline');
+      else if (cmd === 'h2')        active = bodyEditor!.isActive('heading', { level: 2 });
+      else if (cmd === 'h3')        active = bodyEditor!.isActive('heading', { level: 3 });
+      else if (cmd === 'bulletList')  active = bodyEditor!.isActive('bulletList');
+      else if (cmd === 'orderedList') active = bodyEditor!.isActive('orderedList');
+      else if (cmd === 'blockquote')  active = bodyEditor!.isActive('blockquote');
+      else if (cmd === 'link')      active = bodyEditor!.isActive('link');
+      btn.classList.toggle('is-active', active);
+    });
+  }
+
+  function bindToolbar() {
+    const imgUpload = document.getElementById('rte-img-upload') as HTMLInputElement;
+    document.querySelectorAll<HTMLButtonElement>('.rte-btn[data-cmd]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!bodyEditor) return;
+        const cmd = btn.dataset.cmd!;
+        const chain = bodyEditor.chain().focus();
+        if      (cmd === 'bold')        chain.toggleBold().run();
+        else if (cmd === 'italic')      chain.toggleItalic().run();
+        else if (cmd === 'underline')   chain.toggleUnderline().run();
+        else if (cmd === 'h2')          chain.toggleHeading({ level: 2 }).run();
+        else if (cmd === 'h3')          chain.toggleHeading({ level: 3 }).run();
+        else if (cmd === 'bulletList')  chain.toggleBulletList().run();
+        else if (cmd === 'orderedList') chain.toggleOrderedList().run();
+        else if (cmd === 'blockquote')  chain.toggleBlockquote().run();
+        else if (cmd === 'clearFormat') chain.clearNodes().unsetAllMarks().run();
+        else if (cmd === 'image') {
+          _savedEditorPos = bodyEditor.state.selection.anchor;
+          imgUpload.click();
+        } else if (cmd === 'youtube') {
+          const url = prompt('YouTube or Vimeo URL:');
+          if (url) bodyEditor.commands.setYoutubeVideo({ src: url });
+        } else if (cmd === 'link') {
+          const prev = bodyEditor.getAttributes('link').href ?? '';
+          const url = prompt('URL:', prev);
+          if (url === null) return;
+          if (url === '') { chain.unsetLink().run(); return; }
+          chain.setLink({ href: url }).run();
+        }
+      });
+    });
+
+    imgUpload.addEventListener('change', async () => {
+      const file = imgUpload.files?.[0];
+      if (!file || !bodyEditor) return;
+      imgUpload.value = '';
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const fd = new FormData(); fd.append('image', file);
+      const res  = await fetch('/api/upload', { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}` }, body: fd });
+      const json = await res.json() as { url?: string; error?: string };
+      if (json.url) {
+        const pos = _savedEditorPos ?? bodyEditor.state.doc.content.size;
+        _savedEditorPos = null;
+        bodyEditor.chain().focus(pos).setImage({ src: json.url }).run();
+      }
+    });
+  }
+
+  // ── Images gallery ────────────────────────────────────────────
+  const imgListEl        = document.getElementById('f-images-list')!;
+  const addImgBtn        = document.getElementById('btn-add-image')!;
+  const imgUploadTrigger = document.getElementById('f-img-upload-trigger') as HTMLInputElement;
+  let _activeImgRow: HTMLElement | null = null;
+
+  function createImgRow(src = '', caption = ''): HTMLElement {
+    const row = document.createElement('div');
+    row.className = 'img-row';
+    row.innerHTML = `
+      ${src
+        ? `<img class="img-row-thumb" src="${src}" alt="" />`
+        : `<div class="img-row-placeholder"></div>`
+      }
+      <input class="admin-form-input img-src" type="url" placeholder="Image URL" value="${src}" />
+      <input class="admin-form-input img-caption" type="text" placeholder="Caption (optional)" value="${caption}" />
+      <div style="display:flex; gap:0.25rem;">
+        <label class="admin-upload-btn admin-btn-sm" title="Upload">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </label>
+        <button type="button" class="admin-btn admin-btn-danger admin-btn-sm img-remove-btn" title="Remove">×</button>
+      </div>`;
+
+    const uploadLabel = row.querySelector('label')!;
+    uploadLabel.addEventListener('click', () => { _activeImgRow = row; imgUploadTrigger.click(); });
+    const srcInput = row.querySelector<HTMLInputElement>('.img-src')!;
+    srcInput.addEventListener('change', () => updateThumb(row, srcInput.value));
+    row.querySelector('.img-remove-btn')!.addEventListener('click', () => row.remove());
+    return row;
+  }
+
+  function updateThumb(row: HTMLElement, src: string) {
+    const existing    = row.querySelector<HTMLImageElement>('.img-row-thumb');
+    const placeholder = row.querySelector('.img-row-placeholder');
+    if (src) {
+      if (existing) { existing.src = src; }
+      else {
+        const img = document.createElement('img');
+        img.className = 'img-row-thumb'; img.src = src; img.alt = '';
+        placeholder?.replaceWith(img);
+      }
+    } else {
+      if (existing) { const ph = document.createElement('div'); ph.className = 'img-row-placeholder'; existing.replaceWith(ph); }
+    }
+  }
+
+  function getImagesData(): ImgRow[] | null {
+    const rows = imgListEl.querySelectorAll<HTMLElement>('.img-row');
+    const result: ImgRow[] = [];
+    rows.forEach(row => {
+      const src     = (row.querySelector<HTMLInputElement>('.img-src')?.value ?? '').trim();
+      const caption = (row.querySelector<HTMLInputElement>('.img-caption')?.value ?? '').trim();
+      if (src) result.push({ src, caption });
+    });
+    return result.length > 0 ? result : null;
+  }
+
+  addImgBtn.addEventListener('click', () => imgListEl.appendChild(createImgRow()));
+
+  // ── Dynamic multi-location manager ───────────────────────────
+  const PLACES_KEY_LOC = 'AIzaSyB6Dv_E_XEjozZqi_Tenk4AepcpYWHNUas';
+
+  function wireLocationAutocomplete(row: HTMLElement) {
+    const input = row.querySelector<HTMLInputElement>('.location-address')!;
+    const list  = row.querySelector<HTMLUListElement>('.location-suggestions')!;
+    let timer: ReturnType<typeof setTimeout>;
+
+    input.addEventListener('input', () => {
+      clearTimeout(timer);
+      const q = input.value.trim();
+      if (q.length < 3) { list.style.display = 'none'; return; }
+      timer = setTimeout(async () => {
+        try {
+          const res  = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': PLACES_KEY_LOC },
+            body: JSON.stringify({ input: q, includedRegionCodes: ['au'], includedPrimaryTypes: ['street_address', 'premise'] }),
+          });
+          const data  = await res.json();
+          const preds = (data.suggestions || []) as any[];
+          list.innerHTML = '';
+          if (!preds.length) { list.style.display = 'none'; return; }
+          preds.slice(0, 5).forEach(s => {
+            const placeId = s.placePrediction?.placeId || '';
+            const text    = s.placePrediction?.text?.text || '';
+            const li = document.createElement('li');
+            li.textContent = text;
+            li.style.cssText = 'padding:0.5rem 0.75rem;cursor:pointer;color:var(--parchment);font-size:0.875rem;';
+            li.onmouseenter = () => { li.style.background = 'var(--surface-2)'; };
+            li.onmouseleave = () => { li.style.background = ''; };
+            li.onclick = async () => {
+              list.style.display = 'none';
+              const detailRes = await fetch(`https://places.googleapis.com/v1/places/${placeId}?key=${PLACES_KEY_LOC}`, {
+                headers: { 'X-Goog-FieldMask': 'location,addressComponents' }
+              });
+              const place = await detailRes.json();
+              if (place.location) {
+                (row.querySelector('.location-lat') as HTMLInputElement).value = place.location.latitude;
+                (row.querySelector('.location-lng') as HTMLInputElement).value = place.location.longitude;
+              }
+              if (place.addressComponents) {
+                const get = (type: string) => place.addressComponents.find((c: any) => c.types.includes(type))?.longText || '';
+                const streetNum  = get('street_number');
+                const route      = get('route');
+                const locality   = get('locality');
+                const state      = get('administrative_area_level_1');
+                const postcode   = get('postal_code');
+
+                const street = [streetNum, route].filter(Boolean).join(' ');
+                let full     = [street, locality, [state, postcode].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+                full = full
+                  .replace(/\bStreet\b/g, 'St')
+                  .replace(/\bRoad\b/g, 'Rd')
+                  .replace(/\bAvenue\b/g, 'Ave')
+                  .replace(/\bDrive\b/g, 'Dr')
+                  .replace(/\bCourt\b/g, 'Ct')
+                  .replace(/\bPlace\b/g, 'Pl')
+                  .replace(/\bCrescent\b/g, 'Cres')
+                  .replace(/\bBoulevard\b/g, 'Blvd')
+                  .replace(/\bTerrace\b/g, 'Tce')
+                  .replace(/\bHighway\b/g, 'Hwy')
+                  .replace(/\bVictoria\b/g, 'VIC')
+                  .replace(/\bNew South Wales\b/g, 'NSW')
+                  .replace(/\bQueensland\b/g, 'QLD')
+                  .replace(/\bSouth Australia\b/g, 'SA')
+                  .replace(/\bWestern Australia\b/g, 'WA')
+                  .replace(/\bTasmania\b/g, 'TAS')
+                  .replace(/\bNorthern Territory\b/g, 'NT');
+                input.value  = full || text;
+                (row.querySelector('.location-place-id') as HTMLInputElement).value = placeId;
+                console.log('[PLACE_ID] stored:', placeId, 'input value:', (row.querySelector('.location-place-id') as HTMLInputElement)?.value);
+                const labelInput = row.querySelector<HTMLInputElement>('.location-label')!;
+                if (!labelInput.value && locality) labelInput.value = locality;
+              } else {
+                input.value = text;
+              }
+            };
+            list.appendChild(li);
+          });
+          list.style.display = 'block';
+        } catch (_) { list.style.display = 'none'; }
+      }, 300);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!input.contains(e.target as Node) && !list.contains(e.target as Node)) {
+        list.style.display = 'none';
+      }
+    });
+  }
+
+  function createLocationRow(label = '', address = '', lat = '', lng = '', hours = '', index = 0, placeId = ''): HTMLElement {
+    const row = document.createElement('div');
+    row.className = 'location-row';
+    row.style.cssText = 'background:var(--surface-2);border:1px solid var(--border);border-radius:0.5rem;padding:0.875rem;margin-bottom:0.625rem;';
+    row.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.625rem;">
+        <span style="font-family:var(--font-cond);font-size:0.65rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--p-35);">Location ${index + 1}</span>
+        <button type="button" class="admin-btn admin-btn-danger admin-btn-sm location-remove-btn">Remove</button>
+      </div>
+      <div class="admin-form-field">
+        <label class="admin-form-label">Label <span style="color:var(--p-35);font-size:0.65rem;">(e.g. Fitzroy, CBD)</span></label>
+        <input class="admin-form-input location-label" type="text" placeholder="e.g. Fitzroy" value="${label}" />
+      </div>
+      <div class="admin-form-field" style="margin-top:0.5rem;position:relative;">
+        <label class="admin-form-label">Address</label>
+        <input class="admin-form-input location-address" type="text" placeholder="Start typing address..." autocomplete="off" value="${address}" />
+        <ul class="location-suggestions" style="display:none;position:absolute;z-index:100;top:100%;margin-top:2px;background:var(--surface);border:1px solid var(--border);border-radius:0.5rem;list-style:none;padding:0.25rem 0;width:100%;"></ul>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.5rem;">
+        <div class="admin-form-field">
+          <label class="admin-form-label">Latitude</label>
+          <input class="admin-form-input location-lat" type="number" step="any" placeholder="Auto-filled" value="${lat}" />
+        </div>
+        <div class="admin-form-field">
+          <label class="admin-form-label">Longitude</label>
+          <input class="admin-form-input location-lng" type="number" step="any" placeholder="Auto-filled" value="${lng}" />
+        </div>
+      </div>
+      <div class="admin-form-field" style="margin-top:0.5rem;">
+        <label class="admin-form-label">Hours <span style="color:var(--p-35);font-size:0.65rem;">(Optional — overrides bakery hours)</span></label>
+        <input class="admin-form-input location-hours" type="text" placeholder="e.g. Mon–Fri 7am–3pm" value="${hours}" />
+      </div>
+      <input class="location-place-id" type="hidden" value="${placeId}" />
+    `;
+    row.querySelector('.location-remove-btn')!.addEventListener('click', () => row.remove());
+    wireLocationAutocomplete(row);
+    return row;
+  }
+
+  function populateLocations(locations: { label: string; address: string; lat: number | null; lng: number | null; hours: string | null; place_id?: string | null }[] | null) {
+    const list = document.getElementById('f-locations-list')!;
+    list.innerHTML = '';
+    if (!locations || locations.length === 0) {
+      list.appendChild(createLocationRow('', '', '', '', '', 0));
+      return;
+    }
+    locations.forEach((loc, i) => list.appendChild(createLocationRow(
+      loc.label || '',
+      loc.address || '',
+      loc.lat ? String(loc.lat) : '',
+      loc.lng ? String(loc.lng) : '',
+      loc.hours || '',
+      i,
+      loc.place_id || ''
+    )));
+  }
+
+  function getLocationsData(): { label: string; address: string; lat: number | null; lng: number | null; hours: string | null; place_id: string | null }[] {
+    const rows = document.querySelectorAll('#f-locations-list .location-row');
+    const result: { label: string; address: string; lat: number | null; lng: number | null; hours: string | null; place_id: string | null }[] = [];
+    rows.forEach(row => {
+      const address  = (row.querySelector('.location-address') as HTMLInputElement).value.trim();
+      const label    = (row.querySelector('.location-label') as HTMLInputElement).value.trim();
+      const lat      = parseFloat((row.querySelector('.location-lat') as HTMLInputElement).value) || null;
+      const lng      = parseFloat((row.querySelector('.location-lng') as HTMLInputElement).value) || null;
+      const hours    = (row.querySelector('.location-hours') as HTMLInputElement).value.trim() || null;
+      const place_id = (row.querySelector('.location-place-id') as HTMLInputElement)?.value.trim() || null;
+      if (address || label) result.push({ label, address, lat, lng, hours, place_id });
+    });
+    return result;
+  }
+
+  document.getElementById('btn-add-location')!.addEventListener('click', () => {
+    const list = document.getElementById('f-locations-list')!;
+    const count = list.querySelectorAll('.location-row').length;
+    list.appendChild(createLocationRow('', '', '', '', '', count));
+  });
+
+  // ── Dynamic film credits ──────────────────────────────────────
+  function createCreditRow(title = '', name = ''): HTMLElement {
+    const row = document.createElement('div');
+    row.className = 'credit-row';
+    row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr auto;gap:0.5rem;margin-bottom:0.5rem;align-items:center;';
+    row.innerHTML = `
+      <input class="admin-form-input credit-title" type="text" placeholder="Title (e.g. Director)" value="${title}" dir="ltr" style="direction:ltr;text-align:left;" />
+      <input class="admin-form-input credit-name" type="text" placeholder="Name" value="${name}" dir="ltr" style="direction:ltr;text-align:left;" />
+      <button type="button" class="admin-btn admin-btn-danger admin-btn-sm credit-remove-btn" style="flex-shrink:0;">×</button>
+    `;
+    row.querySelector('.credit-remove-btn')!.addEventListener('click', () => row.remove());
+    return row;
+  }
+
+  function getCreditsData(): { title: string; name: string }[] | null {
+    const rows = document.querySelectorAll('#f-credits-list .credit-row');
+    const result: { title: string; name: string }[] = [];
+    rows.forEach(row => {
+      const title = (row.querySelector('.credit-title') as HTMLInputElement).value.trim();
+      const name  = (row.querySelector('.credit-name') as HTMLInputElement).value.trim();
+      if (title || name) result.push({ title, name });
+    });
+    return result.length > 0 ? result : null;
+  }
+
+  function populateCredits(credits: { title: string; name: string }[] | null) {
+    const list = document.getElementById('f-credits-list')!;
+    list.innerHTML = '';
+    if (!credits || credits.length === 0) {
+      list.appendChild(createCreditRow());
+      return;
+    }
+    credits.forEach(c => list.appendChild(createCreditRow(c.title, c.name)));
+  }
+
+  document.getElementById('btn-add-credit')!.addEventListener('click', () => {
+    document.getElementById('f-credits-list')!.appendChild(createCreditRow());
+  });
+
+  imgUploadTrigger.addEventListener('change', async () => {
+    const file = imgUploadTrigger.files?.[0];
+    if (!file || !_activeImgRow) return;
+    imgUploadTrigger.value = '';
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const fd = new FormData(); fd.append('image', file);
+    const res  = await fetch('/api/upload', { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}` }, body: fd });
+    const json = await res.json() as { url?: string; error?: string };
+    if (json.url) {
+      const srcInput = _activeImgRow.querySelector<HTMLInputElement>('.img-src')!;
+      srcInput.value = json.url;
+      updateThumb(_activeImgRow, json.url);
+    }
+  });
+
+  // ── Helpers ───────────────────────────────────────────────────
+  function showMsg(el: HTMLElement, text: string, type: 'error' | 'success') {
+    el.textContent = text;
+    el.className = `admin-msg admin-msg-${type} is-visible`;
+    setTimeout(() => el.classList.remove('is-visible'), 4000);
+  }
+
+  function field(id: string) { return document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement; }
+
+  function fmtDate(iso: string | null): string {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${String(d.getDate()).padStart(2,'0')} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  }
+
+  function rowHTML(b: BakeryRow) {
+    return `<tr data-id="${b.id}" data-name="${b.name.toLowerCase()}" data-modified="${b.updated_at ?? ''}" data-status="${b.published ? 'published' : 'draft'}" data-published-at="${b.published_at ?? ''}">
+      <td><strong>${b.name}</strong><br/><span style="font-size:0.75rem;color:var(--p-35);">${b.slug}</span></td>
+      <td>${b.category}</td>
+      <td>${b.suburb ?? '—'}</td>
+      <td><span class="admin-badge admin-badge-${b.published ? 'published' : 'draft'} toggle-publish" data-slug="${b.slug}" data-published="${b.published}" data-published-at="${b.published_at ?? ''}" title="Click to change status">${b.published ? 'Published' : 'Draft'}</span></td>
+      <td>${fmtDate(b.updated_at)}</td>
+      <td>${fmtDate(b.published_at)}</td>
+      <td><div class="admin-actions">
+        <button class="admin-btn admin-btn-ghost admin-btn-sm btn-edit-bakery" data-id="${b.id}">Edit</button>
+        <button class="admin-btn admin-btn-danger admin-btn-sm btn-del-bakery" data-id="${b.id}" data-name="${b.name}">Delete</button>
+      </div></td>
+    </tr>`;
+  }
+
+  async function loadList() {
+    const { data, error } = await supabase
+      .from('bakeries_cms')
+      .select('id, name, slug, category, suburb, published, updated_at, published_at')
+      .order('updated_at', { ascending: false });
+    if (error) { tbody.innerHTML = `<tr><td colspan="7"><div class="admin-empty">Error: ${error.message}</div></td></tr>`; return; }
+    const rows = (data ?? []) as BakeryRow[];
+    tbody.innerHTML = rows.length === 0
+      ? '<tr><td colspan="7"><div class="admin-empty">No bakeries yet. Add your first one.</div></td></tr>'
+      : rows.map(rowHTML).join('');
+    bindRowButtons();
+    updateSortIcons();
+  }
+
+  function bindRowButtons() {
+    tbody.querySelectorAll('.btn-edit-bakery').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = (btn as HTMLElement).dataset.id!;
+        const { data } = await supabase.from('bakeries_cms').select('*').eq('id', id).single();
+        if (!data) return;
+        openModal(id);
+        titleEl.textContent = 'Edit Bakery';
+        (field('f-id') as HTMLInputElement).value         = data.id;
+        (field('f-name') as HTMLInputElement).value       = data.name ?? '';
+        (field('f-slug') as HTMLInputElement).value       = data.slug ?? '';
+        (field('f-category') as HTMLInputElement).value   = data.category ?? '';
+        (field('f-website') as HTMLInputElement).value    = data.website ?? '';
+        const { data: locRows } = await supabase.from('locations').select('label, address, lat, lng, hours, place_id').eq('bakery_slug', data.slug).order('sort_order');
+        populateLocations(locRows as any);
+        (field('f-instagram') as HTMLInputElement).value  = data.instagram ?? '';
+        (field('f-hours') as HTMLInputElement).value      = data.hours ?? '';
+        (field('f-date') as HTMLInputElement).value           = data.date ?? '';
+        (field('f-episode-number') as HTMLInputElement).value = data.episode_number ?? '';
+        (field('f-duration') as HTMLInputElement).value       = data.duration ?? '';
+        (field('f-video-id') as HTMLInputElement).value       = data.video_id ?? '';
+        (field('f-map-link') as HTMLInputElement).value   = data.map_link ?? '';
+        (field('f-quote') as HTMLTextAreaElement).value   = data.quote ?? '';
+        populateCredits(data.credits as { title: string; name: string }[] | null);
+        (field('f-description') as HTMLTextAreaElement).value  = data.description ?? '';
+        (field('f-thumbnail') as HTMLInputElement).value       = data.thumbnail ?? '';
+        (field('f-hero-tag') as HTMLInputElement).value         = data.hero_tag ?? '';
+        (field('f-hero-title') as HTMLInputElement).value       = data.hero_title ?? '';
+        (field('f-hero-subtitle') as HTMLTextAreaElement).value = data.hero_subtitle ?? '';
+        (field('f-hero-bg-word') as HTMLInputElement).value     = data.hero_bg_word ?? '';
+        (field('f-loop-video-url') as HTMLInputElement).value   = data.loop_video_url ?? '';
+        (field('f-hero-image-url') as HTMLInputElement).value   = data.hero_image_url ?? '';
+
+        const heroPreview = document.getElementById('f-hero-img-preview') as HTMLImageElement;
+        if (data.hero_image_url) { heroPreview.src = data.hero_image_url; heroPreview.style.display = 'block'; }
+        else heroPreview.style.display = 'none';
+        updateHeroPreview();
+
+        imgListEl.innerHTML = '';
+        const imgs = data.images as ImgRow[] | null;
+        (imgs ?? []).forEach(img => imgListEl.appendChild(createImgRow(img.src, img.caption)));
+
+        if (bodyEditor) bodyEditor.commands.setContent(data.body ?? '');
+        else _pendingContent = data.body ?? '';
+
+        setPublishBtn(!!data.published);
+        const preview = document.getElementById('f-thumb-preview') as HTMLImageElement;
+        if (data.thumbnail) { preview.src = data.thumbnail; preview.style.display = 'block'; }
+        else preview.style.display = 'none';
+
+        // Hero dot: show if bakery has hero content
+        const heroTabDot = document.getElementById('hero-tab-dot') as HTMLElement;
+        heroTabDot.style.display = (data.hero_title || data.hero_image_url) ? '' : 'none';
+      });
+    });
+
+    tbody.querySelectorAll('.btn-del-bakery').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id   = (btn as HTMLElement).dataset.id!;
+        const name = (btn as HTMLElement).dataset.name!;
+        if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+        const { error } = await supabase.from('bakeries_cms').delete().eq('id', id);
+        if (error) { showMsg(msgEl, error.message, 'error'); return; }
+        document.querySelector(`tr[data-id="${id}"]`)?.remove();
+        showMsg(msgEl, `"${name}" deleted.`, 'success');
+      });
+    });
+
+    tbody.querySelectorAll('.toggle-publish').forEach(badge => {
+      badge.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openStatusPopup(badge as HTMLElement, 'bakeries_cms');
+      });
+    });
+  }
+
+  // ── Status popup ──────────────────────────────────────────────
+  let statusPopup: HTMLElement | null = null;
+  let activePopupBadge: HTMLElement | null = null;
+
+  function closeStatusPopup() {
+    statusPopup?.remove();
+    statusPopup = null;
+    activePopupBadge = null;
+  }
+
+  async function applyPublishState(badge: HTMLElement, newPublished: boolean, table: string) {
+    const slug = badge.dataset.slug!;
+    closeStatusPopup();
+    badge.style.opacity = '0.5';
+    badge.style.pointerEvents = 'none';
+    const res = await fetch('/api/admin-toggle-publish', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ table, slug, published: newPublished }),
+    });
+    const json = await res.json();
+    badge.style.opacity = '';
+    badge.style.pointerEvents = '';
+    if (json.error) { showMsg(msgEl, `Error: ${json.error}`, 'error'); return; }
+    badge.dataset.published = String(newPublished);
+    badge.className = `admin-badge admin-badge-${newPublished ? 'published' : 'draft'} toggle-publish`;
+    badge.textContent = newPublished ? 'Published' : 'Draft';
+    const tr = badge.closest('tr') as HTMLTableRowElement;
+    if (tr) {
+      tr.dataset.status = newPublished ? 'published' : 'draft';
+      // Update published date cell if first publish
+      if (newPublished && !badge.dataset.publishedAt) {
+        const cells = tr.querySelectorAll('td');
+        const pubCell = cells[cells.length - 2]; // second-to-last (before actions)
+        if (pubCell) pubCell.textContent = fmtDate(new Date().toISOString());
+      }
+    }
+  }
+
+  function openStatusPopup(badge: HTMLElement, table: string) {
+    closeStatusPopup();
+    activePopupBadge = badge;
+    const isPublished = badge.dataset.published === 'true';
+    const popup = document.createElement('div');
+    popup.className = 'status-popup';
+    popup.innerHTML = `
+      <div class="status-popup-option${isPublished ? ' active' : ''}" data-val="true">
+        <span class="status-popup-dot published"></span>Published${isPublished ? '<span class="status-popup-check">✓</span>' : ''}
+      </div>
+      <div class="status-popup-option${!isPublished ? ' active' : ''}" data-val="false">
+        <span class="status-popup-dot draft"></span>Not Published${!isPublished ? '<span class="status-popup-check">✓</span>' : ''}
+      </div>`;
+    popup.querySelectorAll<HTMLElement>('.status-popup-option').forEach(opt => {
+      opt.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await applyPublishState(badge, opt.dataset.val === 'true', table);
+      });
+    });
+    document.body.appendChild(popup);
+    statusPopup = popup;
+    const rect = badge.getBoundingClientRect();
+    popup.style.top = `${rect.bottom + 4}px`;
+    popup.style.left = `${rect.left}px`;
+  }
+
+  document.addEventListener('click', (e) => {
+    if (statusPopup && !statusPopup.contains(e.target as Node) && e.target !== activePopupBadge) {
+      closeStatusPopup();
+    }
+  });
+
+  // ── Publish button ────────────────────────────────────────────
+  let currentPublished = false;
+
+  function setPublishBtn(published: boolean) {
+    currentPublished = published;
+    const btn = document.getElementById('form-publish-btn') as HTMLButtonElement;
+    if (published) {
+      btn.textContent = 'Unpublish';
+      btn.className = 'wf-pill pill-light';
+      btn.style.color = 'var(--p-50)';
+    } else {
+      btn.textContent = 'Publish';
+      btn.className = 'wf-pill pill-amber';
+      btn.style.color = '';
+    }
+  }
+
+  // ── Modal open / close ────────────────────────────────────────
+  function openModal(editId?: string) {
+    modal.classList.add('is-open');
+    setActiveTab('bakery');
+    if (!bodyEditor) initBodyEditor();
+    if (!editId) {
+      titleEl.textContent = 'Add Bakery';
+      form.reset();
+      (field('f-id') as HTMLInputElement).value = '';
+      populateLocations(null);
+      (field('f-thumbnail') as HTMLInputElement).value = '';
+      (document.getElementById('f-thumb-preview') as HTMLImageElement).style.display = 'none';
+      (document.getElementById('f-upload-status') as HTMLElement).textContent = '';
+      (field('f-hero-image-url') as HTMLInputElement).value = '';
+      (document.getElementById('f-hero-img-preview') as HTMLImageElement).style.display = 'none';
+      (document.getElementById('f-hero-upload-status') as HTMLElement).textContent = '';
+      (document.getElementById('hero-tab-dot') as HTMLElement).style.display = 'none';
+      updateHeroPreview();
+      populateCredits(null);
+      imgListEl.innerHTML = '';
+      if (bodyEditor) bodyEditor.commands.setContent('');
+      else _pendingContent = '';
+      setPublishBtn(false);
+    }
+    modalMsg.classList.remove('is-visible');
+  }
+  function closeModal() { modal.classList.remove('is-open'); }
+
+  [overlay, closeBtn, cancelBtn].forEach(el => el.addEventListener('click', closeModal));
+  addBtn.addEventListener('click', () => openModal());
+
+  // ── Thumbnail upload ──────────────────────────────────────────
+  document.getElementById('f-thumb-file')!.addEventListener('change', async (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const statusEl = document.getElementById('f-upload-status')!;
+    statusEl.textContent = 'Uploading…';
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { statusEl.textContent = 'Not authenticated'; return; }
+    const fd = new FormData(); fd.append('image', file);
+    const res  = await fetch('/api/upload', { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}` }, body: fd });
+    const json = await res.json() as { url?: string; error?: string };
+    if (json.error) { statusEl.textContent = `Error: ${json.error}`; return; }
+    (field('f-thumbnail') as HTMLInputElement).value = json.url ?? '';
+    const preview = document.getElementById('f-thumb-preview') as HTMLImageElement;
+    preview.src = json.url ?? ''; preview.style.display = 'block';
+    statusEl.textContent = 'Uploaded ✓';
+  });
+
+  // ── Hero image upload ─────────────────────────────────────────
+  document.getElementById('f-hero-img-file')!.addEventListener('change', async (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const statusEl = document.getElementById('f-hero-upload-status')!;
+    statusEl.textContent = 'Uploading…';
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { statusEl.textContent = 'Not authenticated'; return; }
+    const fd = new FormData(); fd.append('image', file);
+    const res  = await fetch('/api/upload', { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}` }, body: fd });
+    const json = await res.json() as { url?: string; error?: string };
+    if (json.error) { statusEl.textContent = `Error: ${json.error}`; return; }
+    (field('f-hero-image-url') as HTMLInputElement).value = json.url ?? '';
+    const preview = document.getElementById('f-hero-img-preview') as HTMLImageElement;
+    preview.src = json.url ?? ''; preview.style.display = 'block';
+    statusEl.textContent = 'Uploaded ✓';
+    updateHeroPreview();
+  });
+
+  // ── Hero live preview ─────────────────────────────────────────
+  function updateHeroPreview() {
+    const img        = (field('f-hero-image-url') as HTMLInputElement).value.trim();
+    const title      = (field('f-hero-title') as HTMLInputElement).value.trim();
+    const tag        = (field('f-hero-tag') as HTMLInputElement).value.trim();
+    const subtitle   = (field('f-hero-subtitle') as HTMLTextAreaElement).value.trim();
+    const bgWord     = (field('f-hero-bg-word') as HTMLInputElement).value.trim();
+    const bakeryName = (field('f-name') as HTMLInputElement).value.trim();
+    const epNum      = (field('f-episode-number') as HTMLInputElement).value.trim();
+
+    const wrap      = document.getElementById('hero-preview-wrap')!;
+    const bg        = document.getElementById('hero-preview-bg')!;
+    const bgWordEl  = document.getElementById('hero-preview-bgword')!;
+    const eyebrowEl = document.getElementById('hero-preview-eyebrow')!;
+    const tagEl     = document.getElementById('hero-preview-tag')!;
+    const metaEl    = document.getElementById('hero-preview-meta')!;
+    const titleEl2  = document.getElementById('hero-preview-title')!;
+    const bakeryEl  = document.getElementById('hero-preview-bakery')!;
+    const subEl     = document.getElementById('hero-preview-subtitle')!;
+
+    const hasContent = img || title || tag;
+    wrap.style.display = hasContent ? '' : 'none';
+
+    bg.style.backgroundImage = img ? `url('${img}')` : '';
+    bgWordEl.textContent = bgWord;
+
+    eyebrowEl.style.display = tag ? '' : 'none';
+    tagEl.textContent  = tag;
+    metaEl.textContent = epNum ? `EP. ${String(epNum).padStart(2, '0')} · NOW PLAYING` : 'NOW PLAYING';
+
+    titleEl2.textContent       = title;
+    bakeryEl.textContent       = bakeryName;
+    bakeryEl.style.display     = bakeryName ? '' : 'none';
+    subEl.textContent          = subtitle;
+  }
+
+  ['f-hero-title', 'f-hero-tag', 'f-hero-subtitle', 'f-hero-bg-word', 'f-episode-number'].forEach(id => {
+    field(id)!.addEventListener('input', updateHeroPreview);
+  });
+
+  // ── Slug auto-generate ────────────────────────────────────────
+  (field('f-name') as HTMLInputElement).addEventListener('input', (e) => {
+    if (!(field('f-id') as HTMLInputElement).value) {
+      (field('f-slug') as HTMLInputElement).value = (e.target as HTMLInputElement).value
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .trim();
+    }
+    updateHeroPreview();
+  });
+
+  // ── Save ──────────────────────────────────────────────────────
+  async function saveBakery(published: boolean, openPreview = false) {
+    const draftBtn   = document.getElementById('form-draft-btn') as HTMLButtonElement;
+    const previewBtn = document.getElementById('form-preview-btn') as HTMLButtonElement;
+    const publishBtn = document.getElementById('form-publish-btn') as HTMLButtonElement;
+    [draftBtn, previewBtn, publishBtn].forEach(b => { b.disabled = true; });
+
+    const id      = (field('f-id') as HTMLInputElement).value;
+    const nameVal = (field('f-name') as HTMLInputElement).value.trim();
+    const slug    = (field('f-slug') as HTMLInputElement).value.trim();
+
+    if (!nameVal || !slug) {
+      const basicsBtn = document.querySelector<HTMLElement>('.bk-tab[data-tab="bakery"]');
+      basicsBtn?.classList.add('is-error');
+      setTimeout(() => basicsBtn?.classList.remove('is-error'), 2000);
+      switchTab('bakery');
+      showMsg(modalMsg, 'Name and slug are required.', 'error');
+      [draftBtn, previewBtn, publishBtn].forEach(b => { b.disabled = false; });
+      return;
+    }
+
+    const bodyHtml   = bodyEditor ? bodyEditor.getHTML() : '';
+    const normalBody = bodyHtml === '<p></p>' ? null : bodyHtml || null;
+
+    const payload: Record<string, unknown> = {
+      name:           nameVal,
+      slug,
+      category:       (field('f-category') as HTMLInputElement).value.trim(),
+      website:        (field('f-website') as HTMLInputElement).value.trim() || null,
+      instagram:      (field('f-instagram') as HTMLInputElement).value.trim() || null,
+      hours:          (field('f-hours') as HTMLInputElement).value.trim() || null,
+      date:           (field('f-date') as HTMLInputElement).value.trim() || null,
+      episode_number: parseInt((field('f-episode-number') as HTMLInputElement).value) || null,
+      duration:       (field('f-duration') as HTMLInputElement).value.trim() || null,
+      video_id:       (field('f-video-id') as HTMLInputElement).value.trim() || null,
+      map_link:       (field('f-map-link') as HTMLInputElement).value.trim() || null,
+      quote:          (field('f-quote') as HTMLTextAreaElement).value.trim() || null,
+      credits:        getCreditsData(),
+      description:    (field('f-description') as HTMLTextAreaElement).value.trim() || null,
+      thumbnail:      (field('f-thumbnail') as HTMLInputElement).value.trim() || null,
+      hero_tag:       (field('f-hero-tag') as HTMLInputElement).value.trim() || null,
+      hero_title:     (field('f-hero-title') as HTMLInputElement).value.trim() || null,
+      hero_subtitle:  (field('f-hero-subtitle') as HTMLTextAreaElement).value.trim() || null,
+      hero_bg_word:   (field('f-hero-bg-word') as HTMLInputElement).value.trim() || null,
+      loop_video_url: (field('f-loop-video-url') as HTMLInputElement).value.trim() || null,
+      hero_image_url: (field('f-hero-image-url') as HTMLInputElement).value.trim() || null,
+      images:         getImagesData(),
+      body:           normalBody,
+      published,
+      updated_at:     new Date().toISOString(),
+    };
+
+    let error;
+    if (id) ({ error } = await supabase.from('bakeries_cms').update(payload).eq('id', id));
+    else    ({ error } = await supabase.from('bakeries_cms').insert(payload));
+
+    [draftBtn, previewBtn, publishBtn].forEach(b => { b.disabled = false; });
+
+    if (error) { showMsg(modalMsg, error.message, 'error'); return; }
+
+    await fetch('/api/admin-locations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bakery_slug: slug, locations: getLocationsData() }),
+    });
+
+    if (openPreview) {
+      setPublishBtn(published);
+      window.open(`/bakeries/${slug}?preview=true`, '_blank');
+      return;
+    }
+
+    closeModal();
+    showMsg(msgEl, `Bakery ${id ? 'updated' : 'added'} successfully.`, 'success');
+    loadList();
+  }
+
+  document.getElementById('form-draft-btn')!.addEventListener('click', () => saveBakery(false));
+  document.getElementById('form-preview-btn')!.addEventListener('click', () => saveBakery(false, true));
+  document.getElementById('form-publish-btn')!.addEventListener('click', () => saveBakery(!currentPublished));
+
+  // ── Sorting ───────────────────────────────────────────────────
+  let sortCol = 'modified';
+  let sortDir: 'asc' | 'desc' = 'desc';
+
+  function sortTable(col: string) {
+    if (sortCol === col) {
+      sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      sortCol = col;
+      sortDir = 'asc';
+    }
+    const rows = Array.from(tbody.querySelectorAll<HTMLTableRowElement>('tr[data-id]'));
+    rows.sort((a, b) => {
+      const av = (a.dataset[col] ?? '').toLowerCase();
+      const bv = (b.dataset[col] ?? '').toLowerCase();
+      return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+    });
+    rows.forEach(r => tbody.appendChild(r));
+    updateSortIcons();
+  }
+
+  function updateSortIcons() {
+    document.querySelectorAll<HTMLElement>('th.th-sortable').forEach(th => {
+      const icon = th.querySelector('.sort-indicator');
+      if (!icon) return;
+      icon.textContent = th.dataset.sort === sortCol ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '';
+    });
+  }
+
+  document.querySelectorAll<HTMLElement>('th.th-sortable').forEach(th => {
+    th.addEventListener('click', () => sortTable(th.dataset.sort!));
+  });
+
+  loadList();
+</script>
+

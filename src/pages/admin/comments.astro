@@ -1,0 +1,318 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Comments" activePage="comments">
+  <div class="admin-page-header">
+    <h1 class="admin-page-title">Comments</h1>
+  </div>
+
+  <div id="shared-delete-popover" style="display:none; position:fixed; z-index:1000; background:var(--surface-2); border:1px solid var(--border); border-radius:0.5rem; padding:0.75rem 1rem; white-space:nowrap; box-shadow:0 4px 16px rgba(0,0,0,0.4);">
+    <div class="popover-label">Delete options</div>
+    <div style="display:flex; flex-direction:column; gap:0.4rem;">
+      <button id="popover-delete-single">Comment only</button>
+      <button id="popover-delete-chain">Entire chain</button>
+      <button id="popover-cancel">Cancel</button>
+    </div>
+  </div>
+
+  <div class="admin-section">
+    <div id="admin-msg" class="admin-msg"></div>
+    <div class="admin-filters" style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+      <select class="admin-filter-select" id="bakery-filter">
+        <option value="">All bakeries</option>
+      </select>
+      <div class="comment-sort-bar">
+        <button class="comment-sort-btn" data-sort="date">Date</button>
+        <button class="comment-sort-btn" data-sort="score">Score</button>
+        <button class="comment-sort-btn" data-sort="bakery">Bakery</button>
+        <button class="comment-sort-btn" data-sort="user">User</button>
+      </div>
+    </div>
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Comment</th>
+            <th>User</th>
+            <th>Bakery</th>
+            <th>Date</th>
+            <th>Score</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="comment-tbody">
+          <tr><td colspan="6"><div class="admin-empty">Loading…</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</AdminLayout>
+
+<style>
+.comment-sort-bar {
+  display: flex;
+  gap: 0.25rem;
+}
+.comment-sort-btn {
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--p-50);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.comment-sort-btn:hover {
+  color: var(--parchment);
+  border-color: var(--p-35);
+}
+.comment-sort-btn.is-active {
+  color: var(--amber);
+  border-color: var(--amber);
+}
+</style>
+
+<script>
+  import { supabase } from '../../lib/supabase';
+
+  type CommentRow = {
+    id: string; content: string; bakery_slug: string; created_at: string;
+    parent_comment_id: string | null; vote_score: number | null;
+    profiles: { display_name: string | null } | null;
+  };
+
+  const msgEl  = document.getElementById('admin-msg')!;
+  const tbody  = document.getElementById('comment-tbody')!;
+  const filter = document.getElementById('bakery-filter') as HTMLSelectElement;
+
+  let _allRows: CommentRow[] = [];
+  let _voteMap: Record<string, number> = {};
+  let _hasReplies: Set<string> = new Set();
+  let _sortKey: 'date' | 'score' | 'bakery' | 'user' = 'date';
+  let _sortAsc = false;
+
+  function showMsg(text: string, type: 'error' | 'success') {
+    msgEl.textContent = text;
+    msgEl.className = `admin-msg admin-msg-${type} is-visible`;
+    setTimeout(() => msgEl.classList.remove('is-visible'), 4000);
+  }
+
+  function fmtDate(d: string) {
+    return new Date(d).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  function sortedRows(): CommentRow[] {
+    const rows = [..._allRows];
+    rows.sort((a, b) => {
+      let cmp = 0;
+      if (_sortKey === 'date') {
+        cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      } else if (_sortKey === 'score') {
+        cmp = (_voteMap[a.id] ?? 0) - (_voteMap[b.id] ?? 0);
+      } else if (_sortKey === 'bakery') {
+        cmp = a.bakery_slug.localeCompare(b.bakery_slug);
+      } else if (_sortKey === 'user') {
+        const nameA = a.profiles?.display_name ?? '';
+        const nameB = b.profiles?.display_name ?? '';
+        cmp = nameA.localeCompare(nameB);
+      }
+      return _sortAsc ? cmp : -cmp;
+    });
+    return rows;
+  }
+
+  function renderRows() {
+    const activeFilter = filter.value;
+    const rows = sortedRows();
+    tbody.innerHTML = rows.length === 0
+      ? '<tr><td colspan="6"><div class="admin-empty">No comments yet.</div></td></tr>'
+      : rows.map(rowHTML).join('');
+    if (activeFilter) {
+      tbody.querySelectorAll<HTMLElement>('tr[data-bakery]').forEach(row => {
+        row.style.display = row.getAttribute('data-bakery') === activeFilter ? '' : 'none';
+      });
+    }
+    bindDeleteButtons();
+  }
+
+  function popoverHTML(_id: string): string {
+    return '';
+  }
+
+  function rowHTML(c: CommentRow) {
+    const name = c.profiles?.display_name ?? 'Anonymous';
+    const isReply = !!c.parent_comment_id;
+    const hasReplies = _hasReplies.has(c.id);
+    const popover = (!isReply && hasReplies) ? popoverHTML(c.id) : '';
+    return `<tr data-id="${c.id}" data-bakery="${c.bakery_slug}" data-is-reply="${isReply}" data-has-replies="${hasReplies}">
+      <td><span class="admin-truncate" style="display:block;max-width:280px;">${c.content}</span></td>
+      <td style="white-space:nowrap;">${name}</td>
+      <td style="white-space:nowrap;">
+        ${c.bakery_slug}
+        <a href="/bakeries/${c.bakery_slug}#comment-${c.id}" target="_blank" style="color:var(--amber); margin-left:0.3rem;" title="View comment">
+          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+      </td>
+      <td style="white-space:nowrap;">${fmtDate(c.created_at)}</td>
+      <td>${_voteMap[c.id] ?? 0}</td>
+      <td class="del-cell">
+        <div class="del-cell-inner">
+          <button class="btn-del-comment" data-id="${c.id}">Delete</button>
+          ${popover}
+        </div>
+      </td>
+    </tr>`;
+  }
+
+  function closeAllPopovers() {
+    const p = document.getElementById('shared-delete-popover')!;
+    p.style.display = 'none';
+  }
+
+  function bindDeleteButtons() {
+    tbody.querySelectorAll<HTMLElement>('.btn-del-comment').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.id!;
+        const row = tbody.querySelector<HTMLElement>(`tr[data-id="${id}"]`);
+        if (!row) return;
+        const isReply = row.dataset.isReply === 'true';
+        const hasReplies = row.dataset.hasReplies === 'true';
+
+        if (!isReply && hasReplies) {
+          const popover = document.getElementById('shared-delete-popover')!;
+          const isOpen = popover.style.display !== 'none';
+          closeAllPopovers();
+          if (!isOpen) {
+            const rect = btn.getBoundingClientRect();
+            popover.style.display = 'block';
+            popover.style.top = (rect.bottom + 6) + 'px';
+            popover.style.left = (rect.right - popover.offsetWidth) + 'px';
+
+            setTimeout(() => {
+              const pRect = popover.getBoundingClientRect();
+              if (pRect.bottom > window.innerHeight) {
+                popover.style.top = (rect.top - pRect.height - 6) + 'px';
+              }
+              if (pRect.left < 8) {
+                popover.style.left = '8px';
+              }
+            }, 0);
+
+            document.getElementById('popover-delete-single')!.onclick = async (e) => {
+              e.stopPropagation();
+              const res = await fetch('/api/admin-comment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'soft-delete', id }),
+              });
+              const data = await res.json();
+              if (!res.ok) { showMsg(data.error, 'error'); return; }
+              row.querySelector('.admin-truncate')!.textContent = '[deleted]';
+              closeAllPopovers();
+              showMsg('Comment content removed.', 'success');
+            };
+
+            document.getElementById('popover-delete-chain')!.onclick = async (e) => {
+              e.stopPropagation();
+              const res = await fetch('/api/admin-comment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'hard-delete', id }),
+              });
+              const data = await res.json();
+              if (!res.ok) { showMsg(data.error, 'error'); return; }
+              _allRows = _allRows.filter(r => r.id !== id && r.parent_comment_id !== id);
+              _hasReplies.delete(id);
+              row.remove();
+              closeAllPopovers();
+              showMsg('Comment chain deleted.', 'success');
+            };
+
+            document.getElementById('popover-cancel')!.onclick = (e) => {
+              e.stopPropagation();
+              closeAllPopovers();
+            };
+          }
+        } else {
+          if (!confirm('Delete this comment?')) return;
+          const { error } = await supabase.from('comments').delete().eq('id', id);
+          if (error) { showMsg(error.message, 'error'); return; }
+          _allRows = _allRows.filter(r => r.id !== id);
+          row.remove();
+          showMsg('Comment deleted.', 'success');
+        }
+      });
+    });
+  }
+
+  // Close popovers when clicking outside
+  document.addEventListener('click', closeAllPopovers);
+
+  async function loadList() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const { data, error } = await supabase
+      .from('comments')
+      .select('*, profiles(display_name)')
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (error) { tbody.innerHTML = `<tr><td colspan="6"><div class="admin-empty">Error: ${error.message}</div></td></tr>`; return; }
+    _allRows = (data ?? []) as unknown as CommentRow[];
+
+    // Build set of IDs that have at least one reply
+    _hasReplies = new Set(
+      _allRows.filter(c => c.parent_comment_id).map(c => c.parent_comment_id!)
+    );
+
+    if (_allRows.length) {
+      const commentIds = _allRows.map(c => c.id);
+      const { data: votes } = await supabase
+        .from('comment_votes')
+        .select('comment_id, vote')
+        .in('comment_id', commentIds);
+      _voteMap = {};
+      votes?.forEach(v => { _voteMap[v.comment_id] = (_voteMap[v.comment_id] || 0) + v.vote; });
+    }
+
+    // Populate bakery filter
+    const slugs = [...new Set(_allRows.map(c => c.bakery_slug))].sort();
+    const currentFilter = filter.value;
+    filter.innerHTML = '<option value="">All bakeries</option>' +
+      slugs.map(s => `<option value="${s}"${s === currentFilter ? ' selected' : ''}>${s}</option>`).join('');
+
+    renderRows();
+  }
+
+  // Sort buttons
+  document.querySelectorAll<HTMLButtonElement>('.comment-sort-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.sort as typeof _sortKey;
+      if (_sortKey === key) {
+        _sortAsc = !_sortAsc;
+      } else {
+        _sortKey = key;
+        _sortAsc = key === 'bakery' || key === 'user';
+      }
+      document.querySelectorAll('.comment-sort-btn').forEach(b => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      renderRows();
+    });
+  });
+
+  document.querySelector<HTMLButtonElement>('.comment-sort-btn[data-sort="date"]')!.classList.add('is-active');
+
+  filter.addEventListener('change', () => {
+    const val = filter.value;
+    tbody.querySelectorAll<HTMLElement>('tr[data-bakery]').forEach(row => {
+      row.style.display = (!val || row.getAttribute('data-bakery') === val) ? '' : 'none';
+    });
+  });
+
+  loadList();
+</script>

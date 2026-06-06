@@ -97,7 +97,7 @@ function makeMarkerIcon(active) {
   });
 }
 
-function fillPopup(bakery, addr) {
+function fillPopup(bakery, addr, latlng) {
   document.getElementById('map-popup-img').src = bakery.thumbnail;
   document.getElementById('map-popup-img').alt = bakery.name;
   document.getElementById('map-popup-cat').textContent  = bakery.category;
@@ -106,7 +106,9 @@ function fillPopup(bakery, addr) {
   var addrEl   = document.getElementById('map-popup-addr');
   addrEl.innerHTML = '';
   var addrLink = document.createElement('a');
-  addrLink.href        = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(addr);
+  addrLink.href        = (bakery.name && latlng)
+    ? 'https://www.google.com/maps/search/' + encodeURIComponent(bakery.name) + '/@' + latlng.lat + ',' + latlng.lng + ',17z'
+    : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(addr);
   addrLink.target      = '_blank';
   addrLink.rel         = 'noopener noreferrer';
   addrLink.textContent = addr;
@@ -177,7 +179,7 @@ function positionPopup(latlng) {
 }
 
 function showMainPopup(bakery, addr, latlng) {
-  fillPopup(bakery, addr);
+  fillPopup(bakery, addr, latlng);
   _activeLL = latlng;
   positionPopup(latlng);
   _popup.classList.add('visible');
@@ -326,6 +328,32 @@ export function destroyMainMap() {
 
 var _bakeryMap     = null;
 var _bakeryMarkers = [];
+var _bakeryRO      = null;
+var _bakeryInitGen = 0;
+
+function _escHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function _bakeryPopupHtml(name, thumbnail, suburb, addr, hours, lat, lng) {
+  var mapsUrl = (name && lat && lng)
+    ? 'https://www.google.com/maps/search/' + encodeURIComponent(name) + '/@' + lat + ',' + lng + ',17z'
+    : (lat && lng)
+      ? 'https://www.google.com/maps/search/?api=1&query=' + lat + ',' + lng
+      : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(addr || '');
+  var pinSvg = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>';
+  var clockSvg = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>';
+  return '<div class="kneed-popup">'
+    + (thumbnail ? '<img class="kneed-popup-img" src="' + _escHtml(thumbnail) + '" alt="' + _escHtml(name) + '" loading="lazy">' : '')
+    + '<div class="kneed-popup-body">'
+    + '<div class="kneed-popup-eyebrow">' + _escHtml(name) + '</div>'
+    + (suburb ? '<div class="kneed-popup-suburb">' + _escHtml(suburb) + '</div>' : '')
+    + (addr   ? '<div class="kneed-popup-detail">' + pinSvg + '<span>' + _escHtml(addr)  + '</span></div>' : '')
+    + (hours  ? '<div class="kneed-popup-detail">' + clockSvg + '<span>' + _escHtml(hours) + '</span></div>' : '')
+    + (mapsUrl ? '<div class="kneed-popup-actions"><a class="kneed-popup-maps-btn" href="' + mapsUrl + '" target="_blank" rel="noopener">' + pinSvg + 'OPEN IN MAP</a></div>' : '')
+    + '</div>'
+    + '</div>';
+}
 
 function makeDot(size, primary) {
   var half   = size / 2;
@@ -370,31 +398,45 @@ function wireAddressHovers() {
   });
 }
 
-function _doBuildBakeryMap(mapEl, lat, lng, multiLocations) {
+function _doBuildBakeryMap(mapEl, lat, lng, multiLocations, genToken, thumbnail) {
+  if (genToken !== _bakeryInitGen) return;
   if (mapEl._leaflet_id) return;
 
   setTimeout(function() {
+    if (genToken !== _bakeryInitGen) return;
     requestAnimationFrame(function() {
+      if (genToken !== _bakeryInitGen) return;
       if (mapEl._leaflet_id) return;
 
+      var bakeryName = mapEl.dataset.name || '';
+
       if (multiLocations && multiLocations.length > 1) {
+        var bounds = L.latLngBounds(multiLocations.map(function(loc) { return [loc.lat, loc.lng]; }));
+        var center = bounds.getCenter();
         _bakeryMap = L.map(mapEl, {
+          center: [center.lat, center.lng],
+          zoom: 13,
           zoomControl: true,
           attributionControl: false,
           scrollWheelZoom: false,
           dragging: true,
           touchZoom: true,
         });
+        _bakeryMap.fitBounds(bounds, { padding: [48, 48] });
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(_bakeryMap);
-        var bounds = L.latLngBounds();
         multiLocations.forEach(function(loc, i) {
           var icon = makeDot(i === 0 ? 16 : 12, i === 0);
-          var m    = L.marker([loc.lat, loc.lng], { icon: icon }).addTo(_bakeryMap);
+          var m = L.marker([loc.lat, loc.lng], { icon: icon });
+          m.bindPopup(_bakeryPopupHtml(bakeryName, thumbnail, loc.label || '', loc.addr || '', loc.hours || '', loc.lat, loc.lng), {
+            className: 'kneed-leaflet-popup',
+            offset: L.point(0, -16),
+            autoPan: true,
+            autoPanPaddingTopLeft: L.point(20, 20),
+            autoPanPaddingBottomRight: L.point(20, 20),
+          });
+          m.addTo(_bakeryMap);
           _bakeryMarkers.push(m);
-          bounds.extend([loc.lat, loc.lng]);
         });
-        _bakeryMap.fitBounds(bounds, { padding: [48, 48] });
-        setTimeout(function() { _bakeryMap.invalidateSize(); }, 100);
       } else {
         if (!lat || !lng) return;
         _bakeryMap = L.map(mapEl, {
@@ -405,34 +447,89 @@ function _doBuildBakeryMap(mapEl, lat, lng, multiLocations) {
         });
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(_bakeryMap);
         var icon = makeDot(12, false);
-        var m    = L.marker([lat, lng], { icon: icon }).addTo(_bakeryMap);
+        var m = L.marker([lat, lng], { icon: icon });
+        m.bindPopup(_bakeryPopupHtml(bakeryName, thumbnail, mapEl.dataset.suburb || '', mapEl.dataset.addr || '', mapEl.dataset.hours || '', lat, lng), {
+          className: 'kneed-leaflet-popup',
+          offset: L.point(0, -16),
+          autoPan: true,
+          autoPanPaddingTopLeft: L.point(20, 20),
+          autoPanPaddingBottomRight: L.point(20, 20),
+        });
+        m.addTo(_bakeryMap);
         _bakeryMarkers.push(m);
-        setTimeout(function() { _bakeryMap.invalidateSize(); }, 100);
       }
 
+      window.__bakeryMapFocus = function(idx) {
+        if (!_bakeryMap || !_bakeryMarkers[idx]) return;
+        var marker = _bakeryMarkers[idx];
+        var loc = marker.getLatLng();
+        var genToken = _bakeryInitGen;
+        var popupOffsetLat = loc.lat - (_bakeryMap.getCenter().lat - _bakeryMap.getBounds().getSouth()) * 0.35;
+        _bakeryMap.flyTo([popupOffsetLat, loc.lng], 15, { duration: 0.6 });
+        _bakeryMap.once('moveend', function() {
+          if (genToken !== _bakeryInitGen || !_bakeryMap) return;
+          marker.openPopup();
+        });
+      };
+
+      var stableFrames = 0, lastTop = null, budget = 60;
+      function correctOrigin() {
+        if (genToken !== _bakeryInitGen || !_bakeryMap) return;
+        var r = mapEl.getBoundingClientRect();
+        if (lastTop !== null && Math.abs(r.top - lastTop) < 0.5 && Math.abs(r.left - (mapEl._lastLeft || r.left)) < 0.5) {
+          stableFrames++;
+        } else {
+          stableFrames = 0;
+        }
+        lastTop = r.top;
+        mapEl._lastLeft = r.left;
+        if (stableFrames >= 3 || budget-- <= 0) {
+          _bakeryMap.invalidateSize({ pan: false });
+        } else {
+          requestAnimationFrame(correctOrigin);
+        }
+      }
+      requestAnimationFrame(correctOrigin);
+
       wireAddressHovers();
+
+      if (typeof ResizeObserver !== 'undefined') {
+        _bakeryRO = new ResizeObserver(function() {
+          if (_bakeryMap) _bakeryMap.invalidateSize();
+        });
+        _bakeryRO.observe(mapEl);
+      }
     });
   }, 200);
 }
 
 export function initBakeryMap() {
+  _bakeryInitGen++;
+  var myGen = _bakeryInitGen;
   try {
     var mapEl = document.getElementById('bakery-map');
     if (!mapEl) return;
     var lat  = parseFloat(mapEl.dataset.lat || '0');
     var lng  = parseFloat(mapEl.dataset.lng || '0');
+    var thumbnail = mapEl.dataset.thumbnail || '';
     var multiLocations = null;
     try {
       var raw = mapEl.dataset.locations || '';
       if (raw) multiLocations = JSON.parse(raw);
     } catch (e) {}
-    loadLeaflet(function() { _doBuildBakeryMap(mapEl, lat, lng, multiLocations); });
+    loadLeaflet(function() {
+      if (myGen !== _bakeryInitGen) return;
+      _doBuildBakeryMap(mapEl, lat, lng, multiLocations, myGen, thumbnail);
+    });
   } catch (e) {
     console.error('[kneed] initBakeryMap error:', e);
   }
 }
 
 export function destroyBakeryMap() {
+  _bakeryInitGen++;
+  window.__bakeryMapFocus = null;
+  if (_bakeryRO) { try { _bakeryRO.disconnect(); } catch (e) {} _bakeryRO = null; }
   if (_bakeryMap) {
     var container = null;
     try { container = _bakeryMap.getContainer(); } catch (e) {}

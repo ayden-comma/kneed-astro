@@ -1,22 +1,28 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { getCollection } from 'astro:content';
+import { supabase } from '../../lib/supabase';
 
-const bakeries = await getCollection('bakeries');
-const bakeryList = bakeries.map((bakery) => ({
-  slug: bakery.data.slug,
-  name: bakery.data.name,
-  suburb: bakery.data.suburb,
-  category: bakery.data.category,
-  hours: bakery.data.hours,
-  duration: bakery.data.duration,
-  thumbnail: bakery.data.thumbnail,
-  description: bakery.data.description,
-  search: (bakery.data.name + ' ' + bakery.data.suburb + ' ' + bakery.data.category).toLowerCase(),
+export const prerender = false;
+
+const { data: bakeryRows } = await supabase
+  .from('bakeries_cms')
+  .select('slug, name, suburb, category, hours, thumbnail, description, video_id')
+  .eq('published', true)
+  .order('name');
+
+const bakeryList = (bakeryRows ?? []).map((b: any) => ({
+  slug: b.slug,
+  name: b.name,
+  suburb: b.suburb,
+  category: b.category,
+  hours: b.hours,
+  thumbnail: b.thumbnail || (b.video_id ? `https://img.youtube.com/vi/${b.video_id}/maxresdefault.jpg` : '/images/og-default.jpg'),
+  description: b.description,
+  search: ((b.name ?? '') + ' ' + (b.suburb ?? '') + ' ' + (b.category ?? '')).toLowerCase(),
 }));
 ---
 
-<BaseLayout title="Bakeries" description="Every bakery we've visited — neighbourhood rooms, old ovens and places worth travelling for.">
+<BaseLayout title="Bakeries" description="Explore Melbourne's best bakeries — sourdough, pastry, focaccia and more. Watch their stories.">
 
   <main class="wf-container py-page">
 
@@ -45,9 +51,6 @@ const bakeryList = bakeries.map((bakery) => ({
             <img class="bak-card-img" src={bakery.thumbnail} alt={bakery.name} loading="lazy" />
             <div class="bak-card-grade"></div>
             <div class="bak-card-cat">{bakery.category}</div>
-            {bakery.duration && (
-              <div class="bak-card-dur">{bakery.duration}</div>
-            )}
             <div class="bak-card-watch">
               <div class="bak-watch-pill">
                 <svg viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg>

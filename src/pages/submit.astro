@@ -39,22 +39,41 @@ import BaseLayout from '../layouts/BaseLayout.astro';
             </div>
             <div class="form-field">
               <label class="form-label" for="f-email">Email</label>
-              <input class="form-input" type="email" id="f-email" placeholder="your@email.com" />
+              <input class="form-input" type="email" id="f-email" placeholder="hello@yourbakery.com" required />
             </div>
           </div>
           <div class="form-row">
             <div class="form-field">
+              <div style="display:flex; align-items:baseline; gap:0.5rem;">
+                <label class="form-label" for="f-phone">Phone</label>
+                <span style="font-size:0.65rem; color:var(--p-35); letter-spacing:0.1em;">Optional</span>
+              </div>
+              <input class="form-input" type="tel" id="f-phone" placeholder="+61 4XX XXX XXX" />
+            </div>
+            <div class="form-field">
               <label class="form-label" for="f-bakery">Bakery Name</label>
               <input class="form-input" type="text" id="f-bakery" placeholder="The name of your bakery" />
             </div>
-            <div class="form-field">
-              <label class="form-label" for="f-address">Address</label>
-              <input class="form-input" type="text" id="f-address" placeholder="Street, suburb" />
-            </div>
           </div>
           <div class="form-field">
-            <label class="form-label" for="f-link">Website or Social Link</label>
-            <input class="form-input" type="text" id="f-link" placeholder="https://yoursite.com or @handle" />
+            <label class="form-label" for="f-address">Address</label>
+            <div style="position:relative;">
+              <input class="form-input" type="text" id="f-address" placeholder="Street, suburb" autocomplete="off" />
+              <ul id="f-addr-suggestions" style="display:none; position:absolute; z-index:100; top:100%; margin-top:2px; background:var(--surface); border:1px solid var(--border); border-radius:0.5rem; list-style:none; padding:0.25rem 0; margin-top:2px; width:100%;"></ul>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label class="form-label" for="f-website">Website</label>
+              <input class="form-input" type="text" id="f-website" placeholder="https://yourbakery.com" />
+            </div>
+            <div class="form-field">
+              <div style="display:flex; align-items:baseline; gap:0.5rem;">
+                <label class="form-label" for="f-instagram">Instagram</label>
+                <span style="font-size:0.65rem; color:var(--p-35); letter-spacing:0.1em;">Optional</span>
+              </div>
+              <input class="form-input" type="text" id="f-instagram" placeholder="@handle" />
+            </div>
           </div>
           <div class="form-field">
             <label class="form-label" for="f-desc">
@@ -64,7 +83,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
             <textarea class="form-input form-textarea" id="f-desc" placeholder="What's the story behind your bakery?..."></textarea>
           </div>
           <div class="form-actions">
-            <button class="wf-pill pill-dark" id="submit-bakery-btn">
+            <button type="button" class="wf-pill pill-dark" id="submit-bakery-btn">
               Send submission
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 5 7 7-7 7"/></svg>
             </button>
@@ -80,7 +99,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           </div>
           <h2 class="success-title">Submission received</h2>
           <p class="success-body">Thank you for reaching out. We've received your submission and will review it carefully.</p>
-          <a class="wf-pill pill-light" href="/" style="margin-top: 2rem;">Back to journal</a>
+          <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:2rem;">
+            <button class="wf-pill pill-light" id="btn-submit-another">Submit another</button>
+            <a class="wf-pill pill-light" href="/">Back to home</a>
+          </div>
         </div>
       </div>
     </div>
@@ -105,8 +127,12 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           </label>
           <textarea class="form-input form-textarea" id="sg-why" placeholder="Tell us what makes this bakery worth a story..."></textarea>
         </div>
+        <div class="form-field">
+          <label class="form-label" for="sg-email">Your Email <span class="form-label-note">Optional — so we can get back to you</span></label>
+          <input class="form-input" type="email" id="sg-email" placeholder="hello@youremail.com" />
+        </div>
         <div class="form-actions">
-          <button class="wf-pill pill-dark" id="submit-suggest-btn">
+          <button type="button" class="wf-pill pill-dark" id="submit-suggest-btn">
             Send recommendation
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 5 7 7-7 7"/></svg>
           </button>
@@ -120,7 +146,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           </div>
           <h2 class="success-title">Thanks for the tip</h2>
           <p class="success-body">We've got your recommendation and will look into it for our filming list.</p>
-          <a class="wf-pill pill-light" href="/" style="margin-top: 2rem;">Back to journal</a>
+          <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:2rem;">
+            <button class="wf-pill pill-light" id="btn-suggest-another">Submit another</button>
+            <a class="wf-pill pill-light" href="/">Back to home</a>
+          </div>
         </div>
       </div>
     </div>
@@ -229,52 +258,177 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 }
 </style>
 
-<script is:inline>
-  // TAB SWITCHING
-  var tabBakery = document.getElementById('tab-bakery');
-  var tabSuggest = document.getElementById('tab-suggest');
-  var formBakery = document.getElementById('form-bakery');
-  var formSuggest = document.getElementById('form-suggest');
+<script>
+  import { supabase } from '../lib/supabase';
 
-  function showTab(tab) {
+  // ── DOM refs ──────────────────────────────────────────────────
+  const tabBakery   = document.getElementById('tab-bakery')!   as HTMLButtonElement;
+  const tabSuggest  = document.getElementById('tab-suggest')!  as HTMLButtonElement;
+  const formBakery  = document.getElementById('form-bakery')!;
+  const formSuggest = document.getElementById('form-suggest')!;
+  const bakeryBtn   = document.getElementById('submit-bakery-btn')!  as HTMLButtonElement;
+  const suggestBtn  = document.getElementById('submit-suggest-btn')! as HTMLButtonElement;
+
+  // ── Tab switching (onclick = prevents duplicate listeners) ────
+  function showTab(tab: string) {
     if (tab === 'bakery') {
-      formBakery.style.display = '';
+      formBakery.style.display  = '';
       formSuggest.style.display = 'none';
-      tabBakery.className = 'submit-tab-btn wf-pill pill-dark';
+      tabBakery.className  = 'submit-tab-btn wf-pill pill-dark';
       tabSuggest.className = 'submit-tab-btn wf-pill pill-light';
     } else {
-      formBakery.style.display = 'none';
+      formBakery.style.display  = 'none';
       formSuggest.style.display = '';
-      tabBakery.className = 'submit-tab-btn wf-pill pill-light';
+      tabBakery.className  = 'submit-tab-btn wf-pill pill-light';
       tabSuggest.className = 'submit-tab-btn wf-pill pill-dark';
     }
   }
+  tabBakery.onclick  = () => showTab('bakery');
+  tabSuggest.onclick = () => showTab('suggest');
 
-  tabBakery.addEventListener('click', function() { showTab('bakery'); });
-  tabSuggest.addEventListener('click', function() { showTab('suggest'); });
+  // ── Helpers ───────────────────────────────────────────────────
+  function val(id: string) {
+    return (document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement).value.trim();
+  }
+  function clearFields(...ids: string[]) {
+    ids.forEach(id => {
+      (document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement).value = '';
+    });
+  }
+  function setLoading(btn: HTMLButtonElement, loading: boolean, savedHTML: string) {
+    btn.disabled = loading;
+    btn.innerHTML = loading ? 'Sending…' : savedHTML;
+  }
 
-  // SUBMIT BAKERY
-  document.getElementById('submit-bakery-btn').addEventListener('click', function() {
-    var name = document.getElementById('f-name').value.trim();
-    var email = document.getElementById('f-email').value.trim();
-    var bakery = document.getElementById('f-bakery').value.trim();
+  // ── Address autocomplete ──────────────────────────────────────
+  const PLACES_KEY   = 'AIzaSyB6Dv_E_XEjozZqi_Tenk4AepcpYWHNUas';
+  const addrInput    = document.getElementById('f-address')!        as HTMLInputElement;
+  const addrList     = document.getElementById('f-addr-suggestions')! as HTMLUListElement;
+  let   addrTimer: ReturnType<typeof setTimeout>;
+
+  addrInput.addEventListener('input', () => {
+    clearTimeout(addrTimer);
+    const q = addrInput.value.trim();
+    if (q.length < 3) { addrList.style.display = 'none'; return; }
+    addrTimer = setTimeout(async () => {
+      try {
+        const res   = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': PLACES_KEY },
+          body: JSON.stringify({ input: q, includedRegionCodes: ['au'], includedPrimaryTypes: ['street_address', 'premise'] }),
+        });
+        const data  = await res.json();
+        const preds = (data.suggestions || []) as any[];
+        addrList.innerHTML = '';
+        if (!preds.length) { addrList.style.display = 'none'; return; }
+        preds.slice(0, 5).forEach(s => {
+          const text = s.placePrediction?.text?.text || '';
+          const li   = document.createElement('li');
+          li.textContent   = text;
+          li.style.cssText = 'padding:0.5rem 0.75rem; cursor:pointer; color:var(--parchment); font-size:0.875rem;';
+          li.onmouseenter  = () => { li.style.background = 'rgba(255,255,255,0.06)'; };
+          li.onmouseleave  = () => { li.style.background = ''; };
+          li.onclick       = () => { addrInput.value = text; addrList.style.display = 'none'; };
+          addrList.appendChild(li);
+        });
+        addrList.style.display = 'block';
+      } catch (_) { addrList.style.display = 'none'; }
+    }, 300);
+  });
+  document.addEventListener('click', e => {
+    if (!addrInput.contains(e.target as Node) && !addrList.contains(e.target as Node)) {
+      addrList.style.display = 'none';
+    }
+  });
+
+  // ── Bakery form ───────────────────────────────────────────────
+  function resetBakeryForm() {
+    clearFields('f-name', 'f-email', 'f-phone', 'f-bakery', 'f-address', 'f-website', 'f-instagram', 'f-desc');
+    document.getElementById('submit-success')!.style.display   = 'none';
+    document.getElementById('submit-form-wrap')!.style.display = '';
+  }
+
+  bakeryBtn.onclick = async () => {
+    console.log('submit clicked');
+    const name   = val('f-name');
+    const email  = val('f-email');
+    const bakery = val('f-bakery');
     if (!name || !email || !bakery) {
       alert('Please fill in your name, email and bakery name.');
       return;
     }
-    document.getElementById('submit-form-wrap').style.display = 'none';
-    document.getElementById('submit-success').style.display = 'block';
-  });
 
-  // SUBMIT SUGGESTION
-  document.getElementById('submit-suggest-btn').addEventListener('click', function() {
-    var name = document.getElementById('sg-name').value.trim();
-    var addr = document.getElementById('sg-addr').value.trim();
+    const savedHTML = bakeryBtn.innerHTML;
+    setLoading(bakeryBtn, true, savedHTML);
+
+    const { error } = await supabase.from('submissions').insert({
+      bakery_name:    bakery,
+      submitted_name: val('f-name')      || null,
+      email:          email              || null,
+      phone:          val('f-phone')     || null,
+      suburb:         null,
+      address:        val('f-address')   || null,
+      website:        val('f-website')   || null,
+      instagram:      val('f-instagram') || null,
+      notes:          val('f-desc')      || null,
+      status:         'pending',
+    });
+
+    if (error) {
+      setLoading(bakeryBtn, false, savedHTML);
+      alert('Something went wrong: ' + error.message);
+      return;
+    }
+
+    setLoading(bakeryBtn, false, savedHTML);
+    clearFields('f-name', 'f-email', 'f-phone', 'f-bakery', 'f-address', 'f-website', 'f-instagram', 'f-desc');
+    document.getElementById('submit-form-wrap')!.style.display = 'none';
+    document.getElementById('submit-success')!.style.display   = 'block';
+  };
+
+  document.getElementById('btn-submit-another')!.onclick = resetBakeryForm;
+
+  // ── Suggest form ──────────────────────────────────────────────
+  function resetSuggestForm() {
+    clearFields('sg-name', 'sg-addr', 'sg-why', 'sg-email');
+    document.getElementById('suggest-success')!.style.display  = 'none';
+    (document.querySelector('#form-suggest .submit-form') as HTMLElement).style.display = '';
+  }
+
+  suggestBtn.onclick = async () => {
+    console.log('suggest clicked');
+    const name = val('sg-name');
+    const addr = val('sg-addr');
     if (!name || !addr) {
       alert('Please fill in the bakery name and address.');
       return;
     }
-    document.querySelector('#form-suggest .submit-form').style.display = 'none';
-    document.getElementById('suggest-success').style.display = 'block';
-  });
+
+    const savedHTML = suggestBtn.innerHTML;
+    setLoading(suggestBtn, true, savedHTML);
+
+    const { error } = await supabase.from('submissions').insert({
+      bakery_name: name,
+      email:       val('sg-email') || null,
+      suburb:      null,
+      address:     addr || null,
+      website:     null,
+      instagram:   null,
+      notes:       val('sg-why') || null,
+      status:      'pending',
+    });
+
+    if (error) {
+      setLoading(suggestBtn, false, savedHTML);
+      alert('Something went wrong: ' + error.message);
+      return;
+    }
+
+    setLoading(suggestBtn, false, savedHTML);
+    clearFields('sg-name', 'sg-addr', 'sg-why', 'sg-email');
+    (document.querySelector('#form-suggest .submit-form') as HTMLElement).style.display = 'none';
+    document.getElementById('suggest-success')!.style.display = 'block';
+  };
+
+  document.getElementById('btn-suggest-another')!.onclick = resetSuggestForm;
 </script>
