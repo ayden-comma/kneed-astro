@@ -668,6 +668,14 @@ if (heroSlides.length === 0) {
   scroll-snap-align: start;
   aspect-ratio: 3/4;
 }
+@media (max-width: 768px) {
+  .film-card-side {
+    flex: 0 0 78vw;
+    width: 78vw;
+    max-width: 300px;
+    scroll-snap-align: center;
+  }
+}
 
 </style>
 
@@ -867,14 +875,80 @@ if (heroSlides.length === 0) {
       };
     }
 
-    // FILM RAIL NAV
-    var rail = document.getElementById('film-rail');
-    var prevBtn = document.getElementById('film-prev');
-    var nextBtn = document.getElementById('film-next');
-    if (rail && prevBtn && nextBtn) {
-      nextBtn.onclick = function() { rail.scrollBy({ left: 340, behavior: 'smooth' }); };
-      prevBtn.onclick = function() { rail.scrollBy({ left: -340, behavior: 'smooth' }); };
-    }
+    // FILM RAIL LOOPING CAROUSEL
+    (function() {
+      var rail    = document.getElementById('film-rail');
+      var prevBtn = document.getElementById('film-prev');
+      var nextBtn = document.getElementById('film-next');
+      if (!rail || !prevBtn || !nextBtn) return;
+      if (rail.dataset.loopInit) return;
+      rail.dataset.loopInit = '1';
+
+      var originals = Array.from(rail.children);
+      var N = originals.length;
+      if (N === 0) return;
+
+      // Prepend + append one full set of clones
+      var pre = document.createDocumentFragment();
+      var post = document.createDocumentFragment();
+      originals.forEach(function(tile) {
+        var a = tile.cloneNode(true);
+        a.setAttribute('aria-hidden', 'true');
+        a.setAttribute('tabindex', '-1');
+        pre.appendChild(a);
+        var b = tile.cloneNode(true);
+        b.setAttribute('aria-hidden', 'true');
+        b.setAttribute('tabindex', '-1');
+        post.appendChild(b);
+      });
+      rail.insertBefore(pre, rail.firstChild);
+      rail.appendChild(post);
+
+      function getStep() {
+        var tile = rail.children[N];
+        var gap = parseFloat(getComputedStyle(rail).gap) || 16;
+        return tile.offsetWidth + gap;
+      }
+
+      // Position scrollLeft so first REAL tile is in view
+      function initPos() {
+        var tile = rail.children[N];
+        var isCenter = getComputedStyle(tile).scrollSnapAlign.includes('center');
+        var off = isCenter ? Math.max(0, (rail.clientWidth - tile.offsetWidth) / 2) : 0;
+        rail.scrollLeft = tile.offsetLeft - off;
+      }
+      initPos();
+
+      // Loop reset: after scroll settles, jump instantly if in clone zone
+      var _t = null;
+      var _busy = false;
+      function checkLoop() {
+        if (_busy) return;
+        var firstReal = rail.children[N];
+        var lastReal  = rail.children[2 * N - 1];
+        var step = getStep();
+        var lo = firstReal.offsetLeft - step / 2;
+        var hi = lastReal.offsetLeft  + step / 2;
+        if (rail.scrollLeft < lo) {
+          _busy = true;
+          rail.scrollLeft += N * step;
+          requestAnimationFrame(function() { requestAnimationFrame(function() { _busy = false; }); });
+        } else if (rail.scrollLeft > hi) {
+          _busy = true;
+          rail.scrollLeft -= N * step;
+          requestAnimationFrame(function() { requestAnimationFrame(function() { _busy = false; }); });
+        }
+      }
+
+      rail.addEventListener('scroll', function() {
+        if (_busy) return;
+        clearTimeout(_t);
+        _t = setTimeout(checkLoop, 150);
+      }, { passive: true });
+
+      prevBtn.onclick = function() { rail.scrollBy({ left: -getStep(), behavior: 'smooth' }); };
+      nextBtn.onclick = function() { rail.scrollBy({ left:  getStep(), behavior: 'smooth' }); };
+    })();
 
   }
 
