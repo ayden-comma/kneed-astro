@@ -1,17 +1,5 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getCollection } from 'astro:content';
-
-const bakeries = await getCollection('bakeries');
-const bakeryMap = Object.fromEntries(
-  bakeries.map(b => [b.data.slug, {
-    slug:      b.data.slug,
-    name:      b.data.name,
-    suburb:    b.data.suburb,
-    category:  b.data.category,
-    thumbnail: b.data.thumbnail,
-  }])
-);
 ---
 
 <BaseLayout title="Recipe Book" description="Your saved bakeries on (K)Need.">
@@ -46,9 +34,6 @@ const bakeryMap = Object.fromEntries(
     <div id="rb-grid" class="grid-3" style="display:none;"></div>
 
   </main>
-
-  <!-- Bakery data for client-side lookup -->
-  <div id="rb-bakery-data" data-json={JSON.stringify(bakeryMap)} style="display:none"></div>
 </BaseLayout>
 
 <script>
@@ -80,15 +65,11 @@ const bakeryMap = Object.fromEntries(
   }
 
   async function initRecipeBook() {
-    const loadingEl  = document.getElementById('rb-loading');
-    const loggedout  = document.getElementById('rb-loggedout');
-    const emptyEl    = document.getElementById('rb-empty');
-    const gridEl     = document.getElementById('rb-grid');
-    const dataEl     = document.getElementById('rb-bakery-data');
-    if (!loadingEl || !loggedout || !emptyEl || !gridEl || !dataEl) return;
-
-    const bakeryMap: Record<string, { slug: string; name: string; suburb: string; category: string; thumbnail: string }> =
-      JSON.parse(dataEl.dataset.json || '{}');
+    const loadingEl = document.getElementById('rb-loading');
+    const loggedout = document.getElementById('rb-loggedout');
+    const emptyEl   = document.getElementById('rb-empty');
+    const gridEl    = document.getElementById('rb-grid');
+    if (!loadingEl || !loggedout || !emptyEl || !gridEl) return;
 
     const { data: { session } } = await supabase.auth.getSession();
 
@@ -99,6 +80,7 @@ const bakeryMap = Object.fromEntries(
       return;
     }
 
+    // Fetch saved bakery slugs for this user
     const { data: saves } = await supabase
       .from('saves')
       .select('content_slug, created_at')
@@ -110,6 +92,23 @@ const bakeryMap = Object.fromEntries(
       emptyEl.style.display = '';
       return;
     }
+
+    // Fetch only the bakeries the user has saved
+    const slugs = saves.map((s: { content_slug: string }) => s.content_slug);
+    const { data: bakeries } = await supabase
+      .from('bakeries_cms')
+      .select('slug, name, suburb, category, thumbnail')
+      .in('slug', slugs);
+
+    if (!bakeries || bakeries.length === 0) {
+      emptyEl.style.display = '';
+      return;
+    }
+
+    // Build slug → metadata map from live Supabase data
+    const bakeryMap: Record<string, { slug: string; name: string; suburb: string; category: string; thumbnail: string }> =
+      Object.fromEntries((bakeries as { slug: string; name: string; suburb: string | null; category: string; thumbnail: string }[])
+        .map(b => [b.slug, { ...b, suburb: b.suburb ?? '' }]));
 
     const cards = saves
       .map((s: { content_slug: string }) => bakeryMap[s.content_slug])
