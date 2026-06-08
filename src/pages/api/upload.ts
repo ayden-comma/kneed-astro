@@ -1,10 +1,17 @@
 import type { APIRoute } from 'astro';
 import { createClient } from '@supabase/supabase-js';
-import cloudinary from '../../lib/cloudinary';
 
 export const prerender = false;
 
 const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+
+async function cloudinarySign(params: Record<string, string>, apiSecret: string): Promise<string> {
+  const sorted = Object.keys(params).sort().map(k => `${k}=${params[k]}`).join('&');
+  const message = sorted + apiSecret;
+  const encoded = new TextEncoder().encode(message);
+  const hashBuf = await crypto.subtle.digest('SHA-1', encoded);
+  return Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 export const POST: APIRoute = async ({ request }) => {
   const json = (body: object, status: number) =>
@@ -40,22 +47,35 @@ export const POST: APIRoute = async ({ request }) => {
   if (!entry.type.startsWith('image/')) return json({ error: 'Only image files are allowed' }, 400);
   if (entry.size > MAX_BYTES) return json({ error: 'File too large (max 10 MB)' }, 400);
 
-  // ── Upload ───────────────────────────────────────────────────
+  // ── Upload via Cloudinary REST API ───────────────────────────
+  const cloudName = import.meta.env.CLOUDINARY_CLOUD_NAME as string;
+  const apiKey    = import.meta.env.CLOUDINARY_API_KEY as string;
+  const apiSecret = import.meta.env.CLOUDINARY_API_SECRET as string;
+
   try {
-    const buffer = Buffer.from(await entry.arrayBuffer());
+    const timestamp = String(Math.floor(Date.now() / 1000));
+    const signParams = { folder: 'kneed', timestamp };
+    const signature  = await cloudinarySign(signParams, apiSecret);
 
-    const secureUrl = await new Promise<string>((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        { folder: 'kneed', resource_type: 'image', transformation: [{ width: 1200, crop: 'limit', quality: 'auto', fetch_format: 'auto' }] },
-        (error, result) => {
-          if (error || !result) return reject(error ?? new Error('No result from Cloudinary'));
-          resolve(result.secure_url);
-        },
-      );
-      stream.end(buffer);
-    });
+    const body = new FormData();
+    body.append('file', entry);
+    body.append('api_key', apiKey);
+    body.append('timestamp', timestamp);
+    body.append('folder', 'kneed');
+    body.append('signature', signature);
 
-    return json({ url: secureUrl }, 200);
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      { method: 'POST', body },
+    );
+
+    if (!res.ok) {
+      const err = await res.text();
+      return json({ error: `Cloudinary error: ${err}` }, 502);
+    }
+
+    const data = await res.json() as { secure_url: string };
+    return json({ url: data.secure_url }, 200);
   } catch {
     return json({ error: 'Upload failed' }, 500);
   }
