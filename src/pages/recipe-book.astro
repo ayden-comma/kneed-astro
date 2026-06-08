@@ -2,7 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
-<BaseLayout title="Recipe Book" description="Your saved bakeries on (K)Need.">
+<BaseLayout title="Recipe Book" description="Your saved bakeries and articles on (K)Need.">
   <main class="wf-container py-page">
 
     <a href="/" class="back-btn">
@@ -26,7 +26,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
     <!-- Empty state -->
     <div id="rb-empty" style="display:none; padding:3rem 0;">
-      <p style="font-size:0.9375rem; font-weight:300; color:var(--p-50); line-height:1.75; max-width:32rem;">You haven't saved any bakeries yet. Start exploring and save the ones you love.</p>
+      <p style="font-size:0.9375rem; font-weight:300; color:var(--p-50); line-height:1.75; max-width:32rem;">You haven't saved any bakeries or articles yet. Start exploring and save the ones you love.</p>
       <a href="/bakeries" class="wf-pill pill-amber" style="margin-top:1.5rem; display:inline-flex;">Explore bakeries</a>
     </div>
 
@@ -43,12 +43,14 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  function cardHTML(b: { slug: string; name: string; suburb: string; category: string; thumbnail: string }): string {
-    return `<a href="/bakeries/${esc(b.slug)}" class="bak-card">
+  type CardItem = { href: string; name: string; category: string; thumbnail: string; subtitle: string };
+
+  function cardHTML(item: CardItem): string {
+    return `<a href="${esc(item.href)}" class="bak-card">
       <div class="bak-card-img-wrap">
-        <img class="bak-card-img" src="${esc(b.thumbnail)}" alt="${esc(b.name)}" loading="lazy" />
+        <img class="bak-card-img" src="${esc(item.thumbnail)}" alt="${esc(item.name)}" loading="lazy" />
         <div class="bak-card-grade"></div>
-        <div class="bak-card-cat">${esc(b.category)}</div>
+        <div class="bak-card-cat">${esc(item.category)}</div>
         <div class="bak-card-watch">
           <div class="bak-watch-pill">
             <svg viewBox="0 0 24 24" width="12" height="12" fill="var(--ink)"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -57,9 +59,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </div>
       </div>
       <div class="bak-card-body">
-        <div class="bak-card-eyebrow">${esc(b.category)}</div>
-        <div class="bak-card-title">${esc(b.name)}</div>
-        <div class="bak-card-bakery">${esc(b.suburb)}</div>
+        <div class="bak-card-eyebrow">${esc(item.category)}</div>
+        <div class="bak-card-title">${esc(item.name)}</div>
+        <div class="bak-card-bakery">${esc(item.subtitle)}</div>
       </div>
     </a>`;
   }
@@ -80,12 +82,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       return;
     }
 
-    // Fetch saved bakery slugs for this user
+    // Fetch all saves for this user, newest first
     const { data: saves } = await supabase
       .from('saves')
-      .select('content_slug, created_at')
+      .select('content_slug, content_type, created_at')
       .eq('user_id', session.user.id)
-      .eq('content_type', 'bakery')
       .order('created_at', { ascending: false });
 
     if (!saves || saves.length === 0) {
@@ -93,26 +94,43 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       return;
     }
 
-    // Fetch only the bakeries the user has saved
-    const slugs = saves.map((s: { content_slug: string }) => s.content_slug);
-    const { data: bakeries } = await supabase
-      .from('bakeries_cms')
-      .select('slug, name, suburb, category, thumbnail')
-      .in('slug', slugs);
+    // Split slugs by type
+    const bakerySlugs  = saves.filter((s: { content_type: string }) => s.content_type === 'bakery').map((s: { content_slug: string }) => s.content_slug);
+    const articleSlugs = saves.filter((s: { content_type: string }) => s.content_type === 'article').map((s: { content_slug: string }) => s.content_slug);
 
-    if (!bakeries || bakeries.length === 0) {
-      emptyEl.style.display = '';
-      return;
-    }
+    // Fetch metadata in parallel — only the slugs the user saved
+    const [bakeryResult, articleResult] = await Promise.all([
+      bakerySlugs.length > 0
+        ? supabase.from('bakeries_cms').select('slug, name, suburb, category, thumbnail').in('slug', bakerySlugs)
+        : Promise.resolve({ data: [] }),
+      articleSlugs.length > 0
+        ? supabase.from('articles_cms').select('slug, title, category, thumbnail').in('slug', articleSlugs)
+        : Promise.resolve({ data: [] }),
+    ]);
 
-    // Build slug → metadata map from live Supabase data
-    const bakeryMap: Record<string, { slug: string; name: string; suburb: string; category: string; thumbnail: string }> =
-      Object.fromEntries((bakeries as { slug: string; name: string; suburb: string | null; category: string; thumbnail: string }[])
-        .map(b => [b.slug, { ...b, suburb: b.suburb ?? '' }]));
+    // Build lookup maps
+    type BakeryRow  = { slug: string; name: string; suburb: string | null; category: string; thumbnail: string };
+    type ArticleRow = { slug: string; title: string; category: string; thumbnail: string };
 
-    const cards = saves
-      .map((s: { content_slug: string }) => bakeryMap[s.content_slug])
-      .filter(Boolean)
+    const bakeryMap  = Object.fromEntries(((bakeryResult.data  ?? []) as BakeryRow[]).map(b => [b.slug, b]));
+    const articleMap = Object.fromEntries(((articleResult.data ?? []) as ArticleRow[]).map(a => [a.slug, a]));
+
+    // Map each save (in saves order = newest first) to a CardItem
+    const cards = (saves as { content_slug: string; content_type: string }[])
+      .map(s => {
+        if (s.content_type === 'bakery') {
+          const b = bakeryMap[s.content_slug];
+          if (!b) return null;
+          return { href: `/bakeries/${b.slug}`, name: b.name, category: b.category, thumbnail: b.thumbnail, subtitle: b.suburb ?? '' } satisfies CardItem;
+        }
+        if (s.content_type === 'article') {
+          const a = articleMap[s.content_slug];
+          if (!a) return null;
+          return { href: `/kneed-to-know/${a.slug}`, name: a.title, category: a.category, thumbnail: a.thumbnail, subtitle: '(K)Need to Know' } satisfies CardItem;
+        }
+        return null;
+      })
+      .filter((item): item is CardItem => item !== null)
       .map(cardHTML)
       .join('');
 
