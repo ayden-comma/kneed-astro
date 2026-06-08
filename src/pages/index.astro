@@ -810,14 +810,63 @@ if (heroSlides.length === 0) {
     initHero();
     startAutoplay();
 
-    // Hero click — navigate to current slide
+    // Hero click + swipe + trackpad wheel
     var heroSection = document.getElementById('hero-section');
+    var _heroSwiped = false;
     if (heroSection) {
       heroSection.style.cursor = 'pointer';
       heroSection.onclick = function() {
+        if (_heroSwiped) { _heroSwiped = false; return; }
         var s = HERO_SLIDES[currentSlide];
         if (s && s.slug) window.location.href = s.slug;
       };
+
+      // ── Touch swipe ──────────────────────────────────────────
+      var _hX = 0, _hY = 0, _hMoved = false;
+      function _hTouchStart(e) {
+        _hX = e.touches[0].clientX;
+        _hY = e.touches[0].clientY;
+        _hMoved = false;
+        _heroSwiped = false;
+      }
+      function _hTouchMove(e) {
+        var dx = e.touches[0].clientX - _hX;
+        var dy = e.touches[0].clientY - _hY;
+        if (Math.abs(dx) > 10) _hMoved = true;
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) e.preventDefault();
+      }
+      function _hTouchEnd(e) {
+        var dx = e.changedTouches[0].clientX - _hX;
+        var len = HERO_SLIDES.length;
+        if (_hMoved && Math.abs(dx) > 40) {
+          _heroSwiped = true;
+          goToSlide(dx < 0 ? (currentSlide + 1) % len : (currentSlide - 1 + len) % len);
+          startAutoplay();
+        }
+      }
+      heroSection.addEventListener('touchstart', _hTouchStart, { passive: true });
+      heroSection.addEventListener('touchmove',  _hTouchMove,  { passive: false });
+      heroSection.addEventListener('touchend',   _hTouchEnd,   { passive: true });
+
+      // ── Trackpad horizontal scroll ───────────────────────────
+      var _hWheelLocked = false;
+      function _hWheel(e) {
+        var ax = Math.abs(e.deltaX), ay = Math.abs(e.deltaY);
+        if (ax > ay && ax > 20) {
+          e.preventDefault();
+          if (_hWheelLocked) return;
+          _hWheelLocked = true;
+          var len = HERO_SLIDES.length;
+          goToSlide(e.deltaX > 0 ? (currentSlide + 1) % len : (currentSlide - 1 + len) % len);
+          startAutoplay();
+          window._heroWheelCd = setTimeout(function() { _hWheelLocked = false; }, 600);
+        }
+        // vertical: fall through, page scrolls normally
+      }
+      heroSection.addEventListener('wheel', _hWheel, { passive: false });
+
+      // Store refs for cleanup in destroyHomePage
+      window._heroEvt = { el: heroSection, ts: _hTouchStart, tm: _hTouchMove, te: _hTouchEnd, wh: _hWheel };
     }
 
     // Dots — change slide
@@ -957,6 +1006,15 @@ if (heroSlides.length === 0) {
 
   function destroyHomePage() {
     if (window._heroTimer) { clearInterval(window._heroTimer); window._heroTimer = null; }
+    clearTimeout(window._heroWheelCd); window._heroWheelCd = null;
+    if (window._heroEvt) {
+      var ev = window._heroEvt;
+      ev.el.removeEventListener('touchstart', ev.ts);
+      ev.el.removeEventListener('touchmove',  ev.tm);
+      ev.el.removeEventListener('touchend',   ev.te);
+      ev.el.removeEventListener('wheel',      ev.wh);
+      window._heroEvt = null;
+    }
   }
 
   // Expose so the module script below can call these on astro:page-load /
