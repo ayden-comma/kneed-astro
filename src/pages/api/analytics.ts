@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 
 export const prerender = false;
 
@@ -39,9 +40,7 @@ async function runReport(propertyId: string, token: string, body: object) {
   return res.json();
 }
 
-export const GET: APIRoute = async ({ locals }) => {
-  const env = (locals as { runtime?: { env?: Record<string, string> } }).runtime?.env ?? {};
-
+export const GET: APIRoute = async () => {
   const clientId     = env.GA_CLIENT_ID;
   const clientSecret = env.GA_CLIENT_SECRET;
   const refreshToken = env.GA_REFRESH_TOKEN;
