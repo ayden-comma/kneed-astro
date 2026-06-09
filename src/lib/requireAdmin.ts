@@ -29,9 +29,6 @@ export async function requireAdmin(request: Request): Promise<AdminResult> {
     .eq('id', user.id)
     .single();
 
-  // TEMP DEBUG
-  console.error('[requireAdmin] userId:', user.id, 'profile:', JSON.stringify(profile), 'profileErr:', JSON.stringify(profileError));
-
   if (!profile || (profile as { role: string }).role !== 'admin') {
     return { ok: false, status: 403 };
   }
