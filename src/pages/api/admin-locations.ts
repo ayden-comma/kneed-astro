@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { createClient } from '@supabase/supabase-js';
+import { env } from 'cloudflare:workers';
 import { requireAdmin } from '../../lib/requireAdmin';
 
 export const prerender = false;
@@ -9,7 +10,7 @@ export const POST: APIRoute = async ({ request }) => {
   if (!auth.ok) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: auth.status });
 
   try {
-    const serviceKey  = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
+    const serviceKey  = env.SUPABASE_SERVICE_ROLE_KEY;
     const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
     if (!serviceKey) return new Response(JSON.stringify({ error: 'Service key not configured' }), { status: 500 });
 
