@@ -23,7 +23,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     } else {
       await supabase.auth.getSession();
     }
-    const next = params.get('next') || '/';
+    const rawNext = params.get('next') || '/';
+    const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/';
     window.location.href = next;
   }
 

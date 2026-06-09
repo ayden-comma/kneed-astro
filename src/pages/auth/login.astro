@@ -49,9 +49,10 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   const errorEl = document.getElementById('auth-error') as HTMLElement;
 
   googleBtn?.addEventListener('click', async () => {
+    const next = new URLSearchParams(window.location.search).get('next') || '/';
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/auth/callback' }
+      options: { redirectTo: window.location.origin + '/auth/callback?next=' + encodeURIComponent(next) }
     });
     if (error) errorEl.textContent = error.message;
   });
@@ -69,7 +70,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       signinBtn.disabled = false;
       signinBtn.textContent = 'Sign in';
     } else {
-      window.location.href = '/';
+      const next = new URLSearchParams(window.location.search).get('next') || '/';
+      window.location.href = next.startsWith('/') && !next.startsWith('//') ? next : '/';
     }
   });
 

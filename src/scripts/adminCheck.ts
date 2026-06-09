@@ -4,7 +4,7 @@ async function checkAdmin() {
   const { data: { session } } = await supabase.auth.getSession();
 
   if (!session) {
-    window.location.href = '/auth/login';
+    window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname);
     return;
   }
 

@@ -63,9 +63,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   const { pathname } = context.url;
 
-  // Always let through: unlock endpoint + static assets the holding page needs
+  // Always let through: auth flows, API calls, and static assets
+  // /auth/ must bypass so the OAuth callback is never intercepted by the gate
+  // /api/  must bypass so fetch-based calls don't receive holding-page HTML
   if (
-    pathname.startsWith('/api/unlock') ||
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/auth/') ||
     pathname.startsWith('/_astro/') ||
     pathname.startsWith('/images/') ||
     pathname.startsWith('/favicon') ||
