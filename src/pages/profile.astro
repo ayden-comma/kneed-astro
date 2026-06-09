@@ -124,7 +124,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   }
 
   async function initProfile() {
-    if (_profileGuard) return;
+    console.log('[PROFILE-DEBUG] initProfile fired, guard was', _profileGuard);
+    if (_profileGuard) {
+      console.log('[PROFILE-DEBUG] guard blocked duplicate call');
+      return;
+    }
     _profileGuard = true;
 
     const skeletonEl = document.getElementById('rb-skeleton');
@@ -134,6 +138,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     type SessionVal = Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'];
     const eventSession = await new Promise<SessionVal>((resolve) => {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event, sess) => {
+        console.log('[PROFILE-DEBUG] event:', event, 'hasSession:', !!sess);
         if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
           subscription.unsubscribe();
           resolve(sess);
@@ -146,9 +151,15 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     let session = eventSession;
     if (!session) {
       const { data: { session: confirmed } } = await supabase.auth.getSession();
+      console.log('[PROFILE-DEBUG] confirming getSession hasSession:', !!confirmed);
       session = confirmed;
     }
-    if (!session) { window.location.href = '/auth/login'; return; }
+    if (!session) {
+      console.log('[PROFILE-DEBUG] about to redirect to: /auth/login');
+      window.location.href = '/auth/login';
+      return;
+    }
+    console.log('[PROFILE-DEBUG] proceeding to render profile');
 
     // Fetch all saves + profile + ratings + comment count in parallel
     const [profileRes, savesRes, ratingsRes, commentsRes] = await Promise.all([
