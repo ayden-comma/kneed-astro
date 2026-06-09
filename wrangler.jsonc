@@ -4,5 +4,20 @@
   "vars": {
     "GA_CLIENT_ID": "931187863383-5fv9m652m3tt6rng0dudcqpkhcfad528.apps.googleusercontent.com",
     "GA_PROPERTY_ID": "538421681"
+  },
+  "observability": {
+    "enabled": false,
+    "head_sampling_rate": 1,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "persist": true,
+      "invocation_logs": true
+    },
+    "traces": {
+      "enabled": false,
+      "persist": true,
+      "head_sampling_rate": 1
+    }
   }
 }
