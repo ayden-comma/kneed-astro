@@ -1,7 +1,18 @@
 import { supabase } from '../lib/supabase';
 
+function getSettledSession() {
+  return new Promise<Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session']>((resolve) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+        subscription.unsubscribe();
+        resolve(session);
+      }
+    });
+  });
+}
+
 async function checkAdmin() {
-  const { data: { session } } = await supabase.auth.getSession();
+  const session = await getSettledSession();
 
   if (!session) {
     window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname);

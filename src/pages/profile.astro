@@ -126,7 +126,15 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     const contentEl  = document.getElementById('rb-content');
     if (!contentEl) return;
 
-    const { data: { session } } = await supabase.auth.getSession();
+    type SessionVal = Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'];
+    const session = await new Promise<SessionVal>((resolve) => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, sess) => {
+        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+          subscription.unsubscribe();
+          resolve(sess);
+        }
+      });
+    });
     if (!session) { window.location.href = '/auth/login'; return; }
 
     // Fetch all saves + profile + ratings + comment count in parallel
