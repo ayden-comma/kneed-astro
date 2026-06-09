@@ -45,6 +45,9 @@ export const GET: APIRoute = async ({ request: _request }) => {
   const refreshToken = import.meta.env.GA_REFRESH_TOKEN;
   const propertyId   = import.meta.env.GA_PROPERTY_ID;
 
+  // TEMP DEBUG
+  console.error('[analytics] env check — GA_CLIENT_ID:', !!clientId, 'GA_CLIENT_SECRET:', !!clientSecret, 'GA_REFRESH_TOKEN:', !!refreshToken, 'GA_PROPERTY_ID:', !!propertyId);
+
   if (!clientId || !clientSecret || !refreshToken || !propertyId) {
     return new Response(JSON.stringify({ error: 'GA env vars not configured' }), { status: 500 });
   }
