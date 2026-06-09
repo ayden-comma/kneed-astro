@@ -73,20 +73,17 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   }
 
   async function loadDashboard() {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    // ── Anon-readable: bakeries count, comments count, recent comments ──
     const [
       { count: bakeryCount },
-      { count: memberCount },
       { count: commentCount },
-      { count: pendingCount },
       { data: recentComments },
-      { data: recentMembers },
     ] = await Promise.all([
       supabase.from('bakeries_cms').select('*', { count: 'exact', head: true }),
-      supabase.from('profiles').select('*', { count: 'exact', head: true }),
       supabase.from('comments').select('*', { count: 'exact', head: true }),
-      supabase.from('submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-      supabase.from('comments').select('id, body, bakery_slug, created_at').order('created_at', { ascending: false }).limit(5),
-      supabase.from('profiles').select('id, display_name, created_at').order('created_at', { ascending: false }).limit(5),
+      supabase.from('comments').select('id, content, bakery_slug, created_at').order('created_at', { ascending: false }).limit(5),
     ]);
 
     const s = (id: string, val: number | null) => {
@@ -94,25 +91,51 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       if (el) el.textContent = String(val ?? 0);
     };
     s('stat-bakeries', bakeryCount);
-    s('stat-members',  memberCount);
     s('stat-comments', commentCount);
-    s('stat-pending',  pendingCount);
 
     const commentsEl = document.getElementById('recent-comments')!;
-    const arr = (recentComments ?? []) as { id: string; body: string; bakery_slug: string; created_at: string }[];
+    const arr = (recentComments ?? []) as { id: string; content: string; bakery_slug: string; created_at: string }[];
     commentsEl.innerHTML = arr.length === 0
       ? '<div class="admin-empty">No comments yet.</div>'
       : arr.map(c => `
           <div class="admin-activity-item">
             <div class="admin-activity-dot"></div>
             <div>
-              <div class="admin-activity-text" style="max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.body}</div>
+              <div class="admin-activity-text" style="max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.content}</div>
               <div class="admin-activity-meta">${c.bakery_slug} · ${timeAgo(c.created_at)}</div>
             </div>
           </div>`).join('');
 
+    // ── Gated: members count, pending count, recent members ──
+    if (!session) {
+      document.getElementById('stat-members')!.textContent  = '—';
+      document.getElementById('stat-pending')!.textContent  = '—';
+      document.getElementById('recent-members')!.innerHTML  = '<div class="admin-empty">Sign in required</div>';
+      return;
+    }
+
+    const dashRes = await fetch('/api/admin-dashboard', {
+      headers: { 'Authorization': `Bearer ${session.access_token}` },
+    });
+
+    if (!dashRes.ok) {
+      document.getElementById('stat-members')!.textContent  = '—';
+      document.getElementById('stat-pending')!.textContent  = '—';
+      document.getElementById('recent-members')!.innerHTML  = '<div class="admin-empty">Couldn\'t load member data</div>';
+      return;
+    }
+
+    const { membersCount, pendingCount, recentMembers } = await dashRes.json() as {
+      membersCount: number | null;
+      pendingCount: number | null;
+      recentMembers: { id: string; display_name: string | null; created_at: string }[] | null;
+    };
+
+    s('stat-members', membersCount);
+    s('stat-pending', pendingCount);
+
     const membersEl = document.getElementById('recent-members')!;
-    const marr = (recentMembers ?? []) as { id: string; display_name: string | null; created_at: string }[];
+    const marr = recentMembers ?? [];
     membersEl.innerHTML = marr.length === 0
       ? '<div class="admin-empty">No members yet.</div>'
       : marr.map(m => `
@@ -159,7 +182,6 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
         return;
       }
       json = await res.json();
-      console.log('[analytics] raw response:', json);
     } catch {
       chartMsg.textContent = "Couldn't load analytics";
       topPagesEl.innerHTML = '<div class="admin-empty">Couldn\'t load analytics</div>';
