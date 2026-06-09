@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { env } from 'cloudflare:workers';
 
 type AdminResult =
   | { ok: true; user: { id: string; email?: string } }
@@ -9,15 +10,20 @@ export async function requireAdmin(request: Request): Promise<AdminResult> {
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
   if (!token) return { ok: false, status: 401 };
 
-  const supabase = createClient(
+  const anonClient = createClient(
     import.meta.env.PUBLIC_SUPABASE_URL as string,
     import.meta.env.PUBLIC_SUPABASE_ANON_KEY as string,
   );
 
-  const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+  const { data: { user }, error: userError } = await anonClient.auth.getUser(token);
   if (userError || !user) return { ok: false, status: 401 };
 
-  const { data: profile, error: profileError } = await supabase
+  const serviceClient = createClient(
+    import.meta.env.PUBLIC_SUPABASE_URL as string,
+    env.SUPABASE_SERVICE_ROLE_KEY,
+  );
+
+  const { data: profile, error: profileError } = await serviceClient
     .from('profiles')
     .select('role')
     .eq('id', user.id)
