@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
+import { requireAdmin } from '../../lib/requireAdmin';
 
 export const prerender = false;
 
@@ -40,7 +41,10 @@ async function runReport(propertyId: string, token: string, body: object) {
   return res.json();
 }
 
-export const GET: APIRoute = async () => {
+export const GET: APIRoute = async ({ request }) => {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: auth.status });
+
   const clientId     = env.GA_CLIENT_ID;
   const clientSecret = env.GA_CLIENT_SECRET;
   const refreshToken = env.GA_REFRESH_TOKEN;
