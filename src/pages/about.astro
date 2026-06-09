@@ -18,67 +18,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <p>(K)Need is a production of <a href="https://commafilms.com.au" target="_blank" rel="noopener" style="color:var(--amber);">Comma Films</a>, a Melbourne-based film company.</p>
     </div>
 
-    <div class="about-grid">
-      <div class="about-card">
-        <div class="wf-eyebrow">What we make</div>
-        <h3 class="about-card-title">Short Films</h3>
-        <p class="about-card-body">Cinematic portraits of Melbourne bakers — the people, the process and the places.</p>
-      </div>
-      <div class="about-card">
-        <div class="wf-eyebrow">Where to find us</div>
-        <h3 class="about-card-title">The Map</h3>
-        <p class="about-card-body">Every bakery we've visited, plotted on a single map with addresses and opening hours.</p>
-      </div>
-      <div class="about-card">
-        <div class="wf-eyebrow">Get involved</div>
-        <h3 class="about-card-title">Submit a Bakery</h3>
-        <p class="about-card-body">Know a bakery that deserves a film? Tell us about it and we'll add it to our list.</p>
-      </div>
-    </div>
-
-    <div class="about-cta">
-      <a href="/bakeries" class="wf-pill pill-dark">Explore Bakeries</a>
-      <a href="/submit" class="wf-pill pill-light">Submit a Bakery</a>
-    </div>
-
   </main>
 </BaseLayout>
 
-<style>
-.about-grid {
-  display: grid;
-  gap: 1.125rem;
-  grid-template-columns: 1fr;
-  margin-top: 3rem;
-}
-@media (min-width: 600px) {
-  .about-grid { grid-template-columns: repeat(3, 1fr); }
-}
-.about-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-card);
-  padding: 1.75rem;
-}
-.about-card-title {
-  font-family: var(--font-display);
-  font-weight: 200;
-  font-size: 1.25rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--parchment);
-  margin: 0.5rem 0 0.75rem;
-}
-.about-card-body {
-  font-size: 0.9rem;
-  line-height: 1.7;
-  font-weight: 300;
-  color: var(--p-50);
-}
-.about-cta {
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 3rem;
-  flex-wrap: wrap;
-}
-</style>
