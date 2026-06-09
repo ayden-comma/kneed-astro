@@ -39,14 +39,16 @@ async function runReport(propertyId: string, token: string, body: object) {
   return res.json();
 }
 
-export const GET: APIRoute = async ({ request: _request }) => {
-  const clientId     = import.meta.env.GA_CLIENT_ID;
-  const clientSecret = import.meta.env.GA_CLIENT_SECRET;
-  const refreshToken = import.meta.env.GA_REFRESH_TOKEN;
-  const propertyId   = import.meta.env.GA_PROPERTY_ID;
+export const GET: APIRoute = async ({ locals }) => {
+  const env = (locals as { runtime?: { env?: Record<string, string> } }).runtime?.env ?? {};
+
+  const clientId     = env.GA_CLIENT_ID;
+  const clientSecret = env.GA_CLIENT_SECRET;
+  const refreshToken = env.GA_REFRESH_TOKEN;
+  const propertyId   = env.GA_PROPERTY_ID;
 
   // TEMP DEBUG
-  console.error('[analytics] env check — GA_CLIENT_ID:', !!clientId, 'GA_CLIENT_SECRET:', !!clientSecret, 'GA_REFRESH_TOKEN:', !!refreshToken, 'GA_PROPERTY_ID:', !!propertyId);
+  console.error('[analytics] env check — GA_CLIENT_ID:', !!env.GA_CLIENT_ID, 'GA_CLIENT_SECRET:', !!env.GA_CLIENT_SECRET, 'GA_REFRESH_TOKEN:', !!env.GA_REFRESH_TOKEN, 'GA_PROPERTY_ID:', !!env.GA_PROPERTY_ID);
 
   if (!clientId || !clientSecret || !refreshToken || !propertyId) {
     return new Response(JSON.stringify({ error: 'GA env vars not configured' }), { status: 500 });
