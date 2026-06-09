@@ -82,6 +82,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 <script>
   import { supabase } from '../lib/supabase';
 
+  let _profileGuard = false;
+
   function esc(s: string): string {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
@@ -122,12 +124,15 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   }
 
   async function initProfile() {
+    if (_profileGuard) return;
+    _profileGuard = true;
+
     const skeletonEl = document.getElementById('rb-skeleton');
     const contentEl  = document.getElementById('rb-content');
     if (!contentEl) return;
 
     type SessionVal = Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'];
-    const session = await new Promise<SessionVal>((resolve) => {
+    const eventSession = await new Promise<SessionVal>((resolve) => {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event, sess) => {
         if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
           subscription.unsubscribe();
@@ -135,6 +140,14 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         }
       });
     });
+    // If the event delivered null, confirm with getSession() before redirecting.
+    // getSession() awaits initializePromise internally, so it returns the settled
+    // state after any in-flight token refresh — eliminating the transient-null race.
+    let session = eventSession;
+    if (!session) {
+      const { data: { session: confirmed } } = await supabase.auth.getSession();
+      session = confirmed;
+    }
     if (!session) { window.location.href = '/auth/login'; return; }
 
     // Fetch all saves + profile + ratings + comment count in parallel
@@ -220,6 +233,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     });
   }
 
+  document.addEventListener('astro:before-swap', () => { _profileGuard = false; });
   document.addEventListener('astro:page-load', initProfile);
   initProfile();
 </script>

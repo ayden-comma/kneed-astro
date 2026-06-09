@@ -12,7 +12,13 @@ function getSettledSession() {
 }
 
 async function checkAdmin() {
-  const session = await getSettledSession();
+  const eventSession = await getSettledSession();
+
+  let session = eventSession;
+  if (!session) {
+    const { data: { session: confirmed } } = await supabase.auth.getSession();
+    session = confirmed;
+  }
 
   if (!session) {
     window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname);
