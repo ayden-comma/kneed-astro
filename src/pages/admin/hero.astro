@@ -56,6 +56,12 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 <script>
   import { supabase } from '../../lib/supabase';
 
+  async function authHeaders(): Promise<HeadersInit> {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { window.location.href = '/auth/login'; throw new Error('Session expired'); }
+    return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` };
+  }
+
   type HeroFeature = {
     id: string;
     bakery_slug: string | null;
@@ -246,7 +252,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
         btn.disabled = true;
         const res = await fetch('/api/admin-hero', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: await authHeaders(),
           body: JSON.stringify({ action: 'remove', id }),
         });
         const data = await res.json();
@@ -275,9 +281,10 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   async function swapOrder(idxA: number, idxB: number) {
     const a = _active[idxA];
     const b = _active[idxB];
+    const headers = await authHeaders();
     const [res1, res2] = await Promise.all([
-      fetch('/api/admin-hero', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reorder', id: a.id, sort_order: b.sort_order }) }),
-      fetch('/api/admin-hero', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reorder', id: b.id, sort_order: a.sort_order }) }),
+      fetch('/api/admin-hero', { method: 'POST', headers, body: JSON.stringify({ action: 'reorder', id: a.id, sort_order: b.sort_order }) }),
+      fetch('/api/admin-hero', { method: 'POST', headers, body: JSON.stringify({ action: 'reorder', id: b.id, sort_order: a.sort_order }) }),
     ]);
     if (!res1.ok || !res2.ok) { showMsg('Reorder failed.', 'error'); return; }
     const tmpOrder = a.sort_order;
@@ -297,7 +304,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
         const nextOrder = _active.length > 0 ? Math.max(..._active.map(h => h.sort_order)) + 1 : 0;
         const res = await fetch('/api/admin-hero', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: await authHeaders(),
           body: JSON.stringify({ action: 'add', content_type: 'bakery', bakery_slug: slug, sort_order: nextOrder }),
         });
         const data = await res.json();
@@ -317,7 +324,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
         const nextOrder = _active.length > 0 ? Math.max(..._active.map(h => h.sort_order)) + 1 : 0;
         const res = await fetch('/api/admin-hero', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: await authHeaders(),
           body: JSON.stringify({ action: 'add', content_type: 'article', article_slug: slug, sort_order: nextOrder }),
         });
         const data = await res.json();

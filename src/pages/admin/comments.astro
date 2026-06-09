@@ -81,6 +81,12 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 <script>
   import { supabase } from '../../lib/supabase';
 
+  async function authHeaders(): Promise<HeadersInit> {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { window.location.href = '/auth/login'; throw new Error('Session expired'); }
+    return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` };
+  }
+
   type CommentRow = {
     id: string; content: string; bakery_slug: string; created_at: string;
     parent_comment_id: string | null; vote_score: number | null;
@@ -209,7 +215,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
               e.stopPropagation();
               const res = await fetch('/api/admin-comment', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: await authHeaders(),
                 body: JSON.stringify({ action: 'soft-delete', id }),
               });
               const data = await res.json();
@@ -223,7 +229,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
               e.stopPropagation();
               const res = await fetch('/api/admin-comment', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: await authHeaders(),
                 body: JSON.stringify({ action: 'hard-delete', id }),
               });
               const data = await res.json();
