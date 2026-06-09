@@ -1,4 +1,5 @@
 ---
+// SECURITY: Keep this page a client-fetched shell. Do NOT fetch or render data server-side here — there is no server-side auth gate (session lives in localStorage, not cookies). Data is loaded client-side after adminCheck verifies admin role, and the API routes enforce auth via requireAdmin. Server-rendering data here would leak it to unauthenticated visitors.
 export const prerender = false;
 import AdminLayout from '../../layouts/AdminLayout.astro';
 ---
