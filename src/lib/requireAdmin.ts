@@ -17,11 +17,14 @@ export async function requireAdmin(request: Request): Promise<AdminResult> {
   const { data: { user }, error: userError } = await supabase.auth.getUser(token);
   if (userError || !user) return { ok: false, status: 401 };
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .single();
+
+  // TEMP DEBUG
+  console.error('[requireAdmin] userId:', user.id, 'profile:', JSON.stringify(profile), 'profileErr:', JSON.stringify(profileError));
 
   if (!profile || (profile as { role: string }).role !== 'admin') {
     return { ok: false, status: 403 };
