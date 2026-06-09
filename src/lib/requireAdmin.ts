@@ -29,6 +29,11 @@ export async function requireAdmin(request: Request): Promise<AdminResult> {
     .eq('id', user.id)
     .single();
 
+  if (profileError) {
+    console.error('[requireAdmin] role lookup failed:', profileError.message);
+    return { ok: false, status: 403 };
+  }
+
   if (!profile || (profile as { role: string }).role !== 'admin') {
     return { ok: false, status: 403 };
   }
