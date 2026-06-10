@@ -1,5 +1,13 @@
 # CLAUDE.md — Standing rules for this project
 
+## Canonical typecheck is `npx astro check`
+
+Always typecheck with `npx astro check`. It covers `.astro` files (component frontmatter and templates) in addition to `.ts`. `npx tsc --noEmit` alone **misses `.astro` files** and under-reported the error count this session. There is no `typecheck` npm script — use `npx astro check` directly.
+
+## Report every numbered instruction explicitly
+
+When a prompt contains a multi-item or numbered list of instructions, the final report **must** give an explicit done / not-done status for every single item. Do not silently drop a requested change — if an item was skipped, could not be done, or was intentionally left out, say so and why. (Silent omissions of requested changes have occurred; this rule exists to prevent them.)
+
 ## Env var sources (Astro + Cloudflare Workers)
 
 Runtime secrets **MUST** be read via `import { env } from 'cloudflare:workers'`:

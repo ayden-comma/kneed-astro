@@ -14,9 +14,10 @@ Grants restored to least-privilege map after an earlier unintentional revoke:
 | anon | comment_votes | SELECT |
 | anon | ratings | SELECT |
 | anon | public_profiles (view) | SELECT |
-| anon | submissions | INSERT |
 | authenticated | profiles | UPDATE (own-row via RLS) |
 | authenticated | (inherits all anon grants) | |
+
+`submissions` INSERT has been **revoked** for both `anon` and `authenticated` — all submissions now go through `/api/submit-bakery`, which uses the service-role key and bypasses table grants. (Revoked and verified live 2026-06-10; submissions continue to land post-revoke.)
 
 `forum_posts` and `forum_replies` are dead tables — zero grants, zero code references. Candidates for DROP.
 
@@ -64,7 +65,7 @@ ALTER TABLE public.submissions ADD COLUMN IF NOT EXISTS ip_address text;
 COMMIT;
 ```
 
-**Block 2 — grant revocation (run after confirming the route is live and submissions land):**
+**Block 2 — grant revocation (✅ executed 2026-06-10; route confirmed live, submissions land post-revoke):**
 
 ```sql
 BEGIN;
@@ -86,8 +87,6 @@ COMMIT;
 
 | Item | Notes |
 |------|-------|
-| **Email notifications on submissions** | Done — `/api/submit-bakery` sends a Resend notification after each insert; email failure is logged to Worker console but never blocks the response. `RESEND_API_KEY` must be set in Cloudflare dashboard. From-address is `onboarding@resend.dev` (Resend sandbox — delivers only to verified recipients until a sending domain is verified; see post-launch item) |
-| **Rate limiting on submissions** | Done — Supabase-backed, per-IP, max 3 per hour via `CF-Connecting-IP`. Requires `ip_address` column (see migration SQL below). Limitation: IP can be proxied/VPN'd; per-IP is a deterrent, not hard enforcement. Comment spam still unaddressed |
 | **OG image** | `public/images/og-default.jpg` is still a copy of the map screenshot. Needs a real 1200×630 branded asset before launch. Blocked on design, not code |
 
 ### Post-launch / queued
@@ -98,8 +97,9 @@ COMMIT;
 | `comment_votes` anon SELECT exposes `user_id` | Anon-facing fetch should select `comment_id + vote` only; a separate session-gated query should handle own-vote highlight. Include in privacy review brief |
 | "Admins can update any comment" RLS policy is dead | No UPDATE grant on comments, no edit feature exists. Drop in a future cleanup migration |
 | Optional grant tightening | `ratings` DELETE and `comment_votes` UPDATE are granted but unused — candidates for removal |
-| Submit-page rework | Brief exists: one form, owner checkbox reveals contact fields, contact PII only behind the toggle |
+| Submit-page rework | Brief exists: one form, owner checkbox reveals contact fields, contact PII only behind the toggle. Also: pre-fill email for logged-in users. Decide fate of the dead `suburb` column — never populated by any version of the form; either populate it from the Places result in the redesign, or drop the column |
 | `profile/edit.astro` Places migration | Still uses inline `<script is:inline>` for autocomplete; could be migrated to `src/lib/placesAutocomplete.ts` |
+| Typecheck cleanup | `npx astro check` reports ~44 errors (canonical typecheck — covers `.astro`; `tsc --noEmit` alone misses these). Breakdown: ~13 `.ts` `request.json()` items + ~31 `.astro` `display_name` null-type items. The latter were likely introduced by the `public_profiles` rewire (`nameMap[...] ?? null` vs `string \| undefined`) — runtime verified working, types just need aligning |
 | `forum_posts` / `forum_replies` DROP | Dead tables with no grants and no code references |
 | Editor role / permission tiers | Floated in earlier session, never decided. `/api/admin-set-role` covers granting admin for now. Post-launch question |
 | Resend sending domain | `onboarding@resend.dev` is Resend's sandbox sender — can only deliver to verified recipients. Verify `commafilms.com.au` or `kneed.tv` as a Resend sending domain, then update the `from` address in `submit-bakery.ts` to a domain address. Improves deliverability and removes recipient restriction |
@@ -110,6 +110,8 @@ COMMIT;
 
 | Item | Resolution |
 |------|------------|
+| **Email notifications on submissions** | Done & verified live — `/api/submit-bakery` sends a Resend notification (to `ayden@commafilms.com.au`, from `onboarding@resend.dev`) after each insert; email failure is logged to Worker console but never blocks the response. `RESEND_API_KEY` set in Cloudflare dashboard. From-address is `onboarding@resend.dev` (Resend sandbox — delivers only to verified recipients until a sending domain is verified; see post-launch item) |
+| **Rate limiting on submissions** | Done & verified live including the 429 path and post-revoke operation — DB-backed, per-IP, max 3 per hour via the `ip_address` column (`CF-Connecting-IP`). Limitation: IP can be proxied/VPN'd; per-IP is a deterrent, not hard enforcement. **Tuning note:** the limiter counts per-IP regardless of auth — consider per-user counting for authenticated submitters if shared-IP complaints arise. Comment spam still unaddressed |
 | Duplicate `baker-bleu-v2` slug | Was a layout-dev working copy; already deleted in normal workflow |
 | Admin bakeries preview button | Verified working |
 | Newsletter connection | Resolved by discovery: the "Get updates" form is an account-signup pre-fill, not a mailing list — no newsletter exists |

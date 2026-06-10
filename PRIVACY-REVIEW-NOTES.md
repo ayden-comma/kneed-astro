@@ -72,3 +72,7 @@ The live Data Retention section contains only the demographic data deletion sent
 > Demographic data (date of birth, gender, location) is deleted immediately when you withdraw consent via the Edit Profile page.
 
 No broader retention periods are defined or enforced in the current codebase. The placeholder `[REVIEWER: advise retention periods — no policy currently defined]` was removed from the live page to avoid surfacing an unresolved advisory to users. A legal adviser should define retention periods for: account data (email, name, profile photo), activity data (comments, ratings, saves), and bakery submissions before a formal privacy review.
+
+### [REVIEWER question] — Submission IP address retention
+
+The `submissions.ip_address` column records the submitter's IP for per-IP rate limiting (max 3 per hour). The rate-limit window only needs the IP for ~1 hour, but it is currently kept **indefinitely**. A reviewer should advise a retention period — e.g. purge IP addresses older than the rate-limit window, or set a defined maximum retention.
