@@ -1,6 +1,10 @@
 ---
 export const prerender = false;
 import BaseLayout from '../layouts/BaseLayout.astro';
+const h2s = "font-family:var(--font-display);font-weight:200;font-size:1.125rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--parchment);margin-bottom:0.75rem;";
+const st  = "color:var(--parchment);font-weight:500;";
+const rn  = "color:var(--amber);font-style:italic;font-size:0.875rem;";
+const vb  = "padding:0.75rem 1rem;border-left:2px solid var(--amber);margin:0.75rem 0;display:flex;flex-direction:column;gap:0.4rem;font-size:0.875rem;";
 ---
 
 <BaseLayout title="Privacy Policy" description="How (K)Need collects, uses and protects your personal information.">
@@ -8,37 +12,46 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     <div class="wf-page-head">
       <div class="wf-eyebrow">Legal</div>
       <h1 class="wf-page-h1">Privacy Policy</h1>
-      <p class="wf-page-intro">Last updated June 2025. This policy applies to kneed.tv and all related services.</p>
+      <p class="wf-page-intro">Last updated 10 June 2026. This policy applies to kneed.tv and all related services.</p>
     </div>
 
     <div class="simple-body">
 
       <section>
-        <h2 style="font-family:var(--font-display);font-weight:200;font-size:1.125rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--parchment);margin-bottom:0.75rem;">Who We Are</h2>
+        <h2 style={h2s}>Who We Are</h2>
         <p>(K)Need is a digital journal about Melbourne's neighbourhood bakeries, produced by Comma Films Pty Ltd, based in Melbourne, Victoria, Australia. We operate the website at kneed.tv ("the Site"). In this policy, "we", "us" and "our" refers to Comma Films Pty Ltd.</p>
-        <p>We are committed to protecting your personal information in accordance with the <em>Privacy Act 1988</em> (Cth) and the Australian Privacy Principles (APPs).</p>
-        <p>For any privacy enquiries, contact us at <a href="mailto:hello@kneed.com.au" style="color:var(--amber);">hello@kneed.com.au</a>.</p>
+        <p>For any privacy enquiries, contact us at <a href="mailto:hello@commafilms.com.au" style="color:var(--amber);">hello@commafilms.com.au</a>.</p>
       </section>
 
       <section>
-        <h2 style="font-family:var(--font-display);font-weight:200;font-size:1.125rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--parchment);margin-bottom:0.75rem;">What Data We Collect</h2>
-        <p><strong style="color:var(--parchment);font-weight:500;">Account information.</strong> When you create an account — either via Google sign-in or email and password — we collect your email address and, if provided by Google, your name and profile photo. This information is stored securely in our database.</p>
-        <p><strong style="color:var(--parchment);font-weight:500;">Profile information.</strong> You may choose to add a display name, username, and short bio to your public profile.</p>
-        <p><strong style="color:var(--parchment);font-weight:500;">Usage data.</strong> When you interact with the Site — including saving bakeries, leaving comments, or rating bakeries — we record those interactions in association with your account.</p>
-        <p><strong style="color:var(--parchment);font-weight:500;">Optional demographic data.</strong> With your explicit consent, we may collect your age (date of birth), gender, and suburb/location. This data is used solely for anonymous, aggregate analytics to help us understand our audience. We will never use this data to identify you individually, and you can withdraw consent at any time by editing your profile.</p>
-        <p><strong style="color:var(--parchment);font-weight:500;">Usage analytics.</strong> We use Google Analytics to collect anonymised data about how visitors use the Site, including pages visited, session duration and approximate geographic location. This data does not identify you personally.</p>
-        <p><strong style="color:var(--parchment);font-weight:500;">Bakery submissions.</strong> If you submit a bakery via the submission form, we collect the information you provide including bakery name, address, and your contact details.</p>
-        <p><strong style="color:var(--parchment);font-weight:500;">Newsletter.</strong> If you subscribe to our newsletter, we collect your email address for that purpose only.</p>
+        <h2 style={h2s}>What Data We Collect</h2>
+
+        <p><strong style={st}>Account information.</strong> When you sign in with Google, we receive your email address, name, and profile photo from Google. If you sign in with email and password, we collect your email address. This is stored in our database via Supabase.</p>
+
+        <p><strong style={st}>Profile information.</strong> You may add a display name, username, and bio to your profile. Your display name is publicly visible alongside any comments you post on the Site. Username and bio are stored in your profile but are not currently displayed publicly on the Site.
+        <span style={rn}> [REVIEWER: confirm intended public visibility of username and bio before launch]</span></p>
+
+        <p><strong style={st}>Optional demographic data.</strong> With your explicit consent, we may collect your date of birth, gender, and suburb or location. You can withdraw consent at any time via the Edit Profile page. Withdrawing consent deletes this data immediately and records a timestamp of the change. This data is used only for anonymous, aggregate analytics.</p>
+
+        <p><strong style={st}>Activity data.</strong> When you leave comments, rate bakeries, or save bakeries, we record those interactions linked to your account.</p>
+
+        <p><strong style={st}>Bakery submissions.</strong> If you submit or recommend a bakery via the form on the Site, we collect: bakery name, address, suburb, website, Instagram handle, notes, and your name. Email address and phone number are optional. If you are logged in, the submission is linked to your account. Submissions are visible to site admins only.</p>
+
+        <p><strong style={st}>Analytics and advertising data (consent-gated).</strong> Google Analytics 4 and the Meta Pixel load only if you click Accept on the consent banner. Google Analytics collects pages visited, session duration, approximate geographic location, and device and browser information. The Meta Pixel collects:</p>
+        <div style={vb}>
+          <span style={rn}>[REVIEWER: select one variant based on the autoConfig decision]</span>
+          <span><strong style={st}>Variant A — current state:</strong> page views and interaction data, including button clicks, form interactions, and page metadata.</span>
+          <span><strong style={st}>Variant B — if autoConfig disabled:</strong> page views only.</span>
+        </div>
       </section>
 
       <section>
-        <h2 style="font-family:var(--font-display);font-weight:200;font-size:1.125rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--parchment);margin-bottom:0.75rem;">How We Use Your Data</h2>
+        <h2 style={h2s}>How We Use Your Data</h2>
         <p>We use the information we collect to:</p>
         <ul style="padding-left:1.5rem;display:flex;flex-direction:column;gap:0.5rem;">
           <li>Operate and maintain your account and the features associated with it</li>
-          <li>Display your comments, ratings and saved bakeries on the Site</li>
-          <li>Send newsletters and updates you have opted into</li>
-          <li>Review and respond to bakery submissions</li>
+          <li>Display your comments and ratings on the Site</li>
+          <li>Review bakery submissions (visible to admins only)</li>
           <li>Produce anonymous, aggregate analytics to improve our content and editorial focus</li>
           <li>Comply with our legal obligations</li>
         </ul>
@@ -46,63 +59,78 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       </section>
 
       <section>
-        <h2 style="font-family:var(--font-display);font-weight:200;font-size:1.125rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--parchment);margin-bottom:0.75rem;">Who We Share Data With</h2>
-        <p>We do not sell your personal information. We share data only with the following trusted service providers, each bound by their own privacy commitments:</p>
-        <ul style="padding-left:1.5rem;display:flex;flex-direction:column;gap:0.5rem;">
-          <li><strong style="color:var(--parchment);font-weight:500;">Supabase</strong> — our database and authentication provider. Your account data and content are stored on Supabase infrastructure. See <a href="https://supabase.com/privacy" target="_blank" rel="noopener" style="color:var(--amber);">supabase.com/privacy</a>.</li>
-          <li><strong style="color:var(--parchment);font-weight:500;">Cloudinary</strong> — we use Cloudinary to store and serve images uploaded to the Site. See <a href="https://cloudinary.com/privacy" target="_blank" rel="noopener" style="color:var(--amber);">cloudinary.com/privacy</a>.</li>
-          <li><strong style="color:var(--parchment);font-weight:500;">Google Analytics</strong> — anonymised usage data is sent to Google Analytics. See <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style="color:var(--amber);">Google's Privacy Policy</a>. You can opt out via <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener" style="color:var(--amber);">Google's opt-out tool</a>.</li>
-          <li><strong style="color:var(--parchment);font-weight:500;">Google OAuth</strong> — if you sign in with Google, your authentication is handled by Google. We receive only your name and email address.</li>
+        <h2 style={h2s}>Who We Share Data With</h2>
+        <p>We do not sell your personal information. We share data with the following service providers:</p>
+        <ul style="padding-left:1.5rem;display:flex;flex-direction:column;gap:0.75rem;">
+          <li><strong style={st}>Supabase</strong> — our database and authentication provider. All account data, profile data, comments, ratings, and submissions are stored on Supabase infrastructure. <a href="https://supabase.com/privacy" target="_blank" rel="noopener" style="color:var(--amber);">supabase.com/privacy</a></li>
+          <li><strong style={st}>Google OAuth</strong> — if you sign in with Google, authentication is handled by Google. We receive your email address, name, and profile photo. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style="color:var(--amber);">Google's Privacy Policy</a></li>
+          <li><strong style={st}>Google Analytics</strong> — when you consent to tracking, usage data (pages visited, session data, approximate location, device information) is sent to Google. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style="color:var(--amber);">Google's Privacy Policy</a> · <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener" style="color:var(--amber);">opt-out tool</a></li>
+          <li>
+            <strong style={st}>Meta</strong> — when you consent to tracking, data is sent to Meta via the Meta Pixel. Meta may combine this with data it already holds about you.
+            <div style={vb}>
+              <span style={rn}>[REVIEWER: select one variant based on the autoConfig decision]</span>
+              <span><strong style={st}>Variant A — current state:</strong> page views and interaction data (button clicks, form interactions, page metadata) are sent to Meta.</span>
+              <span><strong style={st}>Variant B — if autoConfig disabled:</strong> page views only are sent to Meta.</span>
+            </div>
+            <a href="https://www.meta.com/en-gb/privacy/policy/" target="_blank" rel="noopener" style="color:var(--amber);">Meta's Privacy Policy</a> · <a href="https://accountscenter.facebook.com/ad_preferences" target="_blank" rel="noopener" style="color:var(--amber);">Meta ad settings</a>
+          </li>
+          <li><strong style={st}>Google Fonts</strong> — fonts are loaded from Google Fonts on every page of the Site. Your IP address is sent to Google as part of that request. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style="color:var(--amber);">Google's Privacy Policy</a></li>
+          <li><strong style={st}>Google Places</strong> — address and suburb fields on the bakery submission form and the profile edit page use Google's Places API for autocomplete. The text you type into those fields is sent to Google.</li>
+          <li><strong style={st}>CartoCDN</strong> — on pages that include a map, map tiles are loaded from CartoCDN. Your IP address and the map area you view are sent to CartoCDN.</li>
+          <li><strong style={st}>Cloudinary</strong> — some images on the Site are served via Cloudinary. Loading those images sends your IP address to Cloudinary. <a href="https://cloudinary.com/privacy" target="_blank" rel="noopener" style="color:var(--amber);">cloudinary.com/privacy</a></li>
+          <li><strong style={st}>YouTube</strong> — some pages include embedded YouTube videos. When you click play, your IP address and viewing data are sent to YouTube/Google.</li>
+          <li><strong style={st}>Google (profile photos)</strong> — profile photos for Google sign-in users are loaded directly from googleusercontent.com, sending your IP address to Google.</li>
         </ul>
         <p>We may also disclose personal information if required to do so by law, or to protect the rights, property or safety of (K)Need, our users or the public.</p>
       </section>
 
       <section>
-        <h2 style="font-family:var(--font-display);font-weight:200;font-size:1.125rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--parchment);margin-bottom:0.75rem;">Cookies</h2>
-        <p>We use cookies and similar tracking technologies on the Site:</p>
+        <h2 style={h2s}>How Your Data Is Stored Locally</h2>
+        <p>This site does not use cookies for authentication. Your login session is stored in your browser's <strong style={st}>localStorage</strong>, not in a cookie. This means your session exists only in the browser and device where you signed in.</p>
+        <p>The following items are stored in localStorage on your device:</p>
         <ul style="padding-left:1.5rem;display:flex;flex-direction:column;gap:0.5rem;">
-          <li><strong style="color:var(--parchment);font-weight:500;">Authentication cookies</strong> — Supabase sets session cookies to keep you logged in. These are essential for the Site to function.</li>
-          <li><strong style="color:var(--parchment);font-weight:500;">Analytics cookies</strong> — Google Analytics sets cookies to track anonymised usage data. These can be blocked without affecting site functionality.</li>
+          <li><code>kneed-consent</code> — your analytics and advertising consent choice (accepted or declined), with a timestamp. Persists until you clear browser storage or change your choice via the "Privacy choices" link in the footer.</li>
+          <li><code>kneed-theme</code> — your preferred colour theme (dark or light mode). This is a UI preference only and does not track you.</li>
+          <li>Your Supabase session token, stored by the Supabase client library. This keeps you logged in between visits on the same device and browser.</li>
         </ul>
-        <p>See our <a href="/cookies" style="color:var(--amber);">Cookie Policy</a> for full details.</p>
+        <p>If you consent to tracking, the Meta Pixel sets a cookie named <code>_fbp</code> in your browser. This is a third-party cookie set by Meta, used to identify your browser for advertising purposes. No analytics or advertising cookies are set if you decline or have not yet responded to the consent banner.</p>
+        <p>No other cookies are set by this site.</p>
       </section>
 
       <section>
-        <h2 style="font-family:var(--font-display);font-weight:200;font-size:1.125rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--parchment);margin-bottom:0.75rem;">Analytics and Advertising Cookies</h2>
-        <p>We use third-party services to understand how visitors use our site and to measure the effectiveness of our marketing.</p>
-        <p><strong style="color:var(--parchment);font-weight:500;">Google Analytics</strong> collects information about your visit, including pages viewed, time spent, and general location, to help us improve the site.</p>
-        <p><strong style="color:var(--parchment);font-weight:500;">Meta (Facebook) Pixel</strong> collects information about your activity on our site — including pages you visit — and shares it with Meta. This helps us measure and improve our advertising. Meta may combine this information with data it already holds about you. You can learn more about how Meta uses this data in <a href="https://www.meta.com/en-gb/privacy/policy/" target="_blank" rel="noopener" style="color:var(--amber);">Meta's Privacy Policy</a>.</p>
-        <p>These services set cookies and may transfer data outside Australia. You can opt out of Meta's tracking through your <a href="https://accountscenter.facebook.com/ad_preferences" target="_blank" rel="noopener" style="color:var(--amber);">Meta account ad settings</a>, and you can control cookies through your browser settings.</p>
+        <h2 style={h2s}>Analytics and Consent</h2>
+        <p>Google Analytics 4 and the Meta Pixel do not load unless you explicitly click <strong style={st}>Accept</strong> on the consent banner shown on your first visit. If you click <strong style={st}>Decline</strong>, neither tracker loads and nothing is sent to Google or Meta from your visit. Your choice persists across future visits to the Site.</p>
+        <p>You can change your choice at any time using the <strong style={st}>Privacy choices</strong> link in the site footer. This clears your saved choice and re-displays the consent banner.</p>
+        <p>Neither tracker loads on the sign-in callback page, even with consent granted, to prevent your OAuth authentication code from being sent to any third-party service.</p>
       </section>
 
       <section>
-        <h2 style="font-family:var(--font-display);font-weight:200;font-size:1.125rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--parchment);margin-bottom:0.75rem;">Data Retention</h2>
-        <p>We retain your account data for as long as your account is active. If you delete your account, we will delete your personal data within 30 days, except where we are required to retain it for legal or compliance reasons.</p>
-        <p>Anonymous, aggregate analytics data (with no personal identifiers) may be retained indefinitely.</p>
-        <p>Demographic data (age, gender, location) that you have provided under consent will be deleted immediately if you withdraw that consent via the Edit Profile page.</p>
+        <h2 style={h2s}>Data Retention</h2>
+        <p><span style={rn}>[REVIEWER: advise retention periods — no policy currently defined]</span></p>
+        <p>Demographic data (date of birth, gender, location) is deleted immediately when you withdraw consent via the Edit Profile page.</p>
       </section>
 
       <section>
-        <h2 style="font-family:var(--font-display);font-weight:200;font-size:1.125rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--parchment);margin-bottom:0.75rem;">Your Rights</h2>
-        <p>Under the Australian Privacy Act 1988, you have the right to:</p>
+        <h2 style={h2s}>Your Rights</h2>
+        <p>You have the right to:</p>
         <ul style="padding-left:1.5rem;display:flex;flex-direction:column;gap:0.5rem;">
-          <li><strong style="color:var(--parchment);font-weight:500;">Access</strong> your personal information that we hold</li>
-          <li><strong style="color:var(--parchment);font-weight:500;">Correct</strong> inaccurate or out-of-date personal information</li>
-          <li><strong style="color:var(--parchment);font-weight:500;">Delete</strong> your account and associated personal data</li>
-          <li><strong style="color:var(--parchment);font-weight:500;">Withdraw consent</strong> for demographic data collection at any time via your profile settings</li>
-          <li><strong style="color:var(--parchment);font-weight:500;">Complain</strong> to the Office of the Australian Information Commissioner (OAIC) if you believe your privacy rights have been breached</li>
+          <li><strong style={st}>Access</strong> your personal information that we hold</li>
+          <li><strong style={st}>Correct</strong> inaccurate or out-of-date personal information</li>
+          <li><strong style={st}>Delete</strong> your account and associated personal data</li>
+          <li><strong style={st}>Withdraw consent</strong> for demographic data collection at any time via your profile settings</li>
+          <li><strong style={st}>Complain</strong> to the Office of the Australian Information Commissioner (OAIC) if you believe your privacy rights have been breached</li>
         </ul>
-        <p>To exercise any of these rights, email us at <a href="mailto:hello@kneed.com.au" style="color:var(--amber);">hello@kneed.com.au</a>. We will respond within 30 days.</p>
+        <p>To exercise any of these rights, email us at <a href="mailto:hello@commafilms.com.au" style="color:var(--amber);">hello@commafilms.com.au</a>. We will respond within 30 days.</p>
       </section>
 
       <section>
-        <h2 style="font-family:var(--font-display);font-weight:200;font-size:1.125rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--parchment);margin-bottom:0.75rem;">Changes to This Policy</h2>
-        <p>We may update this Privacy Policy from time to time. When we do, we will update the "last updated" date at the top of this page. Continued use of the Site after any changes constitutes your acceptance of the updated policy.</p>
+        <h2 style={h2s}>Changes to This Policy</h2>
+        <p>We may update this Privacy Policy from time to time. When we do, we will update the "last updated" date at the top of this page.</p>
       </section>
 
       <section>
-        <h2 style="font-family:var(--font-display);font-weight:200;font-size:1.125rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--parchment);margin-bottom:0.75rem;">Contact</h2>
-        <p>For any privacy questions or requests, please contact us at <a href="mailto:hello@kneed.com.au" style="color:var(--amber);">hello@kneed.com.au</a>.</p>
+        <h2 style={h2s}>Contact</h2>
+        <p>For any privacy questions or requests, please contact us at <a href="mailto:hello@commafilms.com.au" style="color:var(--amber);">hello@commafilms.com.au</a>.</p>
         <p>Comma Films Pty Ltd<br/>Melbourne, Victoria, Australia</p>
       </section>
 
