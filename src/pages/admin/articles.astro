@@ -863,8 +863,16 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
         const id    = (btn as HTMLElement).dataset.id!;
         const title = (btn as HTMLElement).dataset.title!;
         if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
-        const { error } = await supabase.from('articles_cms').delete().eq('id', id);
-        if (error) { showMsg(msgEl, error.message, 'error'); return; }
+        const res = await fetch('/api/admin-articles-cms', {
+          method: 'POST',
+          headers: await authHeaders(),
+          body: JSON.stringify({ action: 'delete', id }),
+        });
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({ error: 'Delete failed' }));
+          if (res.status === 401) { window.location.href = '/auth/login'; return; }
+          showMsg(msgEl, (json as { error?: string }).error ?? 'Delete failed', 'error'); return;
+        }
         document.querySelector(`tr[data-id="${id}"]`)?.remove();
         showMsg(msgEl, `"${title}" deleted.`, 'success');
       });
@@ -1138,13 +1146,19 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       updated_at:     new Date().toISOString(),
     };
 
-    let error;
-    if (id) ({ error } = await supabase.from('articles_cms').update(payload).eq('id', id));
-    else    ({ error } = await supabase.from('articles_cms').insert(payload));
+    const cmsRes = await fetch('/api/admin-articles-cms', {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify(id ? { action: 'update', id, payload } : { action: 'insert', payload }),
+    });
 
     [draftBtn, previewBtn, publishBtn].forEach(b => { b.disabled = false; });
 
-    if (error) { showMsg(modalMsg, error.message, 'error'); return; }
+    if (!cmsRes.ok) {
+      const json = await cmsRes.json().catch(() => ({ error: 'Save failed' }));
+      if (cmsRes.status === 401) { window.location.href = '/auth/login'; return; }
+      showMsg(modalMsg, (json as { error?: string }).error ?? 'Save failed', 'error'); return;
+    }
 
     await fetch('/api/admin-locations', {
       method: 'POST',
