@@ -40,6 +40,12 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 <script>
   import { supabase } from '../../lib/supabase';
 
+  async function authHeaders(): Promise<HeadersInit> {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { window.location.href = '/auth/login'; throw new Error('Session expired'); }
+    return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` };
+  }
+
   type MemberRow = { id: string; display_name: string | null; role: string; created_at: string };
 
   const msgEl  = document.getElementById('admin-msg')!;
@@ -99,8 +105,16 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
         const newRole = curRole === 'admin' ? 'member' : 'admin';
         const action  = newRole === 'admin' ? `Make "${name}" an admin` : `Remove admin from "${name}"`;
         if (!confirm(`${action}?`)) return;
-        const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', id);
-        if (error) { showMsg(error.message, 'error'); return; }
+        const res = await fetch('/api/admin-set-role', {
+          method: 'POST',
+          headers: await authHeaders(),
+          body: JSON.stringify({ action: 'set_role', id, role: newRole }),
+        });
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({ error: 'Request failed' }));
+          if (res.status === 401) { window.location.href = '/auth/login'; return; }
+          showMsg((json as { error?: string }).error ?? 'Request failed', 'error'); return;
+        }
         const row = tbody.querySelector(`tr[data-id="${id}"]`);
         if (row) {
           row.setAttribute('data-role', newRole);

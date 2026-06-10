@@ -827,6 +827,17 @@ main {
 
     let voteMap: VoteMap = {};
 
+    async function fetchDisplayNames(userIds: string[]): Promise<Record<string, string | null>> {
+      if (userIds.length === 0) return {};
+      const { data } = await supabase
+        .from('public_profiles')
+        .select('id, display_name')
+        .in('id', userIds);
+      const map: Record<string, string | null> = {};
+      (data ?? []).forEach((p: { id: string; display_name: string | null }) => { map[p.id] = p.display_name; });
+      return map;
+    }
+
     async function fetchVotes(ids: string[]): Promise<void> {
       if (ids.length === 0) return;
       const { data: votes } = await supabase
@@ -892,10 +903,12 @@ main {
     async function loadReplies(parentId: string, repliesEl: HTMLElement) {
       const { data: replies } = await supabase
         .from('comments')
-        .select('*, profiles(display_name)')
+        .select('*')
         .eq('parent_comment_id', parentId)
         .order('created_at', { ascending: true });
       if (!replies || replies.length === 0) { repliesEl.innerHTML = ''; return; }
+      const nameMap = await fetchDisplayNames([...new Set((replies as CommentRow[]).map(r => r.user_id))]);
+      (replies as CommentRow[]).forEach(r => { r.profiles = { display_name: nameMap[r.user_id] ?? null }; });
       const replyIds = (replies as CommentRow[]).map(r => r.id);
       await fetchVotes(replyIds);
       repliesEl.innerHTML = (replies as CommentRow[]).map(r => commentHTML(r, true)).join('');
@@ -980,7 +993,7 @@ main {
     async function loadComments() {
       const { data: comments } = await supabase
         .from('comments')
-        .select('*, profiles(display_name)')
+        .select('*')
         .eq('bakery_slug', slug)
         .is('parent_comment_id', null)
         .order('created_at', { ascending: false });
@@ -989,6 +1002,9 @@ main {
         listEl!.innerHTML = '<p class="comments-empty">No comments yet. Be the first to share your thoughts!</p>';
         return;
       }
+
+      const nameMap = await fetchDisplayNames([...new Set((comments as CommentRow[]).map(c => c.user_id))]);
+      (comments as CommentRow[]).forEach(c => { c.profiles = { display_name: nameMap[c.user_id] ?? null }; });
 
       const commentIds = (comments as CommentRow[]).map(c => c.id);
       voteMap = {};

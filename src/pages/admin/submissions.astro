@@ -37,6 +37,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 
   type SubRow = {
     id: string; bakery_name: string; submitted_name: string | null;
+    user_id: string | null;
     email: string | null; phone: string | null;
     suburb: string | null; address: string | null;
     website: string | null; instagram: string | null; notes: string | null;
@@ -105,10 +106,23 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   async function loadList() {
     const { data, error } = await supabase
       .from('submissions')
-      .select('*, profiles(display_name)')
+      .select('*')
       .order('created_at', { ascending: false });
     if (error) { listEl.innerHTML = `<div class="admin-empty">Error: ${error.message}</div>`; return; }
     _allRows = (data ?? []) as unknown as SubRow[];
+
+    const userIds = [...new Set(_allRows.map(s => s.user_id).filter((id): id is string => !!id))];
+    if (userIds.length) {
+      const { data: profiles } = await supabase
+        .from('public_profiles')
+        .select('id, display_name')
+        .in('id', userIds);
+      const nameMap = Object.fromEntries(
+        (profiles ?? []).map((p: { id: string; display_name: string | null }) => [p.id, p.display_name])
+      );
+      _allRows.forEach(s => { s.profiles = s.user_id ? { display_name: nameMap[s.user_id] ?? null } : null; });
+    }
+
     listEl.innerHTML = _allRows.length === 0
       ? '<div class="admin-empty">No submissions yet.</div>'
       : _allRows.map(cardHTML).join('');

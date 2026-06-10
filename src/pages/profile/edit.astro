@@ -187,6 +187,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  let _initialConsent = false;
+
   async function init() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { window.location.href = '/auth/login'; return; }
@@ -209,8 +211,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       (field('f-dob') as HTMLInputElement).value          = (profile as any).date_of_birth ?? '';
       (field('f-gender') as HTMLInputElement).value       = (profile as any).gender ?? '';
       (field('location-input') as HTMLInputElement).value     = (profile as any).location ?? '';
-      (document.getElementById('f-demographics-consent') as HTMLInputElement).checked =
-        !!(profile as any).demographics_consent;
+      _initialConsent = !!(profile as any).demographics_consent;
+      (document.getElementById('f-demographics-consent') as HTMLInputElement).checked = _initialConsent;
     }
   }
 
@@ -235,8 +237,10 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       username,
       bio:                  (field('f-bio') as HTMLTextAreaElement).value.trim() || null,
       demographics_consent: consent,
-      updated_at:           new Date().toISOString(),
     };
+    if (consent !== _initialConsent) {
+      payload.demographics_consent_at = new Date().toISOString();
+    }
 
     if (consent) {
       payload.date_of_birth = (field('f-dob') as HTMLInputElement).value || null;
@@ -262,6 +266,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
     if (error) { showError(error.message); return; }
 
+    _initialConsent = consent;
     successEl.style.display = '';
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });

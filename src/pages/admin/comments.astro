@@ -89,7 +89,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   }
 
   type CommentRow = {
-    id: string; content: string; bakery_slug: string; created_at: string;
+    id: string; user_id: string; content: string; bakery_slug: string; created_at: string;
     parent_comment_id: string | null; vote_score: number | null;
     profiles: { display_name: string | null } | null;
   };
@@ -267,7 +267,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     if (!session) return;
     const { data, error } = await supabase
       .from('comments')
-      .select('*, profiles(display_name)')
+      .select('*')
       .order('created_at', { ascending: false })
       .limit(200);
     if (error) { tbody.innerHTML = `<tr><td colspan="6"><div class="admin-empty">Error: ${error.message}</div></td></tr>`; return; }
@@ -279,6 +279,15 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     );
 
     if (_allRows.length) {
+      const userIds = [...new Set(_allRows.map(c => c.user_id))];
+      const { data: profiles } = await supabase
+        .from('public_profiles')
+        .select('id, display_name')
+        .in('id', userIds);
+      const nameMap = Object.fromEntries(
+        (profiles ?? []).map((p: { id: string; display_name: string | null }) => [p.id, p.display_name])
+      );
+      _allRows.forEach(c => { c.profiles = { display_name: nameMap[c.user_id] ?? null }; });
       const commentIds = _allRows.map(c => c.id);
       const { data: votes } = await supabase
         .from('comment_votes')
