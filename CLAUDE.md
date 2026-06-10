@@ -33,3 +33,28 @@ A clean build and passing type-check prove nothing about auth correctness. After
 - Logged-out / no token → expect 401
 
 If only the success path is tested, a missing or broken auth gate is indistinguishable from a working one.
+
+## Grants and RLS are two separate permission layers
+
+A request must hold the table **GRANT** before RLS policies are evaluated at all. `42501 "permission denied"` means a missing grant, not an RLS denial. Any permissions audit or migration must inspect **both**:
+- `SELECT ... FROM information_schema.role_table_grants WHERE grantee IN ('anon', 'authenticated')` — table privileges
+- `SELECT ... FROM pg_policies WHERE tablename = '...'` — row-level policies
+
+Always check both for the `anon` **and** `authenticated` roles.
+
+## Test as a logged-out visitor after any permissions or schema change
+
+A past grants revoke silently broke public comments, ratings, and the public submit form for an unknown period because only logged-in paths were tested. After any permissions or schema change, verify the logged-out path explicitly — not just a logged-in admin session.
+
+## Public profile data goes through public_profiles view only
+
+`public_profiles` is a definer-rights view exposing `id` and `display_name` only. It exists so display names are readable without a public SELECT policy on `profiles`.
+
+- **Never** re-add a public SELECT policy on `profiles`.
+- **Never** widen `public_profiles`'s column list without a privacy review.
+
+All six comment/submission query sites use a separate `public_profiles` fetch + client-side merge (PostgREST cannot join views via FK — no FK constraints on views).
+
+## Codebase-only audits cannot verify database state
+
+RLS policies, grants, and schema claims must be confirmed against the live database — code inspection alone is not sufficient. Two audit findings this session (profiles exposure, consent flow status) appeared correct from code but were wrong until tested against the live DB.
