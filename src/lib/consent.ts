@@ -26,7 +26,10 @@ function loadTrackers(): void {
   ga.src = 'https://www.googletagmanager.com/gtag/js?id=G-G6ZQHC582Q';
   document.head.appendChild(ga);
   w.dataLayer = w.dataLayer || [];
-  w.gtag = function gtag(...args: unknown[]) { w.dataLayer.push(args); };
+  // Must be a regular function — gtag.js reads Arguments objects, not arrays.
+  // Arrow functions and rest-params both produce arrays and are silently ignored.
+  // eslint-disable-next-line prefer-rest-params
+  w.gtag = function gtag() { w.dataLayer.push(arguments); };
   w.gtag('js', new Date());
   w.gtag('config', 'G-G6ZQHC582Q');
 
