@@ -54,20 +54,46 @@ function dismiss(el: HTMLElement): void {
   setTimeout(() => el.remove(), 240);
 }
 
+function injectBannerStyles(): void {
+  if (document.getElementById('kneed-consent-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'kneed-consent-styles';
+  style.textContent = `
+    .kneed-consent-btn {
+      padding: 0.45rem 1.25rem;
+      border-radius: var(--r-pill);
+      font-family: var(--font-cond);
+      font-size: 0.65rem;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.18s, color 0.18s, border-color 0.18s;
+    }
+    #kneed-consent-decline {
+      border: 1px solid var(--border-md);
+      background: transparent;
+      color: var(--parchment);
+    }
+    #kneed-consent-accept {
+      border: 1px solid transparent;
+      background: var(--parchment);
+      color: var(--ink);
+    }
+    .kneed-consent-btn:hover,
+    .kneed-consent-btn:focus-visible {
+      background: var(--amber);
+      color: #fff;
+      border-color: var(--amber);
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 function showBannerInternal(): void {
   if (document.getElementById('kneed-consent-banner')) return;
 
-  const btnBase = [
-    'padding:0.45rem 1.25rem',
-    'border-radius:var(--r-pill)',
-    'font-family:var(--font-cond)',
-    'font-size:0.65rem',
-    'font-weight:500',
-    'letter-spacing:0.1em',
-    'text-transform:uppercase',
-    'cursor:pointer',
-    'transition:background 0.18s,color 0.18s,border-color 0.18s',
-  ].join(';');
+  injectBannerStyles();
 
   const banner = document.createElement('div');
   banner.id = 'kneed-consent-banner';
@@ -91,14 +117,8 @@ function showBannerInternal(): void {
       <a href="/privacy" style="color:var(--parchment);text-decoration:underline;text-underline-offset:3px;">Learn more in our Privacy Policy</a>.
     </p>
     <div style="display:flex;gap:0.5rem;flex-shrink:0;" role="group" aria-label="Consent options">
-      <button id="kneed-consent-decline" type="button"
-        style="${btnBase};border:1px solid var(--border-md);background:transparent;color:var(--parchment);">
-        Decline
-      </button>
-      <button id="kneed-consent-accept" type="button"
-        style="${btnBase};border:1px solid transparent;background:var(--parchment);color:var(--ink);">
-        Accept
-      </button>
+      <button id="kneed-consent-decline" class="kneed-consent-btn" type="button">Decline</button>
+      <button id="kneed-consent-accept" class="kneed-consent-btn" type="button">Accept</button>
     </div>
   `;
 
