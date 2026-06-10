@@ -3,8 +3,6 @@ export const prerender = false;
 import BaseLayout from '../layouts/BaseLayout.astro';
 const h2s = "font-family:var(--font-display);font-weight:200;font-size:1.125rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--parchment);margin-bottom:0.75rem;";
 const st  = "color:var(--parchment);font-weight:500;";
-const rn  = "color:var(--amber);font-style:italic;font-size:0.875rem;";
-const vb  = "padding:0.75rem 1rem;border-left:2px solid var(--amber);margin:0.75rem 0;display:flex;flex-direction:column;gap:0.4rem;font-size:0.875rem;";
 ---
 
 <BaseLayout title="Privacy Policy" description="How (K)Need collects, uses and protects your personal information.">
@@ -28,8 +26,7 @@ const vb  = "padding:0.75rem 1rem;border-left:2px solid var(--amber);margin:0.75
 
         <p><strong style={st}>Account information.</strong> When you sign in with Google, we receive your email address, name, and profile photo from Google. If you sign in with email and password, we collect your email address. This is stored in our database via Supabase.</p>
 
-        <p><strong style={st}>Profile information.</strong> You may add a display name, username, and bio to your profile. Your display name is publicly visible alongside any comments you post on the Site. Username and bio are stored in your profile but are not currently displayed publicly on the Site.
-        <span style={rn}> [REVIEWER: confirm intended public visibility of username and bio before launch]</span></p>
+        <p><strong style={st}>Profile information.</strong> You may add a display name, username, and bio to your profile. Your display name is publicly visible alongside any comments you post on the Site. Username and bio are stored in your profile but are not currently displayed publicly on the Site.</p>
 
         <p><strong style={st}>Optional demographic data.</strong> With your explicit consent, we may collect your date of birth, gender, and suburb or location. You can withdraw consent at any time via the Edit Profile page. Withdrawing consent deletes this data immediately and records a timestamp of the change. This data is used only for anonymous, aggregate analytics.</p>
 
@@ -37,12 +34,7 @@ const vb  = "padding:0.75rem 1rem;border-left:2px solid var(--amber);margin:0.75
 
         <p><strong style={st}>Bakery submissions.</strong> If you submit or recommend a bakery via the form on the Site, we collect: bakery name, address, suburb, website, Instagram handle, notes, and your name. Email address and phone number are optional. If you are logged in, the submission is linked to your account. Submissions are visible to site admins only.</p>
 
-        <p><strong style={st}>Analytics and advertising data (consent-gated).</strong> Google Analytics 4 and the Meta Pixel load only if you click Accept on the consent banner. Google Analytics collects pages visited, session duration, approximate geographic location, and device and browser information. The Meta Pixel collects:</p>
-        <div style={vb}>
-          <span style={rn}>[REVIEWER: select one variant based on the autoConfig decision]</span>
-          <span><strong style={st}>Variant A — current state:</strong> page views and interaction data, including button clicks, form interactions, and page metadata.</span>
-          <span><strong style={st}>Variant B — if autoConfig disabled:</strong> page views only.</span>
-        </div>
+        <p><strong style={st}>Analytics and advertising data (consent-gated).</strong> Google Analytics 4 and the Meta Pixel load only if you click Accept on the consent banner. Google Analytics collects pages visited, session duration, approximate geographic location, and device and browser information. The Meta Pixel collects page views and interaction data, including button clicks, form interactions, and page metadata.</p>
       </section>
 
       <section>
@@ -65,15 +57,7 @@ const vb  = "padding:0.75rem 1rem;border-left:2px solid var(--amber);margin:0.75
           <li><strong style={st}>Supabase</strong> — our database and authentication provider. All account data, profile data, comments, ratings, and submissions are stored on Supabase infrastructure. <a href="https://supabase.com/privacy" target="_blank" rel="noopener" style="color:var(--amber);">supabase.com/privacy</a></li>
           <li><strong style={st}>Google OAuth</strong> — if you sign in with Google, authentication is handled by Google. We receive your email address, name, and profile photo. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style="color:var(--amber);">Google's Privacy Policy</a></li>
           <li><strong style={st}>Google Analytics</strong> — when you consent to tracking, usage data (pages visited, session data, approximate location, device information) is sent to Google. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style="color:var(--amber);">Google's Privacy Policy</a> · <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener" style="color:var(--amber);">opt-out tool</a></li>
-          <li>
-            <strong style={st}>Meta</strong> — when you consent to tracking, data is sent to Meta via the Meta Pixel. Meta may combine this with data it already holds about you.
-            <div style={vb}>
-              <span style={rn}>[REVIEWER: select one variant based on the autoConfig decision]</span>
-              <span><strong style={st}>Variant A — current state:</strong> page views and interaction data (button clicks, form interactions, page metadata) are sent to Meta.</span>
-              <span><strong style={st}>Variant B — if autoConfig disabled:</strong> page views only are sent to Meta.</span>
-            </div>
-            <a href="https://www.meta.com/en-gb/privacy/policy/" target="_blank" rel="noopener" style="color:var(--amber);">Meta's Privacy Policy</a> · <a href="https://accountscenter.facebook.com/ad_preferences" target="_blank" rel="noopener" style="color:var(--amber);">Meta ad settings</a>
-          </li>
+          <li><strong style={st}>Meta</strong> — when you consent to tracking, page views and interaction data (button clicks, form interactions, page metadata) are sent to Meta via the Meta Pixel. Meta may combine this with data it already holds about you. <a href="https://www.meta.com/en-gb/privacy/policy/" target="_blank" rel="noopener" style="color:var(--amber);">Meta's Privacy Policy</a> · <a href="https://accountscenter.facebook.com/ad_preferences" target="_blank" rel="noopener" style="color:var(--amber);">Meta ad settings</a></li>
           <li><strong style={st}>Google Fonts</strong> — fonts are loaded from Google Fonts on every page of the Site. Your IP address is sent to Google as part of that request. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style="color:var(--amber);">Google's Privacy Policy</a></li>
           <li><strong style={st}>Google Places</strong> — address and suburb fields on the bakery submission form and the profile edit page use Google's Places API for autocomplete. The text you type into those fields is sent to Google.</li>
           <li><strong style={st}>CartoCDN</strong> — on pages that include a map, map tiles are loaded from CartoCDN. Your IP address and the map area you view are sent to CartoCDN.</li>
@@ -106,7 +90,6 @@ const vb  = "padding:0.75rem 1rem;border-left:2px solid var(--amber);margin:0.75
 
       <section>
         <h2 style={h2s}>Data Retention</h2>
-        <p><span style={rn}>[REVIEWER: advise retention periods — no policy currently defined]</span></p>
         <p>Demographic data (date of birth, gender, location) is deleted immediately when you withdraw consent via the Edit Profile page.</p>
       </section>
 

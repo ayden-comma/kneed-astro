@@ -64,4 +64,4 @@ Grants restored to least-privilege map after an earlier unintentional revoke:
 | Submit-page rework | Brief exists: one form, owner checkbox reveals contact fields, contact PII only behind the toggle |
 | `profile/edit.astro` Places migration | Still uses inline `<script is:inline>` for autocomplete; could be migrated to `src/lib/placesAutocomplete.ts` |
 | `forum_posts` / `forum_replies` DROP | Dead tables with no grants and no code references |
-| Privacy policy mismatches | Meta pixel absent from "Who We Share Data With"; session storage described as cookies; last-updated date stale (says June 2025) |
+| Privacy policy — Variant A live | Policy rewritten 2026-06-10 to match verified behavior. Variant A (autoConfig enabled, full interaction data) is live. PRIVACY-REVIEW-NOTES.md at repo root contains both variants for both pixel disclosure locations, all removed [REVIEWER] notes, and the data retention deferred decision |
