@@ -20,6 +20,10 @@ Runtime secrets **MUST** be read via `import { env } from 'cloudflare:workers'`:
 
 Never mix these sources.
 
+## One env binding undefined while its siblings resolve → fault is in the store, not the code
+
+When a single env value reads `undefined` at runtime while sibling values read the exact same way (same `env` import, same scope) resolve fine, stop debugging the code — the reads are identical, so the code cannot be the cause. The fault is in the binding itself: **delete and re-create that secret, typing the name by hand** (do not paste). A malformed name — stray whitespace, a homoglyph, a zero-width or non-breaking character — survives re-pasting and even type conversion, and binds as `undefined` while looking correct in the dashboard. (Real case: `CLOUDINARY_CLOUD_NAME` bound as undefined for this reason; api_key/api_secret read identically and worked. Hand-retyping the name fixed it.)
+
 ## RLS policy changes
 
 Before any DROP or ALTER on a policy:

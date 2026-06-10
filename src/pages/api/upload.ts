@@ -53,9 +53,6 @@ export const POST: APIRoute = async ({ request }) => {
   const apiKey    = env.CLOUDINARY_API_KEY;
   const apiSecret = env.CLOUDINARY_API_SECRET;
 
-  // TEMP DIAGNOSTIC — remove after confirming runtime env binding
-  console.log('[upload] env check', { cloudName: typeof env.CLOUDINARY_CLOUD_NAME, apiKey: typeof env.CLOUDINARY_API_KEY });
-
   try {
     const timestamp = String(Math.floor(Date.now() / 1000));
     const signParams = { folder: 'kneed', timestamp };
