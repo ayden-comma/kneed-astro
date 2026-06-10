@@ -119,7 +119,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         </div>
         <div class="form-field">
           <label class="form-label" for="sg-addr">Address or suburb <span class="form-required">*</span></label>
-          <input class="form-input" type="text" id="sg-addr" placeholder="Where are they?" />
+          <div style="position:relative;">
+            <input class="form-input" type="text" id="sg-addr" placeholder="Where are they?" autocomplete="off" />
+            <ul id="sg-addr-suggestions" style="display:none; position:absolute; z-index:100; top:100%; margin-top:2px; background:var(--surface); border:1px solid var(--border); border-radius:0.5rem; list-style:none; padding:0.25rem 0; margin-top:2px; width:100%;"></ul>
+          </div>
         </div>
         <div class="form-field">
           <label class="form-label" for="sg-why">
@@ -261,6 +264,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
 <script>
   import { supabase } from '../lib/supabase';
+  import { bindPlacesAutocomplete } from '../lib/placesAutocomplete';
 
   // ── DOM refs ──────────────────────────────────────────────────
   const tabBakery   = document.getElementById('tab-bakery')!   as HTMLButtonElement;
@@ -302,45 +306,16 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   }
 
   // ── Address autocomplete ──────────────────────────────────────
-  const PLACES_KEY   = 'AIzaSyB6Dv_E_XEjozZqi_Tenk4AepcpYWHNUas';
-  const addrInput    = document.getElementById('f-address')!        as HTMLInputElement;
-  const addrList     = document.getElementById('f-addr-suggestions')! as HTMLUListElement;
-  let   addrTimer: ReturnType<typeof setTimeout>;
-
-  addrInput.addEventListener('input', () => {
-    clearTimeout(addrTimer);
-    const q = addrInput.value.trim();
-    if (q.length < 3) { addrList.style.display = 'none'; return; }
-    addrTimer = setTimeout(async () => {
-      try {
-        const res   = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': PLACES_KEY },
-          body: JSON.stringify({ input: q, includedRegionCodes: ['au'], includedPrimaryTypes: ['street_address', 'premise'] }),
-        });
-        const data  = await res.json();
-        const preds = (data.suggestions || []) as any[];
-        addrList.innerHTML = '';
-        if (!preds.length) { addrList.style.display = 'none'; return; }
-        preds.slice(0, 5).forEach(s => {
-          const text = s.placePrediction?.text?.text || '';
-          const li   = document.createElement('li');
-          li.textContent   = text;
-          li.style.cssText = 'padding:0.5rem 0.75rem; cursor:pointer; color:var(--parchment); font-size:0.875rem;';
-          li.onmouseenter  = () => { li.style.background = 'rgba(255,255,255,0.06)'; };
-          li.onmouseleave  = () => { li.style.background = ''; };
-          li.onclick       = () => { addrInput.value = text; addrList.style.display = 'none'; };
-          addrList.appendChild(li);
-        });
-        addrList.style.display = 'block';
-      } catch (_) { addrList.style.display = 'none'; }
-    }, 300);
-  });
-  document.addEventListener('click', e => {
-    if (!addrInput.contains(e.target as Node) && !addrList.contains(e.target as Node)) {
-      addrList.style.display = 'none';
-    }
-  });
+  bindPlacesAutocomplete(
+    document.getElementById('f-address')! as HTMLInputElement,
+    document.getElementById('f-addr-suggestions')! as HTMLUListElement,
+    ['street_address', 'premise'],
+  );
+  bindPlacesAutocomplete(
+    document.getElementById('sg-addr')! as HTMLInputElement,
+    document.getElementById('sg-addr-suggestions')! as HTMLUListElement,
+    ['street_address', 'premise', 'locality', 'sublocality'],
+  );
 
   // ── Bakery form ───────────────────────────────────────────────
   function resetBakeryForm() {
