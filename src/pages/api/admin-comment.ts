@@ -5,6 +5,8 @@ import { requireAdmin } from '../../lib/requireAdmin';
 
 export const prerender = false;
 
+type Body = { action?: string; id?: string };
+
 export const POST: APIRoute = async ({ request }) => {
   const auth = await requireAdmin(request);
   if (!auth.ok) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: auth.status });
@@ -18,7 +20,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const adminSupabase = createClient(supabaseUrl, serviceKey);
-    const { action, id } = await request.json();
+    const { action, id } = await request.json() as Body;
 
     if (!action || !id) {
       return new Response(JSON.stringify({ error: 'Missing action or id' }), { status: 400 });

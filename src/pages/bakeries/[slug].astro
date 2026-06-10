@@ -1221,14 +1221,14 @@ main {
       if (signinPrompt) signinPrompt.style.display = '';
     }
 
-    function formatName(fullName: string | undefined): string {
+    function formatName(fullName: string | null | undefined): string {
       if (!fullName) return 'Anonymous';
       const parts = fullName.trim().split(/\s+/);
       if (parts.length === 1) return parts[0];
       return parts[0] + ' ' + parts[parts.length - 1][0] + '.';
     }
 
-    type CommentRow = { id: string; user_id: string; content: string; created_at: string; profiles?: { display_name?: string } };
+    type CommentRow = { id: string; user_id: string; content: string; created_at: string; profiles?: { display_name?: string | null } };
     type VoteData = { up: number; down: number; userVote: 1 | -1 | 0 };
     type VoteMap = Record<string, VoteData>;
 

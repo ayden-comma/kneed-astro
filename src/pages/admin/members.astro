@@ -50,7 +50,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 
   const msgEl  = document.getElementById('admin-msg')!;
   const tbody  = document.getElementById('member-tbody')!;
-  const filter = document.getElementById('role-filter') as HTMLSelectElement;
+  const filter = document.getElementById('role-filter') as unknown as HTMLSelectElement;
 
   function showMsg(text: string, type: 'error' | 'success') {
     msgEl.textContent = text;

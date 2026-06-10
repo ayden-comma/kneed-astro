@@ -5,6 +5,15 @@ import { requireAdmin } from '../../lib/requireAdmin';
 
 export const prerender = false;
 
+type Body = {
+  action?: string;
+  bakery_slug?: string;
+  article_slug?: string;
+  content_type?: string;
+  sort_order?: number;
+  id?: string;
+};
+
 export const POST: APIRoute = async ({ request }) => {
   const auth = await requireAdmin(request);
   if (!auth.ok) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: auth.status });
@@ -18,7 +27,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const adminSupabase = createClient(supabaseUrl, serviceKey);
-    const body = await request.json();
+    const body = await request.json() as Body;
     const { action } = body;
 
     if (!action) {

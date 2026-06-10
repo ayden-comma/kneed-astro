@@ -5,6 +5,16 @@ import { requireAdmin } from '../../lib/requireAdmin';
 
 export const prerender = false;
 
+type LocationInput = {
+  label?: string;
+  address?: string;
+  lat?: number;
+  lng?: number;
+  hours?: string;
+  place_id?: string;
+};
+type Body = { bakery_slug?: string; article_slug?: string; locations?: LocationInput[] };
+
 export const POST: APIRoute = async ({ request }) => {
   const auth = await requireAdmin(request);
   if (!auth.ok) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: auth.status });
@@ -15,7 +25,7 @@ export const POST: APIRoute = async ({ request }) => {
     if (!serviceKey) return new Response(JSON.stringify({ error: 'Service key not configured' }), { status: 500 });
 
     const adminSupabase = createClient(supabaseUrl, serviceKey);
-    const { bakery_slug, article_slug, locations } = await request.json();
+    const { bakery_slug, article_slug, locations } = await request.json() as Body;
 
     if (!bakery_slug && !article_slug) {
       return new Response(JSON.stringify({ error: 'Missing bakery_slug or article_slug' }), { status: 400 });

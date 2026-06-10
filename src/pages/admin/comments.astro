@@ -96,7 +96,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 
   const msgEl  = document.getElementById('admin-msg')!;
   const tbody  = document.getElementById('comment-tbody')!;
-  const filter = document.getElementById('bakery-filter') as HTMLSelectElement;
+  const filter = document.getElementById('bakery-filter') as unknown as HTMLSelectElement;
 
   let _allRows: CommentRow[] = [];
   let _voteMap: Record<string, number> = {};
@@ -219,7 +219,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
                 headers: await authHeaders(),
                 body: JSON.stringify({ action: 'soft-delete', id }),
               });
-              const data = await res.json();
+              const data = await res.json() as { error: string };
               if (!res.ok) { showMsg(data.error, 'error'); return; }
               row.querySelector('.admin-truncate')!.textContent = '[deleted]';
               closeAllPopovers();
@@ -233,7 +233,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
                 headers: await authHeaders(),
                 body: JSON.stringify({ action: 'hard-delete', id }),
               });
-              const data = await res.json();
+              const data = await res.json() as { error: string };
               if (!res.ok) { showMsg(data.error, 'error'); return; }
               _allRows = _allRows.filter(r => r.id !== id && r.parent_comment_id !== id);
               _hasReplies.delete(id);

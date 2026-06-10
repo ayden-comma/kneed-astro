@@ -256,7 +256,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
           headers: await authHeaders(),
           body: JSON.stringify({ action: 'remove', id }),
         });
-        const data = await res.json();
+        const data = await res.json() as { error: string };
         if (!res.ok) { showMsg(data.error, 'error'); btn.disabled = false; return; }
         const removed = _active.find(hf => hf.id === id);
         _active = _active.filter(hf => hf.id !== id);
@@ -308,7 +308,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
           headers: await authHeaders(),
           body: JSON.stringify({ action: 'add', content_type: 'bakery', bakery_slug: slug, sort_order: nextOrder }),
         });
-        const data = await res.json();
+        const data = await res.json() as { error: string };
         if (!res.ok) { showMsg(data.error, 'error'); btn.disabled = false; return; }
         await loadData();
         showMsg('Added to hero carousel.', 'success');
@@ -328,7 +328,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
           headers: await authHeaders(),
           body: JSON.stringify({ action: 'add', content_type: 'article', article_slug: slug, sort_order: nextOrder }),
         });
-        const data = await res.json();
+        const data = await res.json() as { error: string };
         if (!res.ok) { showMsg(data.error, 'error'); btn.disabled = false; return; }
         await loadData();
         showMsg('Added to hero carousel.', 'success');
