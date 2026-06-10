@@ -119,7 +119,7 @@ export const POST: APIRoute = async ({ request }) => {
       if (user) submittedBy = user.id;
     }
 
-    const { error: insertError } = await serviceSupabase.from('submissions').insert({
+    const insertPayload = {
       bakery_name:    fields.bakery_name    || null,
       submitted_name: fields.submitted_name || null,
       email:          fields.email          || null,
@@ -132,7 +132,17 @@ export const POST: APIRoute = async ({ request }) => {
       status:         'pending',
       ip_address:     ip !== 'unknown' ? ip : null,
       ...(submittedBy ? { submitted_by: submittedBy } : {}),
-    });
+    };
+
+    let { error: insertError } = await serviceSupabase.from('submissions').insert(insertPayload);
+
+    if (insertError && insertError.code === '23503' && submittedBy) {
+      console.warn('[submit-bakery] submitted_by FK violation for user', submittedBy, '— retrying without it:', insertError.message);
+      ({ error: insertError } = await serviceSupabase.from('submissions').insert({
+        ...insertPayload,
+        submitted_by: null,
+      }));
+    }
 
     if (insertError) {
       console.error('[submit-bakery] insert failed:', insertError.message);
