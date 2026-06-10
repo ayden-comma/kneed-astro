@@ -111,6 +111,7 @@ function showBannerInternal(): void {
     'justify-content:space-between',
     'font-family:var(--font-body)',
     'transition:opacity 0.24s ease,transform 0.24s ease',
+    'outline:none',
   ].join(';');
 
   banner.innerHTML = `
@@ -125,7 +126,7 @@ function showBannerInternal(): void {
   `;
 
   document.body.appendChild(banner);
-  banner.focus();
+  banner.focus({ preventScroll: true });
 
   banner.querySelector<HTMLButtonElement>('#kneed-consent-decline')!.addEventListener('click', () => {
     setConsent('denied');
