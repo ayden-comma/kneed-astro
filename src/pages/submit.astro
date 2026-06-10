@@ -88,6 +88,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
               Send submission
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 5 7 7-7 7"/></svg>
             </button>
+            <p id="bakery-error" style="display:none;font-size:0.8rem;color:var(--amber);line-height:1.5;"></p>
             <p class="form-note">We read every submission. We'll be in touch within two weeks if your bakery feels like a fit.</p>
           </div>
         </div>
@@ -140,6 +141,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
             Send recommendation
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 5 7 7-7 7"/></svg>
           </button>
+          <p id="suggest-error" style="display:none;font-size:0.8rem;color:var(--amber);line-height:1.5;"></p>
         </div>
       </div>
 
@@ -304,6 +306,17 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     btn.disabled = loading;
     btn.innerHTML = loading ? 'Sending…' : savedHTML;
   }
+  function showError(id: string, msg: string) {
+    const el = document.getElementById(id) as HTMLParagraphElement;
+    el.textContent = msg;
+    el.style.display = msg ? 'block' : 'none';
+  }
+  async function authHeaders(): Promise<Record<string, string>> {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+    return headers;
+  }
 
   // ── Address autocomplete ──────────────────────────────────────
   bindPlacesAutocomplete(
@@ -325,38 +338,42 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   }
 
   bakeryBtn.onclick = async () => {
-    console.log('submit clicked');
     const name   = val('f-name');
     const email  = val('f-email');
     const bakery = val('f-bakery');
     if (!name || !email || !bakery) {
-      alert('Please fill in your name, email and bakery name.');
+      showError('bakery-error', 'Please fill in your name, email and bakery name.');
       return;
     }
+    showError('bakery-error', '');
 
     const savedHTML = bakeryBtn.innerHTML;
     setLoading(bakeryBtn, true, savedHTML);
 
-    const { error } = await supabase.from('submissions').insert({
-      bakery_name:    bakery,
-      submitted_name: val('f-name')      || null,
-      email:          email              || null,
-      phone:          val('f-phone')     || null,
-      suburb:         null,
-      address:        val('f-address')   || null,
-      website:        val('f-website')   || null,
-      instagram:      val('f-instagram') || null,
-      notes:          val('f-desc')      || null,
-      status:         'pending',
+    const res = await fetch('/api/submit-bakery', {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify({
+        type:           'bakery',
+        bakery_name:    bakery,
+        submitted_name: name          || undefined,
+        email:          email         || undefined,
+        phone:          val('f-phone')     || undefined,
+        address:        val('f-address')   || undefined,
+        website:        val('f-website')   || undefined,
+        instagram:      val('f-instagram') || undefined,
+        notes:          val('f-desc')      || undefined,
+      }),
     });
 
-    if (error) {
-      setLoading(bakeryBtn, false, savedHTML);
-      alert('Something went wrong: ' + error.message);
+    setLoading(bakeryBtn, false, savedHTML);
+
+    if (!res.ok) {
+      const data = await res.json() as { error?: string };
+      showError('bakery-error', data.error ?? 'Something went wrong. Please try again.');
       return;
     }
 
-    setLoading(bakeryBtn, false, savedHTML);
     clearFields('f-name', 'f-email', 'f-phone', 'f-bakery', 'f-address', 'f-website', 'f-instagram', 'f-desc');
     document.getElementById('submit-form-wrap')!.style.display = 'none';
     document.getElementById('submit-success')!.style.display   = 'block';
@@ -372,35 +389,37 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   }
 
   suggestBtn.onclick = async () => {
-    console.log('suggest clicked');
     const name = val('sg-name');
     const addr = val('sg-addr');
     if (!name || !addr) {
-      alert('Please fill in the bakery name and address.');
+      showError('suggest-error', 'Please fill in the bakery name and address.');
       return;
     }
+    showError('suggest-error', '');
 
     const savedHTML = suggestBtn.innerHTML;
     setLoading(suggestBtn, true, savedHTML);
 
-    const { error } = await supabase.from('submissions').insert({
-      bakery_name: name,
-      email:       val('sg-email') || null,
-      suburb:      null,
-      address:     addr || null,
-      website:     null,
-      instagram:   null,
-      notes:       val('sg-why') || null,
-      status:      'pending',
+    const res = await fetch('/api/submit-bakery', {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify({
+        type:        'suggestion',
+        bakery_name: name,
+        address:     addr         || undefined,
+        email:       val('sg-email') || undefined,
+        notes:       val('sg-why')   || undefined,
+      }),
     });
 
-    if (error) {
-      setLoading(suggestBtn, false, savedHTML);
-      alert('Something went wrong: ' + error.message);
+    setLoading(suggestBtn, false, savedHTML);
+
+    if (!res.ok) {
+      const data = await res.json() as { error?: string };
+      showError('suggest-error', data.error ?? 'Something went wrong. Please try again.');
       return;
     }
 
-    setLoading(suggestBtn, false, savedHTML);
     clearFields('sg-name', 'sg-addr', 'sg-why', 'sg-email');
     (document.querySelector('#form-suggest .submit-form') as HTMLElement).style.display = 'none';
     document.getElementById('suggest-success')!.style.display = 'block';

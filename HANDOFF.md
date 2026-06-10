@@ -1,6 +1,6 @@
 # Project Handoff Notes
 
-_Last updated: 2026-06-10_
+_Last updated: 2026-06-10 (open items updated)_
 
 ---
 
@@ -52,16 +52,67 @@ Grants restored to least-privilege map after an earlier unintentional revoke:
 
 ---
 
+## Pending SQL — run before deploying submit-bakery route
+
+**Block 1 — schema addition (run first, before deploy):**
+
+```sql
+BEGIN;
+-- ip_address stores the submitter's CF-Connecting-IP for rate limiting and admin visibility.
+-- submitted_by already exists (uuid, references auth.users). No user_id column needed.
+ALTER TABLE public.submissions ADD COLUMN IF NOT EXISTS ip_address text;
+COMMIT;
+```
+
+**Block 2 — grant revocation (run after confirming the route is live and submissions land):**
+
+```sql
+BEGIN;
+-- Both forms now go through /api/submit-bakery (service-role key, bypasses grants).
+-- anon INSERT is no longer needed. authenticated INSERT was never needed —
+-- logged-in submissions use the bearer token path but execute as service-role, not the user's DB role.
+REVOKE INSERT ON public.submissions FROM anon;
+REVOKE INSERT ON public.submissions FROM authenticated;
+COMMIT;
+```
+
+> **Note:** `RESEND_API_KEY` must be set in Cloudflare dashboard → Workers & Pages → Settings → Variables and Secrets before deploying.
+
+---
+
 ## Open items
+
+### Pre-launch blockers
+
+| Item | Notes |
+|------|-------|
+| **Email notifications on submissions** | Done — `/api/submit-bakery` sends a Resend notification after each insert; email failure is logged to Worker console but never blocks the response. `RESEND_API_KEY` must be set in Cloudflare dashboard. From-address is `onboarding@resend.dev` (Resend sandbox — delivers only to verified recipients until a sending domain is verified; see post-launch item) |
+| **Rate limiting on submissions** | Done — Supabase-backed, per-IP, max 3 per hour via `CF-Connecting-IP`. Requires `ip_address` column (see migration SQL below). Limitation: IP can be proxied/VPN'd; per-IP is a deterrent, not hard enforcement. Comment spam still unaddressed |
+| **OG image** | `public/images/og-default.jpg` is still a copy of the map screenshot. Needs a real 1200×630 branded asset before launch. Blocked on design, not code |
+
+### Post-launch / queued
 
 | Item | Notes |
 |------|-------|
 | Role toggle happy-path untested | Needs a second account to verify the full toggle flow end-to-end |
-| Google Places API key unrestricted | Key `AIzaSyB6Dv_E_XEjozZqi_Tenk4AepcpYWHNUas` has no HTTP referrer or IP restriction in Google Cloud Console — manual task, not a code change |
-| `comment_votes` anon SELECT exposes `user_id` | Anon-facing fetch should select `comment_id + vote` only; a separate session-gated query should handle own-vote highlight. Queued code change — include in privacy review brief |
+| `comment_votes` anon SELECT exposes `user_id` | Anon-facing fetch should select `comment_id + vote` only; a separate session-gated query should handle own-vote highlight. Include in privacy review brief |
 | "Admins can update any comment" RLS policy is dead | No UPDATE grant on comments, no edit feature exists. Drop in a future cleanup migration |
 | Optional grant tightening | `ratings` DELETE and `comment_votes` UPDATE are granted but unused — candidates for removal |
 | Submit-page rework | Brief exists: one form, owner checkbox reveals contact fields, contact PII only behind the toggle |
 | `profile/edit.astro` Places migration | Still uses inline `<script is:inline>` for autocomplete; could be migrated to `src/lib/placesAutocomplete.ts` |
 | `forum_posts` / `forum_replies` DROP | Dead tables with no grants and no code references |
-| Privacy policy — Variant A live | Policy rewritten 2026-06-10 to match verified behavior. Variant A (autoConfig enabled, full interaction data) is live. PRIVACY-REVIEW-NOTES.md at repo root contains both variants for both pixel disclosure locations, all removed [REVIEWER] notes, and the data retention deferred decision |
+| Editor role / permission tiers | Floated in earlier session, never decided. `/api/admin-set-role` covers granting admin for now. Post-launch question |
+| Resend sending domain | `onboarding@resend.dev` is Resend's sandbox sender — can only deliver to verified recipients. Verify `commafilms.com.au` or `kneed.tv` as a Resend sending domain, then update the `from` address in `submit-bakery.ts` to a domain address. Improves deliverability and removes recipient restriction |
+| Comment rate limiting | `/api/submit-bakery` has per-IP throttling; comments (authenticated) have none. Low-priority but include in hardening pass |
+| Privacy policy — Variant A live | Policy rewritten 2026-06-10 to match verified behavior. Variant A (autoConfig enabled, full interaction data) is live. `PRIVACY-REVIEW-NOTES.md` at repo root contains both variants for both pixel locations, all removed `[REVIEWER]` notes, and the data retention deferred decision |
+
+### Resolved
+
+| Item | Resolution |
+|------|------------|
+| Duplicate `baker-bleu-v2` slug | Was a layout-dev working copy; already deleted in normal workflow |
+| Admin bakeries preview button | Verified working |
+| Newsletter connection | Resolved by discovery: the "Get updates" form is an account-signup pre-fill, not a mailing list — no newsletter exists |
+| Granting admin without SQL | Covered by `/api/admin-set-role` |
+| `src/content/` legacy directory | Already deleted; no `astro:content` / `getCollection` usage anywhere in the codebase |
+| Google Places API key restriction | Referrer and API restrictions verified confirmed in Google Cloud Console |
