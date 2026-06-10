@@ -1,5 +1,7 @@
 const CONSENT_KEY = 'kneed-consent';
 
+const isAuthCallback = (p: string) => p.replace(/\/+$/, '') === '/auth/callback';
+
 type ConsentRecord = { value: 'granted' | 'denied'; ts: string };
 
 function getConsent(): ConsentRecord | null {
@@ -144,7 +146,7 @@ let _navArmed = false;
 
 function handleNavPageView(): void {
   if (!_navArmed) { _navArmed = true; return; }
-  if (window.location.pathname === '/auth/callback') return;
+  if (isAuthCallback(window.location.pathname)) return;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const w = window as any;
   if (!w.__kneedTrackersLoaded) return;
@@ -153,7 +155,7 @@ function handleNavPageView(): void {
 }
 
 export function initConsent(): void {
-  if (window.location.pathname === '/auth/callback') return;
+  if (isAuthCallback(window.location.pathname)) return;
   document.addEventListener('astro:page-load', handleNavPageView);
   const record = getConsent();
   if (!record) { showBannerInternal(); return; }
