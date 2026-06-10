@@ -70,12 +70,12 @@ function injectBannerStyles(): void {
       cursor: pointer;
       transition: background 0.18s, color 0.18s, border-color 0.18s;
     }
-    #kneed-consent-decline {
+    .kneed-consent-btn--decline {
       border: 1px solid var(--border-md);
       background: transparent;
       color: var(--parchment);
     }
-    #kneed-consent-accept {
+    .kneed-consent-btn--accept {
       border: 1px solid transparent;
       background: var(--parchment);
       color: var(--ink);
@@ -117,8 +117,8 @@ function showBannerInternal(): void {
       <a href="/privacy" style="color:var(--parchment);text-decoration:underline;text-underline-offset:3px;">Learn more in our Privacy Policy</a>.
     </p>
     <div style="display:flex;gap:0.5rem;flex-shrink:0;" role="group" aria-label="Consent options">
-      <button id="kneed-consent-decline" class="kneed-consent-btn" type="button">Decline</button>
-      <button id="kneed-consent-accept" class="kneed-consent-btn" type="button">Accept</button>
+      <button id="kneed-consent-decline" class="kneed-consent-btn kneed-consent-btn--decline" type="button">Decline</button>
+      <button id="kneed-consent-accept"  class="kneed-consent-btn kneed-consent-btn--accept"  type="button">Accept</button>
     </div>
   `;
 
