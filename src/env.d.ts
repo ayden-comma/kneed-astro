@@ -4,5 +4,8 @@ declare namespace Cloudflare {
     GA_REFRESH_TOKEN: string;
     SUPABASE_SERVICE_ROLE_KEY: string;
     RESEND_API_KEY: string;
+    CLOUDINARY_CLOUD_NAME: string;
+    CLOUDINARY_API_KEY: string;
+    CLOUDINARY_API_SECRET: string;
   }
 }

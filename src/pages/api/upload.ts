@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { createClient } from '@supabase/supabase-js';
+import { env } from 'cloudflare:workers';
 
 export const prerender = false;
 
@@ -48,9 +49,9 @@ export const POST: APIRoute = async ({ request }) => {
   if (entry.size > MAX_BYTES) return json({ error: 'File too large (max 10 MB)' }, 400);
 
   // ── Upload via Cloudinary REST API ───────────────────────────
-  const cloudName = import.meta.env.CLOUDINARY_CLOUD_NAME as string;
-  const apiKey    = import.meta.env.CLOUDINARY_API_KEY as string;
-  const apiSecret = import.meta.env.CLOUDINARY_API_SECRET as string;
+  const cloudName = env.CLOUDINARY_CLOUD_NAME;
+  const apiKey    = env.CLOUDINARY_API_KEY;
+  const apiSecret = env.CLOUDINARY_API_SECRET;
 
   try {
     const timestamp = String(Math.floor(Date.now() / 1000));
