@@ -89,6 +89,15 @@ COMMIT;
 |------|-------|
 | **OG image** | `public/images/og-default.jpg` is still a copy of the map screenshot. Needs a real 1200×630 branded asset before launch. Blocked on design, not code |
 
+### Launch-day mechanical batch
+
+Ship all of these in the **same deploy that flips `GATE_ENABLED = false`** (`src/middleware.ts`).
+
+| Item | Notes |
+|------|-------|
+| Flip the coming-soon gate | Set `GATE_ENABLED = false` in `src/middleware.ts`. Until then the gate returns 503 + `X-Robots-Tag: noindex` + meta-noindex to all cookie-less visitors (crawlers), so nothing indexes pre-launch |
+| Add sitemap + robots.txt | Install `@astrojs/sitemap` (add the integration to `astro.config.mjs`) and add `public/robots.txt` pointing at `https://kneed.tv/sitemap-index.xml`. `Astro.site` is already set to `https://kneed.tv`, so the sitemap will emit kneed.tv URLs automatically. Ship in the gate-flip deploy so crawlers find the sitemap the moment indexing is allowed |
+
 ### Post-launch / queued
 
 | Item | Notes |
