@@ -252,6 +252,7 @@ if (heroSlides.length === 0) {
             <input type="email" id="nl-email" placeholder="Your email address" class="nl-input" />
             <button class="nl-btn" id="nl-btn">Get updates</button>
           </div>
+          <div id="nl-error" style="position:relative;z-index:2;display:none;margin-top:0.5rem;color:#e8a39b;font-size:0.8rem;"></div>
         </div>
 
       </div>
@@ -879,25 +880,8 @@ if (heroSlides.length === 0) {
       };
     });
 
-    // NEWSLETTER
-    var nlBtn = document.getElementById('nl-btn');
-    var nlEmail = document.getElementById('nl-email');
-    if (nlBtn && nlEmail) {
-      nlBtn.onclick = function() {
-        var email = nlEmail.value.trim();
-        if (!email || !email.includes('@')) {
-          nlEmail.style.borderColor = '#c0392b';
-          setTimeout(function() { nlEmail.style.borderColor = ''; }, 2000);
-          return;
-        }
-        var nlModal = document.getElementById('nl-modal');
-        if (nlModal) {
-          var modalEmail = document.getElementById('nl-modal-email');
-          if (modalEmail) modalEmail.value = email;
-          nlModal.style.display = 'flex';
-        }
-      };
-    }
+    // NEWSLETTER — submit handler lives in the module script below (needs supabase
+    // for the real POST + session check). Close/join handlers stay here.
 
     // NEWSLETTER MODAL
     var nlModalOverlay = document.getElementById('nl-modal-overlay');
@@ -1069,6 +1053,75 @@ if (heroSlides.length === 0) {
     if (pwEl) pwEl.onkeydown = (e) => { if (e.key === 'Enter') doSignup(); };
   }
 
+  function initNewsletter() {
+    const nlBtn   = document.getElementById('nl-btn')   as HTMLButtonElement | null;
+    const nlEmail = document.getElementById('nl-email') as HTMLInputElement | null;
+    const nlError = document.getElementById('nl-error') as HTMLElement | null;
+    if (!nlBtn || !nlEmail) return;
+
+    const showError = (msg: string) => {
+      nlEmail.style.borderColor = '#c0392b';
+      if (nlError) { nlError.textContent = msg; nlError.style.display = 'block'; }
+    };
+    const clearError = () => {
+      nlEmail.style.borderColor = '';
+      if (nlError) { nlError.textContent = ''; nlError.style.display = 'none'; }
+    };
+
+    function openModal(email: string, loggedIn: boolean) {
+      const modal = document.getElementById('nl-modal');
+      if (!modal) return;
+      const modalEmail = document.getElementById('nl-modal-email') as HTMLInputElement | null;
+      if (modalEmail) modalEmail.value = email;
+      // Reset to the confirmation step.
+      const s1 = document.getElementById('nl-modal-s1');
+      const s2 = document.getElementById('nl-modal-s2');
+      if (s1) s1.style.display = '';
+      if (s2) s2.style.display = 'none';
+      // Signed-in users already have an account: skip the account-creation prompt.
+      const question = modal.querySelector('.nl-modal-question') as HTMLElement | null;
+      const join     = document.getElementById('nl-modal-join') as HTMLElement | null;
+      if (question) question.style.display = loggedIn ? 'none' : '';
+      if (join)     join.style.display     = loggedIn ? 'none' : '';
+      modal.style.display = 'flex';
+    }
+
+    nlBtn.onclick = async () => {
+      const email = nlEmail.value.trim();
+      clearError();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showError('Please enter a valid email address.');
+        return;
+      }
+      const original = nlBtn.textContent;
+      nlBtn.disabled = true;
+      nlBtn.textContent = 'Signing up…';
+      try {
+        const res = await fetch('/api/newsletter-signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, source: 'homepage' }),
+        });
+        const data = await res.json().catch(() => ({})) as { error?: string };
+        if (!res.ok) {
+          showError(data.error || 'Something went wrong. Please try again.');
+          return;
+        }
+        let loggedIn = false;
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          loggedIn = !!session;
+        } catch { /* treat as logged-out on failure */ }
+        openModal(email, loggedIn);
+      } catch {
+        showError('Network error. Please try again.');
+      } finally {
+        nlBtn.disabled = false;
+        nlBtn.textContent = original;
+      }
+    };
+  }
+
   document.addEventListener('astro:before-swap', function() {
     const fn = (window as any).__kneedDestroyHome;
     if (typeof fn === 'function') fn();
@@ -1077,8 +1130,10 @@ if (heroSlides.length === 0) {
   document.addEventListener('astro:page-load', function() {
     tryInitHome();
     initModalAuth();
+    initNewsletter();
   });
 
   tryInitHome();
   initModalAuth();
+  initNewsletter();
 </script>
