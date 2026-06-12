@@ -6,7 +6,13 @@ const { title, description, image, canonicalURL } = Astro.props;
 const isMapPage    = Astro.url.pathname.startsWith('/map');
 const isBakeryPage = /^\/bakeries\/.+/.test(Astro.url.pathname);
 const noClientRouter = isMapPage || isBakeryPage;
-const ogImage = image || (Astro.url.origin + '/images/og-default.jpg');
+// Canonical origin comes from astro.config `site` (Astro.site), not the request host,
+// so canonicals/OG point at kneed.tv regardless of which host serves the page.
+// Falls back to the request origin if `site` is ever unset.
+const siteOrigin = (Astro.site ?? new URL(Astro.url.origin)).origin;
+const pageURL = new URL(Astro.url.pathname + Astro.url.search, siteOrigin).href;
+const canonical = canonicalURL || pageURL;
+const ogImage = image || new URL('/images/og-default.jpg', siteOrigin).href;
 ---
 <!DOCTYPE html>
 <html lang="en">
@@ -20,11 +26,11 @@ const ogImage = image || (Astro.url.origin + '/images/og-default.jpg');
     <!-- Primary SEO -->
     <meta name="description" content={description} />
     <meta name="robots" content="index, follow" />
-    <link rel="canonical" href={canonicalURL || Astro.url.href} />
+    <link rel="canonical" href={canonical} />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content={Astro.url.href} />
+    <meta property="og:url" content={pageURL} />
     <meta property="og:title" content={title + ' | (K)Need'} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImage} />

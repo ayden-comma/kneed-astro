@@ -9,6 +9,7 @@ function holdingPage(wrong: boolean): string {
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="robots" content="noindex"/>
   <title>(K)NEED</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -81,10 +82,15 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const token = context.cookies.get('kneed_unlocked')?.value;
   if (token === UNLOCK_TOKEN) return next();
 
-  // Gate: return holding page
+  // Gate: return holding page. 503 + noindex so crawlers (which never hold the
+  // cookie) are told "not yet" and never index the Coming Soon page as real content.
   const wrong = context.url.searchParams.get('wrong') === '1';
   return new Response(holdingPage(wrong), {
-    status: 200,
-    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    status: 503,
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Retry-After': '86400',
+      'X-Robots-Tag': 'noindex',
+    },
   });
 });
