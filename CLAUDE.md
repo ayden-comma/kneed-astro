@@ -54,6 +54,20 @@ A request must hold the table **GRANT** before RLS policies are evaluated at all
 
 Always check both for the `anon` **and** `authenticated` roles.
 
+## service_role bypasses RLS but NOT table grants
+
+A service-role client skips RLS policies, but it still needs the table **GRANT**. `42501 "permission denied"` from a service-role client means a missing grant, exactly as for any other role — it is **not** an RLS problem.
+
+This database's `DEFAULT PRIVILEGES` had been altered so new tables were born with **no DML grants for any role** (only TRUNCATE/REFERENCES/TRIGGER) — the same event as the week's earlier mass revoke, now root-caused. Fixed 2026-06-12: `ALTER DEFAULT PRIVILEGES` now grants ALL on new tables to `service_role`. So every `CREATE TABLE` going forward auto-grants `service_role`, but **`anon`/`authenticated` remain deny-by-default on new tables** and still need explicit grants whenever public access is intended.
+
+After any `CREATE TABLE`, **reload the PostgREST schema cache** before testing routes against it:
+
+```sql
+NOTIFY pgrst, 'reload schema';
+```
+
+A freshly created table is invisible to PostgREST (and thus to the supabase-js client) until the cache reloads — inserts/selects fail until then, which looks identical to a grant or schema bug.
+
 ## Test as a logged-out visitor after any permissions or schema change
 
 A past grants revoke silently broke public comments, ratings, and the public submit form for an unknown period because only logged-in paths were tested. After any permissions or schema change, verify the logged-out path explicitly — not just a logged-in admin session.
