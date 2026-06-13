@@ -6,6 +6,40 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 
+/* ── FONT-SWAP REFLOW GUARD ────────────────────────────────────────────
+   The display face (Josefin Sans) loads via Google Fonts with display=swap,
+   so it swaps in after first paint and used to reflow the hero headline
+   (the prior fallback, Arial Narrow, is far narrower than Josefin Sans).
+   This metric-matched fallback makes a local Arial occupy the SAME box as
+   Josefin Sans — matched advance width (size-adjust) and line box
+   (ascent/descent overrides) — so the swap is now invisible: zero reflow,
+   regardless of when the webfont arrives. The real face still always shows
+   (display=swap is kept), so the display brand is never sacrificed.
+   Metrics derived from Josefin Sans vs Arial; refine with capsize/fontaine
+   against the shipped font version if pixel-exactness is ever needed. */
+@font-face {
+  font-family: 'Josefin Sans Fallback';
+  src: local('Arial');
+  size-adjust: 109%;
+  ascent-override: 98.6%;
+  descent-override: 26.7%;
+  line-gap-override: 0%;
+}
+/* Same guard for the condensed face (Archivo Narrow → --font-cond), used in the
+   hero eyebrow and section labels, which also carry SSR text and swap on load.
+   Arial is condensed via size-adjust (<100%) to match Archivo Narrow's advance,
+   with the line box restored by ascent/descent overrides. Same honesty caveat as
+   above: metrics are derived from Archivo Narrow vs Arial, not capsize-exact —
+   refine against the shipped font version if pixel-exactness is ever needed. */
+@font-face {
+  font-family: 'Archivo Narrow Fallback';
+  src: local('Arial');
+  size-adjust: 82%;
+  ascent-override: 91.8%;
+  descent-override: 25.5%;
+  line-gap-override: 0%;
+}
+
 /* ── DESIGN TOKENS ─────────────────────────────────────────────────── */
 :root {
   --ink:       #0e0c0a;
@@ -36,9 +70,9 @@ html { scroll-behavior: smooth; }
   --border:    rgba(242,237,230,0.09);
   --border-md: rgba(242,237,230,0.15);
 
-  --font-display: 'Josefin Sans', 'Arial Narrow', sans-serif;
+  --font-display: 'Josefin Sans', 'Josefin Sans Fallback', 'Arial Narrow', sans-serif;
   --font-body:    'Barlow', system-ui, sans-serif;
-  --font-cond:    'Archivo Narrow', 'Arial Narrow', sans-serif;
+  --font-cond:    'Archivo Narrow', 'Archivo Narrow Fallback', 'Arial Narrow', sans-serif;
 
   --px:     clamp(1.25rem, 4vw, 2.5rem);
   --max-w:  82rem;
