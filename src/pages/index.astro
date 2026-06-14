@@ -688,6 +688,10 @@ if (heroSlides.length === 0) {
   var HERO_SLIDES = JSON.parse(document.getElementById('hero-slides-data').textContent);
 
   function initHomePage() {
+    // Idempotency guard: absorb the first-load double-fire (see where the flag is
+    // set below). Cleared in destroyHomePage() so genuine SPA re-entry re-inits.
+    if (window._heroInited) return;
+
     // Clear any hero timer left over from a previous visit
     if (window._heroTimer) { clearInterval(window._heroTimer); window._heroTimer = null; }
 
@@ -703,6 +707,16 @@ if (heroSlides.length === 0) {
     var subtitleEl = document.getElementById('hero-subtitle');
 
     if (!bottomEl || !topEl) return; // not on homepage
+
+    // Mark this DOM instance initialized. On first load init fires twice — the
+    // module script's immediate tryInitHome() AND the astro:page-load listener
+    // (which also fires on initial load). Without this guard the second run re-ran
+    // initHero()'s reset+replay, snapping the Ken Burns zoom back to scale(1.0) and
+    // replaying the reveal — the visible "bounce" — and also re-ran startAutoplay()
+    // / applySlide(0) and re-bound the touch/wheel listeners. The flag is cleared in
+    // destroyHomePage() (astro:before-swap), so a real SPA nav away-and-back still
+    // re-inits. Mirrors the _navArmed teardown pattern in consent.ts.
+    window._heroInited = true;
 
     var currentSlide = 0;
     var heroTransitioning = false;
@@ -989,6 +1003,7 @@ if (heroSlides.length === 0) {
   }
 
   function destroyHomePage() {
+    window._heroInited = false; // re-arm init for a genuine SPA re-entry to home
     if (window._heroTimer) { clearInterval(window._heroTimer); window._heroTimer = null; }
     clearTimeout(window._heroWheelCd); window._heroWheelCd = null;
     if (window._heroEvt) {
