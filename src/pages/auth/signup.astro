@@ -54,6 +54,13 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   const errorEl = document.getElementById('auth-error') as HTMLElement;
 
   googleBtn?.addEventListener('click', async () => {
+    // OAuth full-page-redirects, so the checkbox DOM is gone by the time we return.
+    // Persist opt-in intent (timestamped) and replay it at /auth/callback once a
+    // session exists. Keyed flag so only a ticked-then-Google flow subscribes.
+    const optin = document.getElementById('signup-optin') as HTMLInputElement | null;
+    if (optin?.checked) {
+      localStorage.setItem('kneed_optin_intent', String(Date.now()));
+    }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: window.location.origin + '/auth/callback' }

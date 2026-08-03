@@ -286,10 +286,7 @@ if (heroSlides.length === 0) {
           <label class="auth-label" for="nl-modal-pw">Password</label>
           <input class="auth-input" type="password" id="nl-modal-pw" placeholder="••••••••" autocomplete="new-password" />
         </div>
-        <label class="auth-optin">
-          <input type="checkbox" id="nl-modal-optin" />
-          <span>Email me about new episodes, stories and store updates.</span>
-        </label>
+        <div class="auth-subscribed-note">You're subscribed to updates</div>
         <button id="nl-modal-create" class="auth-submit" type="button">Create account</button>
         <div class="auth-footer">Already have an account? <a href="/auth/login">Sign in</a></div>
       </div>
@@ -1058,28 +1055,15 @@ if (heroSlides.length === 0) {
       if (!email || !password) { if (errorEl) errorEl.textContent = 'Please fill in all fields.'; return; }
       if (password.length < 6) { if (errorEl) errorEl.textContent = 'Password must be at least 6 characters.'; return; }
       if (signupBtn) { signupBtn.disabled = true; signupBtn.textContent = 'Creating account…'; }
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      // No opt-in here: the modal only opens after the homepage form already subscribed
+      // this email (consent_source 'homepage_form'), shown by the static "You're
+      // subscribed" note above. Account-to-subscriber user_id linking is handled by the
+      // backfill job, not at this tokenless email/password signup.
+      const { error } = await supabase.auth.signUp({ email, password });
       if (error) {
         if (errorEl) errorEl.textContent = error.message;
         if (signupBtn) { signupBtn.disabled = false; signupBtn.textContent = 'Create account'; }
       } else {
-        // Mailing-list opt-in — never blocks account creation. Email already reached
-        // email_subscribers via the homepage form (consent_source 'homepage_form') when
-        // this modal opened, so this signup_checkbox call typically returns already:true
-        // and does not re-link user_id (see HANDOFF). Google OAuth not covered (redirects).
-        const optin = document.getElementById('nl-modal-optin') as HTMLInputElement | null;
-        if (optin?.checked) {
-          try {
-            await fetch('/api/newsletter-signup', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                ...(data.session?.access_token ? { Authorization: `Bearer ${data.session.access_token}` } : {}),
-              },
-              body: JSON.stringify({ email, consent_source: 'signup_checkbox' }),
-            });
-          } catch (e) { console.error('[nl-modal] opt-in subscribe failed (non-blocking):', e); }
-        }
         if (errorEl) { errorEl.style.color = 'var(--amber)'; errorEl.textContent = 'Check your email to confirm your account.'; }
         if (signupBtn) { signupBtn.disabled = true; signupBtn.textContent = 'Email sent'; }
       }

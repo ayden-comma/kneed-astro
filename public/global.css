@@ -2486,6 +2486,8 @@ body.light-mode .story-inline-rating { border-color: rgba(26,22,18,0.10); }
 .auth-error { font-size: 0.8rem; color: #e05555; text-align: center; min-height: 1.25rem; margin-bottom: 0.5rem; }
 .auth-optin { display: flex; align-items: flex-start; gap: 0.5rem; margin: 0.25rem 0 0.5rem; font-size: 0.8125rem; font-weight: 300; line-height: 1.4; color: var(--p-70); cursor: pointer; text-align: left; }
 .auth-optin input { margin-top: 0.15rem; flex-shrink: 0; accent-color: var(--amber); cursor: pointer; }
+.auth-subscribed-note { display: flex; align-items: center; gap: 0.4rem; margin: 0.25rem 0 0.5rem; font-size: 0.8125rem; font-weight: 400; color: var(--amber); }
+.auth-subscribed-note::before { content: '✓'; font-weight: 700; }
 .auth-footer { margin-top: 1.5rem; text-align: center; font-size: 0.8125rem; color: var(--p-35); }
 .auth-footer a { color: var(--amber); text-decoration: none; }
 .auth-footer a:hover { text-decoration: underline; }

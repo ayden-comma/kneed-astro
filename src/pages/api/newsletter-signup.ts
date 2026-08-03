@@ -53,7 +53,7 @@ async function upsertSubscriber(
     // Already on the list. Resurrect only if unsubscribed; otherwise leave untouched.
     const { data: existing, error: selErr } = await svc
       .from('email_subscribers')
-      .select('id, status')
+      .select('id, status, user_id')
       .eq('email', opts.email)
       .maybeSingle();
 
@@ -72,6 +72,17 @@ async function upsertSubscriber(
         return { status: 'error', message: updErr.message };
       }
       return { status: 'resurrected' };
+    }
+
+    // Already subscribed. Narrow backfill only: if the row has no user_id and this
+    // request carries a verified token, link the account. This is a link, not fresh
+    // consent — status/consent_source/consent_at are untouched.
+    if (opts.userId && !existing.user_id) {
+      const { error: linkErr } = await svc
+        .from('email_subscribers')
+        .update({ user_id: opts.userId })
+        .eq('id', existing.id);
+      if (linkErr) console.error('[newsletter-signup] user_id backfill failed:', linkErr.message);
     }
 
     return { status: 'already' };
