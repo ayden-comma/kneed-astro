@@ -27,6 +27,11 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         <input class="auth-input" type="password" id="password" placeholder="••••••••" autocomplete="new-password" />
       </div>
 
+      <label class="auth-optin">
+        <input type="checkbox" id="signup-optin" />
+        <span>Email me about new episodes, stories and store updates.</span>
+      </label>
+
       <button id="signup-btn" class="auth-submit" type="button">Create account</button>
 
       <div class="auth-footer">
@@ -64,18 +69,39 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     if (password.length < 6) { errorEl.textContent = 'Password must be at least 6 characters.'; return; }
     signupBtn.disabled = true;
     signupBtn.textContent = 'Creating account…';
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) {
       errorEl.textContent = error.message;
       signupBtn.disabled = false;
       signupBtn.textContent = 'Create account';
     } else {
+      const optin = document.getElementById('signup-optin') as HTMLInputElement | null;
+      if (optin?.checked) await subscribeOnSignup(email, data.session?.access_token);
       errorEl.style.color = 'var(--amber)';
       errorEl.textContent = 'Check your email to confirm your account.';
       signupBtn.disabled = true;
       signupBtn.textContent = 'Email sent';
     }
   });
+
+  // Fire-and-log the mailing-list opt-in. Never blocks or fails account creation.
+  // If a session exists (auto-confirm), the token lets the server link user_id;
+  // with email confirmation there is no session yet, so it is recorded by email only.
+  // Google OAuth is NOT covered: signInWithOAuth full-page-redirects before this runs.
+  async function subscribeOnSignup(email: string, token?: string) {
+    try {
+      await fetch('/api/newsletter-signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ email, consent_source: 'signup_checkbox' }),
+      });
+    } catch (e) {
+      console.error('[signup] opt-in subscribe failed (non-blocking):', e);
+    }
+  }
 
   document.getElementById('password')?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') signupBtn?.click();
