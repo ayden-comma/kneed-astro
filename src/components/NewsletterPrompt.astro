@@ -4,51 +4,81 @@
 // for Google and email accounts — unlike the removed pre-signup checkbox.
 // Eligibility + "already asked" are tracked by profiles.newsletter_prompted_at
 // (see migration SQL in HANDOFF); localStorage is a per-device fast-path / dismiss guard.
+// Presented as a centred, focus-trapped modal over the post-signup landing page.
 ---
-<div id="nl-prompt" class="nl-prompt" role="dialog" aria-labelledby="nl-prompt-h" aria-live="polite" hidden>
-  <button id="nl-prompt-x" class="nl-prompt-x" aria-label="Dismiss">×</button>
-  <div id="nl-prompt-h" class="nl-prompt-h">Want updates?</div>
-  <p class="nl-prompt-body">Keep me updated on things (K)Need.</p>
-  <div class="nl-prompt-actions">
-    <button id="nl-prompt-yes" class="nl-prompt-btn nl-prompt-yes" type="button">Yes, keep me updated</button>
-    <button id="nl-prompt-no" class="nl-prompt-btn nl-prompt-no" type="button">No thanks</button>
+<div id="nl-prompt-overlay" class="nl-overlay" hidden>
+  <div
+    id="nl-prompt"
+    class="nl-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="nl-prompt-h"
+    aria-describedby="nl-prompt-body"
+    tabindex="-1"
+  >
+    <button id="nl-prompt-x" class="nl-modal-x" aria-label="Close">×</button>
+    <div id="nl-prompt-h" class="nl-modal-h">Want the good stuff?</div>
+    <p id="nl-prompt-body" class="nl-modal-body">Keep up to date with new episodes, stories and what's coming next.</p>
+    <div class="nl-modal-actions">
+      <button id="nl-prompt-yes" class="nl-modal-btn" type="button">Yes, keep me updated</button>
+      <button id="nl-prompt-no" class="nl-modal-btn" type="button">No thanks</button>
+    </div>
   </div>
 </div>
 
 <style>
-  .nl-prompt {
+  .nl-overlay {
     position: fixed;
-    bottom: 1.25rem;
-    right: 1.25rem;
-    z-index: 60;
-    width: min(340px, calc(100vw - 2.5rem));
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(14, 12, 10, 0.72);
+    backdrop-filter: blur(2px);
+  }
+  .nl-overlay[hidden] { display: none; }
+  .nl-modal {
+    position: relative;
+    width: min(400px, 100%);
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
     background: var(--surface-2);
     border: 1px solid var(--border-md);
     border-radius: var(--r-card);
-    padding: 1.25rem 1.25rem 1.125rem;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+    padding: 1.75rem 1.5rem 1.5rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
     color: var(--parchment);
+    text-align: center;
+    outline: none;
   }
-  .nl-prompt[hidden] { display: none; }
-  .nl-prompt-x {
-    position: absolute; top: 0.5rem; right: 0.6rem;
-    font-size: 1.25rem; line-height: 1; color: var(--p-50);
-    background: none; border: none; cursor: pointer;
+  .nl-modal-x {
+    position: absolute; top: 0.6rem; right: 0.75rem;
+    font-size: 1.4rem; line-height: 1; color: var(--p-50);
+    background: none; border: none; cursor: pointer; padding: 0.25rem;
   }
-  .nl-prompt-x:hover { color: var(--parchment); }
-  .nl-prompt-h { font-family: var(--font-display); font-weight: 400; font-size: 1.05rem; margin-bottom: 0.35rem; }
-  .nl-prompt-body { font-size: 0.85rem; font-weight: 300; line-height: 1.45; color: var(--p-70); margin-bottom: 1rem; }
-  .nl-prompt-actions { display: flex; gap: 0.5rem; }
-  .nl-prompt-btn {
-    flex: 1 1 0; padding: 0.6rem 0.5rem; border-radius: var(--r-pill);
-    font-family: var(--font-cond); font-size: 0.62rem; font-weight: 600;
+  .nl-modal-x:hover { color: var(--parchment); }
+  .nl-modal-h { font-family: var(--font-display); font-weight: 400; font-size: 1.4rem; margin-bottom: 0.6rem; }
+  .nl-modal-body { font-size: 0.9rem; font-weight: 300; line-height: 1.5; color: var(--p-70); margin-bottom: 1.5rem; }
+  .nl-modal-actions { display: flex; gap: 0.625rem; }
+  /* Equal visual weight: both buttons share the exact same style — neither is the default. */
+  .nl-modal-btn {
+    flex: 1 1 0; min-width: 0;
+    padding: 0.75rem 0.5rem;
+    border-radius: var(--r-pill);
+    background: transparent;
+    color: var(--parchment);
+    border: 1px solid var(--border-md);
+    font-family: var(--font-cond); font-size: 0.65rem; font-weight: 600;
     letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer;
-    transition: opacity 0.2s, border-color 0.2s;
+    transition: border-color 0.2s, color 0.2s;
   }
-  .nl-prompt-yes { background: var(--amber); color: #fff; border: 1px solid var(--amber); }
-  .nl-prompt-yes:hover { opacity: 0.88; }
-  .nl-prompt-no { background: transparent; color: var(--p-70); border: 1px solid var(--border-md); }
-  .nl-prompt-no:hover { border-color: var(--p-50); color: var(--parchment); }
+  .nl-modal-btn:hover { border-color: var(--amber); color: var(--amber); }
+  /* Mobile: stack so both stay fully reachable and can't overflow at 390px. */
+  @media (max-width: 400px) {
+    .nl-modal-actions { flex-direction: column; }
+  }
 </style>
 
 <script>
@@ -59,8 +89,9 @@
   async function initNewsletterPrompt() {
     const path = window.location.pathname;
     if (path.startsWith('/auth') || path.startsWith('/admin')) return; // transient / not a landing surface
-    const card = document.getElementById('nl-prompt');
-    if (!card) return;
+    const overlay = document.getElementById('nl-prompt-overlay');
+    const dialog  = document.getElementById('nl-prompt');
+    if (!overlay || !dialog) return;
 
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
@@ -83,15 +114,60 @@
     if (error || !data) return;                          // fail safe: don't show on error
     if (data.newsletter_prompted_at) { localStorage.setItem(seenKey, '1'); return; } // already handled
 
-    // Definitively record "asked/answered" so it never shows again on any device.
+    // Respect the per-device dismiss cap (belt-and-braces with the seen flag above).
+    if (Number(localStorage.getItem(dismissKey) || '0') >= DISMISS_LIMIT) return;
+
+    // ── Modal machinery: focus trap, focus save/restore, scroll lock, Esc ──────────
+    let prevFocus: HTMLElement | null = null;
+    let prevOverflow = '';
+
+    function getFocusable(): HTMLElement[] {
+      return Array.from(
+        dialog!.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+      ).filter(el => !el.hasAttribute('disabled'));
+    }
+
+    function onKeydown(e: KeyboardEvent) {
+      if (e.key === 'Escape') { e.preventDefault(); dismiss(); return; }
+      if (e.key !== 'Tab') return;
+      const f = getFocusable();
+      if (f.length === 0) return;
+      const first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+
+    function open() {
+      prevFocus = document.activeElement as HTMLElement | null;
+      prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';          // lock body scroll
+      overlay!.removeAttribute('hidden');
+      document.addEventListener('keydown', onKeydown, true);
+      dialog!.focus();                                    // move focus into the modal
+    }
+
+    function teardown() {
+      overlay!.setAttribute('hidden', '');
+      document.body.style.overflow = prevOverflow;        // restore scroll
+      document.removeEventListener('keydown', onKeydown, true);
+      prevFocus?.focus?.();                               // return focus to the page
+    }
+
     async function markPrompted() {
       localStorage.setItem(seenKey, '1');
       await supabase.from('profiles').update({ newsletter_prompted_at: new Date().toISOString() }).eq('id', uid);
     }
-    const hide = () => { card!.setAttribute('hidden', ''); };
+
+    // All three escape routes (×, backdrop, Esc) are "not now" — same dismiss + cap.
+    async function dismiss() {
+      teardown();
+      const n = Number(localStorage.getItem(dismissKey) || '0') + 1;
+      localStorage.setItem(dismissKey, String(n));
+      if (n >= DISMISS_LIMIT) await markPrompted();
+    }
 
     document.getElementById('nl-prompt-yes')!.onclick = async () => {
-      hide();
+      teardown();
       try {
         await fetch('/api/newsletter-signup', {
           method: 'POST',
@@ -103,22 +179,14 @@
     };
 
     document.getElementById('nl-prompt-no')!.onclick = async () => {
-      hide();
+      teardown();
       await markPrompted(); // "No" records nothing in email_subscribers — absence is the record
     };
 
-    document.getElementById('nl-prompt-x')!.onclick = async () => {
-      hide();
-      // Dismiss = "not now": don't answer yet, but cap re-asks so it never nags.
-      const n = Number(localStorage.getItem(dismissKey) || '0') + 1;
-      localStorage.setItem(dismissKey, String(n));
-      if (n >= DISMISS_LIMIT) await markPrompted();
-    };
+    document.getElementById('nl-prompt-x')!.onclick = () => dismiss();
+    overlay.onclick = (e) => { if (e.target === overlay) dismiss(); }; // backdrop tap only
 
-    // Respect the per-device dismiss cap (belt-and-braces with the seen flag above).
-    if (Number(localStorage.getItem(dismissKey) || '0') >= DISMISS_LIMIT) return;
-
-    card.removeAttribute('hidden');
+    open();
   }
 
   document.addEventListener('astro:page-load', initNewsletterPrompt);
