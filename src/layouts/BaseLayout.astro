@@ -1,6 +1,7 @@
 ---
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import NewsletterPrompt from '../components/NewsletterPrompt.astro';
 import { ClientRouter } from 'astro:transitions';
 const { title, description, image, canonicalURL } = Astro.props;
 const isMapPage    = Astro.url.pathname.startsWith('/map');
@@ -242,6 +243,7 @@ const ogImage = image || new URL('/images/og-default.jpg', siteOrigin).href;
     </section>
 
     <Footer />
+    <NewsletterPrompt />
   </body>
 </html>
 

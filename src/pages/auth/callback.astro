@@ -15,32 +15,6 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 <script>
   import { supabase } from '../../lib/supabase';
 
-  // Replay a newsletter opt-in intent stashed before an OAuth redirect (set by the
-  // signup page's Google button when the opt-in box was ticked). Runs once a session
-  // exists so the server can link user_id from the bearer token. Non-blocking; always
-  // clears the flag; ignores stale intents (> 15 min) so an abandoned OAuth attempt
-  // can't silently subscribe a later unrelated sign-in.
-  async function replayOptinIntent() {
-    const raw = localStorage.getItem('kneed_optin_intent');
-    if (!raw) return;
-    localStorage.removeItem('kneed_optin_intent');
-    const ts = Number(raw);
-    if (!ts || Date.now() - ts > 15 * 60 * 1000) return; // stale — ignore
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const email = session?.user?.email;
-      const token = session?.access_token;
-      if (!email || !token) return;
-      await fetch('/api/newsletter-signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ email, consent_source: 'signup_checkbox' }),
-      });
-    } catch (e) {
-      console.error('[callback] opt-in replay failed (non-blocking):', e);
-    }
-  }
-
   async function handleCallback() {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
@@ -49,7 +23,6 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     } else {
       await supabase.auth.getSession();
     }
-    await replayOptinIntent();
     const rawNext = params.get('next') || '/';
     const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/';
     window.location.href = next;

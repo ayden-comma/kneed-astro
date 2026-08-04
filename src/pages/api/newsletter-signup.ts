@@ -6,7 +6,7 @@ export const prerender = false;
 
 const ALLOWED_FIELDS = new Set(['email', 'consent_source']);
 const MAX_EMAIL = 254;
-const CONSENT_SOURCES = new Set(['homepage_form', 'signup_checkbox']);
+const CONSENT_SOURCES = new Set(['homepage_form', 'signup_prompt']);
 
 function isEmailish(s: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
