@@ -21,14 +21,6 @@ const navLinks = [
     </a>
 
     <div class="header-right">
-      <button class="dark-toggle" id="dark-toggle" aria-label="Toggle dark mode">
-        <span class="dark-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        </span>
-        <span class="light-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-        </span>
-      </button>
       <a href="/auth/login" class="header-signin-btn" id="header-signin">Sign in</a>
       <button class="header-user-btn" id="header-user" aria-label="Account" type="button"></button>
     </div>
@@ -146,30 +138,3 @@ const navLinks = [
 
   </div>
 </div>
-
-<script is:inline>
-  // ── DARK MODE ────────────────────────────────────────────────
-  // Applies stored theme preference on every page render.
-  // Menu drawer init is handled in BaseLayout's persistent head script
-  // via the page lifecycle registry (astro:page-load).
-  (function() {
-    var darkToggle = document.getElementById('dark-toggle');
-    if (!darkToggle) return;
-    var darkIcon  = darkToggle.querySelector('.dark-icon');
-    var lightIcon = darkToggle.querySelector('.light-icon');
-
-    function applyTheme(isLight) {
-      document.body.classList.toggle('light-mode', isLight);
-      if (darkIcon)  darkIcon.style.display  = isLight ? 'none' : '';
-      if (lightIcon) lightIcon.style.display = isLight ? ''     : 'none';
-    }
-
-    darkToggle.onclick = function() {
-      var isLight = !document.body.classList.contains('light-mode');
-      applyTheme(isLight);
-      localStorage.setItem('kneed-theme', isLight ? 'light' : 'dark');
-    };
-
-    applyTheme(localStorage.getItem('kneed-theme') === 'light');
-  })();
-</script>
