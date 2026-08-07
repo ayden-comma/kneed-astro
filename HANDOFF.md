@@ -118,6 +118,7 @@ Ship all of these in the **same deploy that flips `GATE_ENABLED = false`** (`src
 | Comment rate limiting | `/api/submit-bakery` has per-IP throttling; comments (authenticated) have none. Low-priority but include in hardening pass |
 | Bot / abuse hardening (Turnstile) | Auth signup has **no app-level rate limiting** — only Supabase's built-in defaults. Submit-bakery and newsletter have per-IP throttling; comments and signup do not. If spam appears post-launch on any form, add **Cloudflare Turnstile** (NOT Google reCAPTCHA — heavier privacy footprint, and we're already on CF) to the affected forms: one client widget + server-side token verification in the existing route(s). **Privacy:** adding Turnstile requires a disclosure line in `privacy.astro` (and likely a "Who We Share Data With" / Cloudflare mention) — flag for the privacy reviewer at that point |
 | Privacy policy — Variant A live | Policy rewritten 2026-06-10 to match verified behavior. Variant A (autoConfig enabled, full interaction data) is live. `PRIVACY-REVIEW-NOTES.md` at repo root contains both variants for both pixel locations, all removed `[REVIEWER]` notes, and the data retention deferred decision |
+| Automated purge of submission IP addresses | Add a scheduled job (pg_cron or a Cloudflare cron worker) that clears the IP column on bakery submissions past a set age, so a fixed retention period can be published. The privacy policy currently states these IPs are kept only as long as needed, with no fixed number, pending this |
 
 ### Resolved
 
