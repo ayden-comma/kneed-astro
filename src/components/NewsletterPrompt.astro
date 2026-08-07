@@ -9,76 +9,70 @@
 <div id="nl-prompt-overlay" class="nl-overlay" hidden>
   <div
     id="nl-prompt"
-    class="nl-modal"
+    class="nl-card"
     role="dialog"
     aria-modal="true"
     aria-labelledby="nl-prompt-h"
     aria-describedby="nl-prompt-body"
     tabindex="-1"
   >
-    <button id="nl-prompt-x" class="nl-modal-x" aria-label="Close">×</button>
-    <div id="nl-prompt-h" class="nl-modal-h">Want the good stuff?</div>
-    <p id="nl-prompt-body" class="nl-modal-body">Keep up to date with new episodes, stories and what's coming next.</p>
-    <div class="nl-modal-actions">
-      <button id="nl-prompt-yes" class="nl-modal-btn" type="button">Yes, keep me updated</button>
-      <button id="nl-prompt-no" class="nl-modal-btn" type="button">No thanks</button>
+    <button id="nl-prompt-x" class="nl-x" aria-label="Close">&times;</button>
+    <span class="nl-badge">Psst&hellip;</span>
+    <div id="nl-prompt-h" class="nl-h">Want the good stuff?</div>
+    <p id="nl-prompt-body" class="nl-body">New episodes, stories and what's coming next. No spam, just bread.</p>
+    <div class="nl-actions">
+      <button id="nl-prompt-yes" class="nl-btn nl-btn-primary" type="button">Yes please</button>
+      <button id="nl-prompt-no" class="nl-btn nl-btn-ghost" type="button">No thanks</button>
     </div>
   </div>
 </div>
 
 <style>
-  .nl-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-    background: rgba(14, 12, 10, 0.72);
-    backdrop-filter: blur(2px);
-  }
-  .nl-overlay[hidden] { display: none; }
-  .nl-modal {
-    position: relative;
-    width: min(400px, 100%);
-    max-height: calc(100vh - 2rem);
-    overflow-y: auto;
-    background: var(--surface-2);
-    border: 1px solid var(--border-md);
-    border-radius: var(--r-card);
-    padding: 1.75rem 1.5rem 1.5rem;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-    color: var(--parchment);
-    text-align: center;
-    outline: none;
-  }
-  .nl-modal-x {
-    position: absolute; top: 0.6rem; right: 0.75rem;
-    font-size: 1.4rem; line-height: 1; color: var(--p-50);
-    background: none; border: none; cursor: pointer; padding: 0.25rem;
-  }
-  .nl-modal-x:hover { color: var(--parchment); }
-  .nl-modal-h { font-family: var(--font-display); font-weight: 400; font-size: 1.4rem; margin-bottom: 0.6rem; }
-  .nl-modal-body { font-size: 0.9rem; font-weight: 300; line-height: 1.5; color: var(--p-70); margin-bottom: 1.5rem; }
-  .nl-modal-actions { display: flex; gap: 0.625rem; }
-  /* Equal visual weight: both buttons share the exact same style — neither is the default. */
-  .nl-modal-btn {
-    flex: 1 1 0; min-width: 0;
-    padding: 0.75rem 0.5rem;
-    border-radius: var(--r-pill);
-    background: transparent;
-    color: var(--parchment);
-    border: 1px solid var(--border-md);
-    font-family: var(--font-cond); font-size: 0.65rem; font-weight: 600;
-    letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer;
-    transition: border-color 0.2s, color 0.2s;
-  }
-  .nl-modal-btn:hover { border-color: var(--amber); color: var(--amber); }
-  /* Mobile: stack so both stay fully reachable and can't overflow at 390px. */
-  @media (max-width: 400px) {
-    .nl-modal-actions { flex-direction: column; }
-  }
+.nl-overlay{
+  position:fixed;inset:0;z-index:1000;
+  display:flex;align-items:center;justify-content:center;padding:24px;
+  background:rgba(4,3,3,.62);backdrop-filter:blur(2px);
+}
+.nl-overlay[hidden]{display:none;}
+.nl-card{
+  position:relative;width:100%;max-width:360px;
+  background:linear-gradient(165deg,#241a12,var(--surface-2) 60%);
+  border:1px solid var(--border-md);border-radius:18px;
+  padding:34px 30px 28px;text-align:center;
+  box-shadow:0 24px 60px rgba(0,0,0,.5);
+}
+.nl-x{
+  position:absolute;top:14px;right:14px;width:28px;height:28px;
+  border-radius:50%;border:1px solid var(--border-md);background:none;
+  color:var(--p-50);font-size:15px;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:color .18s,border-color .18s;
+}
+.nl-x:hover{color:var(--parchment);border-color:var(--parchment);}
+.nl-badge{
+  display:inline-block;font-weight:600;letter-spacing:.22em;text-transform:uppercase;
+  font-size:.64rem;color:var(--amber);
+  border:1px solid rgba(200,131,58,.4);border-radius:var(--r-pill);padding:5px 14px;
+}
+.nl-h{
+  font-family:var(--font-display);font-weight:500;font-size:2.1rem;line-height:1.02;
+  color:var(--parchment);margin:18px 0 10px;
+}
+.nl-body{
+  font-weight:300;color:var(--p-70);font-size:.95rem;line-height:1.5;
+  max-width:250px;margin:0 auto;
+}
+.nl-actions{margin-top:24px;display:flex;flex-direction:column;gap:10px;}
+.nl-btn{
+  font-weight:600;letter-spacing:.12em;text-transform:uppercase;font-size:.82rem;
+  border-radius:var(--r-pill);padding:14px;cursor:pointer;border:1px solid transparent;
+  transition:filter .18s,background .18s,color .18s;
+}
+.nl-btn-primary{background:var(--amber);color:#0E0C0A;border-color:var(--amber);}
+.nl-btn-primary:hover{filter:brightness(1.08);}
+.nl-btn-ghost{background:none;color:var(--p-50);border-color:transparent;}
+.nl-btn-ghost:hover{color:var(--parchment);}
+@media(max-width:400px){.nl-h{font-size:1.85rem;}}
 </style>
 
 <script>
