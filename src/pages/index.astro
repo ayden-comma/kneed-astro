@@ -88,7 +88,7 @@ if (heroSlides.length === 0) {
 }
 ---
 
-<BaseLayout title="Home" description="Melbourne's best bread — discover sourdough bakeries, films and stories from the city's most passionate bakers.">
+<BaseLayout title="Home" description="Melbourne's best bread — discover sourdough bakeries, films and stories from the city's most passionate bakers." hideSubmitBanner={HIDE_MAP}>
   <main>
 
     <!-- CINEMATIC HERO -->
@@ -232,10 +232,10 @@ if (heroSlides.length === 0) {
 
     <!-- MAP TEASER + NEWSLETTER -->
     <section class="wf-container mt-section" style="padding-bottom: clamp(2rem,4vw,3rem);">
-      <div class="two-card-row" style={HIDE_MAP ? 'grid-template-columns: minmax(0, 640px); justify-content: center;' : undefined}>
+      <div class="two-card-row">
 
-        <!-- MAP CARD -->
-        {!HIDE_MAP && (
+        <!-- MAP CARD (visible) / SUBMIT CARD (when map hidden) — fills the first slot -->
+        {!HIDE_MAP ? (
         <a href="/map" class="map-card">
           <img src="/images/map-preview.jpg" alt="Melbourne bakery map" class="map-card-img" />
           <div class="map-card-overlay"></div>
@@ -243,6 +243,16 @@ if (heroSlides.length === 0) {
             <div class="map-card-eyebrow">Find Good Bread</div>
             <div class="map-card-title">MELBOURNE'S BEST BREAD</div>
             <div class="map-card-ghost">Explore the map →</div>
+          </div>
+        </a>
+        ) : (
+        <a href="/submit" class="map-card">
+          <img src="https://images.unsplash.com/photo-1599819055803-717bba43890f?q=80&w=2370&auto=format&fit=crop" alt="" aria-hidden="true" class="map-card-img" loading="lazy" />
+          <div class="map-card-overlay"></div>
+          <div class="map-card-top">
+            <div class="map-card-eyebrow">Submit a Bakery</div>
+            <div class="map-card-title">Is there a bakery we're missing?</div>
+            <div class="map-card-ghost">Let us know →</div>
           </div>
         </a>
         )}

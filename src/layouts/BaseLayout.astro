@@ -3,7 +3,7 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import NewsletterPrompt from '../components/NewsletterPrompt.astro';
 import { ClientRouter } from 'astro:transitions';
-const { title, description, image, canonicalURL } = Astro.props;
+const { title, description, image, canonicalURL, hideSubmitBanner = false } = Astro.props;
 const isMapPage    = Astro.url.pathname.startsWith('/map');
 const isBakeryPage = /^\/bakeries\/.+/.test(Astro.url.pathname);
 const noClientRouter = isMapPage || isBakeryPage;
@@ -229,7 +229,8 @@ const ogImage = image || new URL('/images/og-default.jpg', siteOrigin).href;
     <Header />
     <slot />
 
-    <!-- SUBMIT BANNER — appears on every page above the footer -->
+    <!-- SUBMIT BANNER — appears on every page above the footer (unless suppressed) -->
+    {!hideSubmitBanner && (
     <section class="wf-container" style="padding-bottom: clamp(2rem,4vw,3rem);">
       <a href="/submit" class="submit-banner">
         <img src="https://images.unsplash.com/photo-1599819055803-717bba43890f?q=80&w=2370&auto=format&fit=crop" alt="" aria-hidden="true" class="submit-banner-bg" loading="lazy" />
@@ -241,6 +242,7 @@ const ogImage = image || new URL('/images/og-default.jpg', siteOrigin).href;
         </div>
       </a>
     </section>
+    )}
 
     <Footer />
     <NewsletterPrompt />
