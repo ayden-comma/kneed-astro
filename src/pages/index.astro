@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { supabase } from '../lib/supabase';
+import { HIDE_ARTICLES, HIDE_MAP } from '../config/features';
 
 export const prerender = false;
 
@@ -24,8 +25,11 @@ type HeroSlide = { tag: string; title: string; bakery: string; subtitle: string;
 let heroSlides: HeroSlide[] = [];
 
 if (heroFeatureRows && heroFeatureRows.length > 0) {
-  const bakerySlugList  = (heroFeatureRows as any[]).filter(h => h.content_type !== 'article' && h.bakery_slug).map(h => h.bakery_slug as string);
-  const articleSlugList = (heroFeatureRows as any[]).filter(h => h.content_type === 'article' && h.article_slug).map(h => h.article_slug as string);
+  // When articles are hidden, drop article-type hero slides so no slide CTA or hero
+  // click targets /kneed-to-know (which would redirect to home).
+  const heroRows = (heroFeatureRows as any[]).filter(h => !(HIDE_ARTICLES && h.content_type === 'article'));
+  const bakerySlugList  = heroRows.filter(h => h.content_type !== 'article' && h.bakery_slug).map(h => h.bakery_slug as string);
+  const articleSlugList = heroRows.filter(h => h.content_type === 'article' && h.article_slug).map(h => h.article_slug as string);
 
   const [bakeryResult, articleResult] = await Promise.all([
     bakerySlugList.length > 0
@@ -39,7 +43,7 @@ if (heroFeatureRows && heroFeatureRows.length > 0) {
   const heroBakeries = (bakeryResult.data ?? []) as any[];
   const heroArticles  = (articleResult.data ?? []) as any[];
 
-  heroSlides = (heroFeatureRows as any[])
+  heroSlides = heroRows
     .map((hf) => {
       if (hf.content_type === 'article') {
         const a = heroArticles.find((x: any) => x.slug === hf.article_slug);
@@ -191,6 +195,7 @@ if (heroSlides.length === 0) {
     </section>
 
     <!-- STORIES -->
+    {!HIDE_ARTICLES && (
     <section class="wf-container mt-section">
       <div class="wf-section-head">
         <div>
@@ -223,12 +228,14 @@ if (heroSlides.length === 0) {
         ))}
       </div>
     </section>
+    )}
 
     <!-- MAP TEASER + NEWSLETTER -->
     <section class="wf-container mt-section" style="padding-bottom: clamp(2rem,4vw,3rem);">
-      <div class="two-card-row">
+      <div class="two-card-row" style={HIDE_MAP ? 'grid-template-columns: minmax(0, 640px); justify-content: center;' : undefined}>
 
         <!-- MAP CARD -->
+        {!HIDE_MAP && (
         <a href="/map" class="map-card">
           <img src="/images/map-preview.jpg" alt="Melbourne bakery map" class="map-card-img" />
           <div class="map-card-overlay"></div>
@@ -238,6 +245,7 @@ if (heroSlides.length === 0) {
             <div class="map-card-ghost">Explore the map →</div>
           </div>
         </a>
+        )}
 
         <!-- NEWSLETTER CARD -->
         <div class="nl-card">

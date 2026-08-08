@@ -39,6 +39,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
 <script>
   import { supabase } from '../lib/supabase';
+  import { HIDE_ARTICLES } from '../config/features';
 
   function esc(s: string): string {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -97,7 +98,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
     // Split slugs by type
     const bakerySlugs  = saves.filter((s: { content_type: string }) => s.content_type === 'bakery').map((s: { content_slug: string }) => s.content_slug);
-    const articleSlugs = saves.filter((s: { content_type: string }) => s.content_type === 'article').map((s: { content_slug: string }) => s.content_slug);
+    // Articles hidden for launch: drop saved-article slugs so no /kneed-to-know link is built
+    // (these saves resolve to null below and fall out of the grid). Returns when the flag flips.
+    const articleSlugs = HIDE_ARTICLES ? [] : saves.filter((s: { content_type: string }) => s.content_type === 'article').map((s: { content_slug: string }) => s.content_slug);
 
     // Fetch metadata in parallel — only the slugs the user saved
     const [bakeryResult, articleResult] = await Promise.all([

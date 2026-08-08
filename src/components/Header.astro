@@ -1,9 +1,12 @@
 ---
+import { HIDE_ARTICLES, HIDE_MAP } from '../config/features';
+
 const navLinks = [
   { label: 'Bakeries', href: '/bakeries' },
-  { label: '(K)Need to Know', href: '/kneed-to-know' },
-  { label: 'Find Good Bread', href: '/map' },
+  ...(HIDE_ARTICLES ? [] : [{ label: '(K)Need to Know', href: '/kneed-to-know' }]),
+  ...(HIDE_MAP ? [] : [{ label: 'Find Good Bread', href: '/map' }]),
   { label: 'About', href: '/about' },
+  { label: 'Contact', href: '/contact' },
 ];
 ---
 
@@ -54,16 +57,24 @@ const navLinks = [
         Bakeries
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 5 7 7-7 7"/></svg>
       </a>
-      <a class="menu-nav-item" href="/kneed-to-know">
-        (K)Need to Know
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 5 7 7-7 7"/></svg>
-      </a>
-      <a class="menu-nav-item" href="/map">
-        Find Good Bread
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-      </a>
+      {!HIDE_ARTICLES && (
+        <a class="menu-nav-item" href="/kneed-to-know">
+          (K)Need to Know
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 5 7 7-7 7"/></svg>
+        </a>
+      )}
+      {!HIDE_MAP && (
+        <a class="menu-nav-item" href="/map">
+          Find Good Bread
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+        </a>
+      )}
       <a class="menu-nav-item" href="/about">
         About
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 5 7 7-7 7"/></svg>
+      </a>
+      <a class="menu-nav-item" href="/contact">
+        Contact
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 5 7 7-7 7"/></svg>
       </a>
     </nav>

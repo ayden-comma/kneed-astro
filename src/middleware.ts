@@ -1,4 +1,5 @@
 import { defineMiddleware } from 'astro:middleware';
+import { HIDE_ARTICLES, HIDE_MAP } from './config/features';
 
 const GATE_ENABLED = true; // set false at launch to disable the holding page
 const UNLOCK_TOKEN = 'ok-2026';
@@ -60,9 +61,17 @@ function holdingPage(wrong: boolean): string {
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
-  if (!GATE_ENABLED) return next();
-
   const { pathname } = context.url;
+
+  // Feature-flag redirects — apply whether the coming-soon gate is on or off.
+  // Staff (holding the unlock cookie) still see hidden sections for review.
+  const staff = context.cookies.get('kneed_unlocked')?.value === UNLOCK_TOKEN;
+  if (!staff) {
+    if (HIDE_ARTICLES && (pathname === '/kneed-to-know' || pathname.startsWith('/kneed-to-know/'))) return context.redirect('/');
+    if (HIDE_MAP && pathname === '/map') return context.redirect('/');
+  }
+
+  if (!GATE_ENABLED) return next();
 
   // Always let through: auth flows, API calls, and static assets
   // /auth/ must bypass so the OAuth callback is never intercepted by the gate

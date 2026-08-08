@@ -82,6 +82,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
 <script>
   import { supabase } from '../lib/supabase';
+  import { HIDE_ARTICLES } from '../config/features';
 
   let _profileGuard = false;
 
@@ -200,7 +201,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
     if (gridEl && emptyEl) {
       const bakerySlugs  = saves.filter(s => s.content_type === 'bakery').map(s => s.content_slug);
-      const articleSlugs = saves.filter(s => s.content_type === 'article').map(s => s.content_slug);
+      // Articles hidden for launch: drop saved-article slugs so no /kneed-to-know link is built
+      // (these saves resolve to null below and fall out of the grid). Returns when the flag flips.
+      const articleSlugs = HIDE_ARTICLES ? [] : saves.filter(s => s.content_type === 'article').map(s => s.content_slug);
 
       type BakeryRow  = { slug: string; name: string; suburb: string | null; category: string; thumbnail: string };
       type ArticleRow = { slug: string; title: string; category: string; thumbnail: string };
