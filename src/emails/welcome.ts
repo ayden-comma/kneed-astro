@@ -11,9 +11,10 @@ const PRIMARY_CTA_URL = 'https://kneed.tv/bakeries';
 const PRIMARY_CTA_LABEL = 'Explore the bakeries';
 const SECONDARY_CTA_URL = 'https://kneed.tv/submit';
 const SECONDARY_CTA_LABEL = 'Submit a bakery';
-const INSTAGRAM_URL = 'https://www.instagram.com/kneed.tv/';
-const TIKTOK_URL = 'https://www.tiktok.com/@kneed.tv';
-const YOUTUBE_URL = 'https://www.youtube.com/@KneedTV';
+const INSTAGRAM_URL = 'https://www.instagram.com/kneedtv';
+const TIKTOK_URL = 'https://www.tiktok.com/@kneedtv';
+const YOUTUBE_URL = 'https://www.youtube.com/@kneedtv';
+const FACEBOOK_URL = 'https://www.facebook.com/kneedtv';
 const SENDER_ADDRESS = 'Comma Films Pty Ltd, Australia';
 
 export const WELCOME_SUBJECT = 'Welcome to (K)Need';
@@ -127,7 +128,8 @@ export function renderWelcomeEmail(unsubscribeUrl: string): string {
       <div style="font-family:'Archivo Narrow','Arial Narrow',Arial,sans-serif;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:#57504a;margin-bottom:14px;">
         <a href="${INSTAGRAM_URL}" style="color:#57504a;text-decoration:none;">Instagram</a> &nbsp;·&nbsp;
         <a href="${TIKTOK_URL}" style="color:#57504a;text-decoration:none;">TikTok</a> &nbsp;·&nbsp;
-        <a href="${YOUTUBE_URL}" style="color:#57504a;text-decoration:none;">YouTube</a>
+        <a href="${YOUTUBE_URL}" style="color:#57504a;text-decoration:none;">YouTube</a> &nbsp;·&nbsp;
+        <a href="${FACEBOOK_URL}" style="color:#57504a;text-decoration:none;">Facebook</a>
       </div>
       <div style="font-family:'Barlow',Helvetica,Arial,sans-serif;font-size:12.5px;line-height:1.6;color:#8a8178;">
         You're receiving this because you signed up at kneed.tv<br>
