@@ -64,7 +64,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     if (password.length < 6) { errorEl.textContent = 'Password must be at least 6 characters.'; return; }
     signupBtn.disabled = true;
     signupBtn.textContent = 'Creating account…';
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/auth/callback` } });
     if (error) {
       errorEl.style.color = '';
       errorEl.textContent = error.message;
