@@ -64,12 +64,23 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     if (password.length < 6) { errorEl.textContent = 'Password must be at least 6 characters.'; return; }
     signupBtn.disabled = true;
     signupBtn.textContent = 'Creating account…';
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) {
+      errorEl.style.color = '';
       errorEl.textContent = error.message;
       signupBtn.disabled = false;
       signupBtn.textContent = 'Create account';
     } else {
+      // Supabase obfuscates an existing confirmed account by returning success with
+      // an empty identities array. Detect that and point the user at login instead.
+      const alreadyRegistered = data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0;
+      if (alreadyRegistered) {
+        errorEl.style.color = 'var(--amber)';
+        errorEl.innerHTML = 'This email is already registered. <a href="/auth/login" style="color:var(--amber);text-decoration:underline;">Log in instead</a>.';
+        signupBtn.disabled = false;
+        signupBtn.textContent = 'Create account';
+        return;
+      }
       errorEl.style.color = 'var(--amber)';
       errorEl.textContent = 'Check your email to confirm your account.';
       signupBtn.disabled = true;
