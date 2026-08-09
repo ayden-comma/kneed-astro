@@ -1,0 +1,67 @@
+---
+export const prerender = false;
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { createClient } from '@supabase/supabase-js';
+import { env } from 'cloudflare:workers';
+
+const token = Astro.url.searchParams.get('token');
+const done = Astro.url.searchParams.has('done');
+
+// Token present → unsubscribe that specific subscriber. Never deletes; only sets status.
+if (token) {
+  const serviceKey  = env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+  if (serviceKey) {
+    const serviceSupabase = createClient(supabaseUrl, serviceKey);
+    const { error } = await serviceSupabase
+      .from('email_subscribers')
+      .update({ status: 'unsubscribed', unsubscribed_at: new Date().toISOString() })
+      .eq('unsubscribe_token', token)
+      .neq('status', 'unsubscribed');
+    if (error) console.error('[unsubscribe] token update failed:', error.message);
+  } else {
+    console.error('[unsubscribe] SUPABASE_SERVICE_ROLE_KEY not configured');
+  }
+}
+
+const mode: 'confirmed' | 'done' | 'form' = token ? 'confirmed' : done ? 'done' : 'form';
+---
+
+<BaseLayout title="Unsubscribe" description="Manage your (K)Need newsletter subscription.">
+  <main class="wf-container py-page">
+
+    {mode === 'confirmed' && (
+      <div class="wf-page-head">
+        <div class="wf-eyebrow">Newsletter</div>
+        <h1 class="wf-page-h1">You're unsubscribed</h1>
+        <p class="wf-page-intro">You won't receive any more emails from us. You can resubscribe anytime at <a href="/" style="color:var(--amber);">kneed.tv</a>.</p>
+      </div>
+    )}
+
+    {mode === 'done' && (
+      <div class="wf-page-head">
+        <div class="wf-eyebrow">Newsletter</div>
+        <h1 class="wf-page-h1">Unsubscribed</h1>
+        <p class="wf-page-intro">If that email was subscribed, it has now been unsubscribed.</p>
+      </div>
+    )}
+
+    {mode === 'form' && (
+      <div class="wf-page-head">
+        <div class="wf-eyebrow">Newsletter</div>
+        <h1 class="wf-page-h1">Unsubscribe</h1>
+        <p class="wf-page-intro">Enter your email address to stop receiving updates from (K)Need.</p>
+      </div>
+    )}
+
+    {mode === 'form' && (
+      <div class="simple-body">
+        <form method="POST" action="/api/unsubscribe" style="display:flex;flex-direction:column;gap:1rem;max-width:22rem;">
+          <input class="auth-input" type="email" name="email" required placeholder="your@email.com" autocomplete="email" />
+          <button type="submit" class="wf-pill pill-dark">Unsubscribe</button>
+        </form>
+      </div>
+    )}
+
+  </main>
+</BaseLayout>

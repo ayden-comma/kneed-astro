@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { env } from 'cloudflare:workers';
+import { renderWelcomeEmail, WELCOME_SUBJECT, WELCOME_FROM, WELCOME_REPLY_TO } from '../../emails/welcome';
 
 export const prerender = false;
 
@@ -17,7 +18,7 @@ function str(v: unknown): string {
 }
 
 type UpsertResult =
-  | { status: 'inserted' | 'resurrected' | 'already' }
+  | { status: 'inserted' | 'resurrected' | 'already'; unsubscribeToken: string | null }
   | { status: 'error'; message: string };
 
 // Insert-then-resurrect against the lower(email) unique index. email must already
@@ -36,24 +37,32 @@ async function upsertSubscriber(
     user_id:        null as string | null,
   };
 
-  let { error: insErr } = await svc
+  let { data: insData, error: insErr } = await svc
     .from('email_subscribers')
-    .insert({ ...base, user_id: opts.userId });
+    .insert({ ...base, user_id: opts.userId })
+    .select('unsubscribe_token')
+    .single();
 
   // Profile row may not exist yet (e.g. unconfirmed signup) → FK violation.
   // Retry without user_id so consent is still recorded; link can be backfilled later.
   if (insErr && insErr.code === '23503' && opts.userId) {
     console.warn('[newsletter-signup] user_id FK violation — retrying without it');
-    ({ error: insErr } = await svc.from('email_subscribers').insert(base));
+    ({ data: insData, error: insErr } = await svc
+      .from('email_subscribers')
+      .insert(base)
+      .select('unsubscribe_token')
+      .single());
   }
 
-  if (!insErr) return { status: 'inserted' };
+  if (!insErr) {
+    return { status: 'inserted', unsubscribeToken: (insData as { unsubscribe_token?: string } | null)?.unsubscribe_token ?? null };
+  }
 
   if (insErr.code === '23505') {
     // Already on the list. Resurrect only if unsubscribed; otherwise leave untouched.
     const { data: existing, error: selErr } = await svc
       .from('email_subscribers')
-      .select('id, status, user_id')
+      .select('id, status, user_id, unsubscribe_token')
       .eq('email', opts.email)
       .maybeSingle();
 
@@ -71,7 +80,7 @@ async function upsertSubscriber(
         console.error('[newsletter-signup] resurrect update failed:', updErr.message);
         return { status: 'error', message: updErr.message };
       }
-      return { status: 'resurrected' };
+      return { status: 'resurrected', unsubscribeToken: (existing as { unsubscribe_token?: string }).unsubscribe_token ?? null };
     }
 
     // Already subscribed. Narrow backfill only: if the row has no user_id and this
@@ -85,11 +94,43 @@ async function upsertSubscriber(
       if (linkErr) console.error('[newsletter-signup] user_id backfill failed:', linkErr.message);
     }
 
-    return { status: 'already' };
+    return { status: 'already', unsubscribeToken: null };
   }
 
   console.error('[newsletter-signup] insert failed:', insErr.message);
   return { status: 'error', message: insErr.message };
+}
+
+// Fire-and-forget welcome email via Resend — same pattern as submit-bakery.ts.
+// Guarded on the API key; a failed or slow send is logged and never propagates.
+async function sendWelcomeEmail(toEmail: string, unsubscribeUrl: string): Promise<void> {
+  const resendKey = env.RESEND_API_KEY;
+  if (!resendKey) {
+    console.warn('[newsletter-signup] RESEND_API_KEY not set — welcome email skipped');
+    return;
+  }
+  try {
+    const emailRes = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from:     WELCOME_FROM,
+        to:       toEmail,
+        reply_to: WELCOME_REPLY_TO,
+        subject:  WELCOME_SUBJECT,
+        html:     renderWelcomeEmail(unsubscribeUrl),
+      }),
+    });
+    if (!emailRes.ok) {
+      const errText = await emailRes.text();
+      console.error('[newsletter-signup] Resend error', emailRes.status, errText);
+    }
+  } catch (emailErr) {
+    console.error('[newsletter-signup] Resend threw:', emailErr instanceof Error ? emailErr.message : String(emailErr));
+  }
 }
 
 export const POST: APIRoute = async ({ request }) => {
@@ -171,6 +212,16 @@ export const POST: APIRoute = async ({ request }) => {
 
     if (result.status === 'error') {
       return json(500, { error: 'Failed to save signup. Please try again.' });
+    }
+
+    // Welcome email — only when the subscriber becomes newly active (fresh insert,
+    // FK-retry insert, or resurrect). Never on the already-subscribed no-op or the
+    // user_id-only backfill. Fire-and-forget: mirrors submit-bakery — a failed or slow
+    // send is logged and never fails or blocks this response.
+    if ((result.status === 'inserted' || result.status === 'resurrected') && result.unsubscribeToken) {
+      const origin = new URL(request.url).origin;
+      const unsubscribeUrl = `${origin}/unsubscribe?token=${result.unsubscribeToken}`;
+      await sendWelcomeEmail(email, unsubscribeUrl);
     }
 
     return json(200, { ok: true, already: result.status === 'already', resurrected: result.status === 'resurrected' });
