@@ -17,17 +17,32 @@ const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 const RESEND_BATCH_ENDPOINT = 'https://api.resend.com/emails/batch';
 const BATCH_SIZE = 100;
 
-// Optimise a Cloudinary delivery URL for email (resize + compress). Non-Cloudinary URLs
-// and URLs that already carry a transform are left untouched.
+// Optimise a Cloudinary delivery URL for email: always impose a 16:9 smart crop, stripping
+// any existing leading transform (but preserving a v123 version segment and the public ID).
 function emailImage(url: string): string {
   if (!url) return '';
+  const CLOUD = 'dwffvgcj1';
+  const TX = 'c_fill,g_auto,w_1200,h_675,q_auto,f_jpg';
   const marker = '/image/upload/';
   const i = url.indexOf(marker);
-  if (i === -1) return url;
-  const after = url.slice(i + marker.length);
-  // Don't double-insert if a transform segment is already present.
-  if (/^(w_|h_|c_|q_|f_|t_)/.test(after)) return url;
-  return url.slice(0, i + marker.length) + 'c_fill,g_auto,w_1200,h_675,q_auto,f_jpg/' + after;
+  if (i !== -1) {
+    let after = url.slice(i + marker.length);
+    // If a transform segment is already present, strip it (but never strip a version segment like v123).
+    const firstSlash = after.indexOf('/');
+    if (firstSlash !== -1) {
+      const firstSeg = after.slice(0, firstSlash);
+      const looksLikeTransform = /(^|,)(c|w|h|g|q|f|t|e|ar|dpr|b|bo|r|o|a|fl|l|u|x|y|z|co|pg)_/.test(firstSeg);
+      const isVersion = /^v\d+$/.test(firstSeg);
+      if (looksLikeTransform && !isVersion) {
+        after = after.slice(firstSlash + 1);
+      }
+    }
+    return url.slice(0, i + marker.length) + TX + '/' + after;
+  }
+  if (/^https?:\/\//.test(url)) {
+    return `https://res.cloudinary.com/${CLOUD}/image/fetch/${TX}/${encodeURIComponent(url)}`;
+  }
+  return url;
 }
 
 export const POST: APIRoute = async ({ request }) => {

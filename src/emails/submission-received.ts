@@ -60,8 +60,7 @@ export function renderSubmissionEmail(bakeryName: string, bakerySuburb: string):
     <tr><td class="px" style="padding:0 40px 34px;">
       <p style="font-family:'Barlow',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.7;color:#57504a;margin:0;">We read every submission. We can't film them all, but the good ones go on the list, and if we head there, we'll be in touch. No need to reply.</p>
     </td></tr>
-    <tr><td style="padding:0 40px;"><div style="height:1px;line-height:1px;font-size:1px;background:#c4baae;">&nbsp;</div></td></tr>
-    <tr><td class="px" align="center" bgcolor="#e4ddd2" style="background:#e4ddd2;padding:30px 40px;">
+    <tr><td class="px" align="center" bgcolor="#f2ede6" style="background:#f2ede6;padding:30px 40px;">
       <div style="font-family:'Archivo Narrow','Arial Narrow',Arial,sans-serif;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:#57504a;margin-bottom:14px;">
         <a href="https://www.instagram.com/kneedtv" style="color:#57504a;text-decoration:none;">Instagram</a> &nbsp;·&nbsp;
         <a href="https://www.tiktok.com/@kneedtv" style="color:#57504a;text-decoration:none;">TikTok</a> &nbsp;·&nbsp;
