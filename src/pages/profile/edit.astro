@@ -148,6 +148,17 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
           </label>
         </div>
 
+        <div style="border-top:1px solid var(--border); padding-top:1.5rem;">
+          <label id="email-optin-label" style="display:flex; gap:0.875rem; align-items:flex-start; cursor:pointer;">
+            <input type="checkbox" id="f-email-optin" style="width:1.125rem; height:1.125rem; margin-top:0.2rem; accent-color:var(--amber); flex-shrink:0; cursor:pointer;" />
+            <span style="font-size:0.875rem; font-weight:300; color:var(--p-50); line-height:1.65;">
+              <span style="display:block; color:var(--parchment); font-weight:400;">Send me (K)Need emails</span>
+              New episodes, stories and what's coming next.
+            </span>
+          </label>
+          <div id="email-optin-status" style="display:none; margin-top:0.6rem; font-size:0.8rem; color:var(--amber);"></div>
+        </div>
+
         <div class="form-actions" style="flex-direction:row; flex-wrap:wrap; gap:0.875rem; padding-top:0.25rem;">
           <button type="submit" id="save-btn" class="wf-pill pill-amber">
             Save changes
@@ -179,6 +190,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   const successEl = document.getElementById('edit-success')!;
   const form      = document.getElementById('edit-form') as HTMLFormElement;
   const saveBtn   = document.getElementById('save-btn') as HTMLButtonElement;
+  const emailOptin  = document.getElementById('f-email-optin') as HTMLInputElement;
+  const optinStatus = document.getElementById('email-optin-status') as HTMLElement;
 
   function field(id: string) { return document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement; }
   function showError(msg: string) {
@@ -214,6 +227,17 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       _initialConsent = !!(profile as any).demographics_consent;
       (document.getElementById('f-demographics-consent') as HTMLInputElement).checked = _initialConsent;
     }
+
+    // Email-updates toggle: load current subscription state (separate from profile Save).
+    try {
+      const res = await fetch('/api/newsletter-preference', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ action: 'status' }),
+      });
+      const data = await res.json().catch(() => ({})) as { ok?: boolean; subscribed?: boolean };
+      if (data.ok) emailOptin.checked = !!data.subscribed;
+    } catch { /* leave unchecked on failure */ }
   }
 
   form.addEventListener('submit', async (e) => {
@@ -269,6 +293,37 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     _initialConsent = consent;
     successEl.style.display = '';
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  // Email-updates toggle — self-service, independent of the profile Save button.
+  emailOptin.addEventListener('change', async () => {
+    const desired = emailOptin.checked;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { window.location.href = '/auth/login'; return; }
+    emailOptin.disabled = true;
+    optinStatus.style.display = 'none';
+    try {
+      const res = await fetch('/api/newsletter-preference', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ action: desired ? 'subscribe' : 'unsubscribe' }),
+      });
+      const data = await res.json().catch(() => ({})) as { ok?: boolean; subscribed?: boolean; error?: string };
+      if (data.ok) {
+        emailOptin.checked = !!data.subscribed;
+        optinStatus.style.color = 'var(--amber)';
+        optinStatus.textContent = data.subscribed ? "You'll get (K)Need emails." : "You've opted out.";
+        optinStatus.style.display = '';
+      } else {
+        emailOptin.checked = !desired; // revert
+        showError(data.error || 'Could not update your email preference.');
+      }
+    } catch {
+      emailOptin.checked = !desired; // revert
+      showError('Could not update your email preference.');
+    } finally {
+      emailOptin.disabled = false;
+    }
   });
 
   init();
