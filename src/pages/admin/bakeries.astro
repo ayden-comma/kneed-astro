@@ -16,7 +16,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       <table class="admin-table">
         <thead>
           <tr>
-            <th>EPISODE</th>
+            <th class="th-sortable" data-sort="episode">EPISODE <span class="sort-indicator"></span></th>
             <th class="th-sortable" data-sort="name">Name <span class="sort-indicator"></span></th>
             <th class="th-sortable" data-sort="status">Status <span class="sort-indicator"></span></th>
             <th class="th-sortable" data-sort="modified">Modified <span class="sort-indicator"></span></th>
@@ -877,7 +877,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   function rowHTML(b: BakeryRow) {
     // Episode label — identical formatting to announce.astro (inline expression there).
     const ep = b.episode_number ? 'Ep. ' + String(b.episode_number).padStart(2, '0') : '';
-    return `<tr data-id="${b.id}" data-name="${b.name.toLowerCase()}" data-modified="${b.updated_at ?? ''}" data-status="${b.published ? 'published' : 'draft'}" data-published-at="${b.published_at ?? ''}">
+    return `<tr data-id="${b.id}" data-name="${b.name.toLowerCase()}" data-episode="${b.episode_number ?? ''}" data-modified="${b.updated_at ?? ''}" data-status="${b.published ? 'published' : 'draft'}" data-published-at="${b.published_at ?? ''}">
       <td>${ep}</td>
       <td><strong>${b.name}</strong><br/><span style="font-size:0.75rem;color:var(--p-35);">${b.slug}</span></td>
       <td><span class="admin-badge admin-badge-${b.published ? 'published' : 'draft'} toggle-publish" data-slug="${b.slug}" data-published="${b.published}" data-published-at="${b.published_at ?? ''}" title="Click to change status">${b.published ? 'Published' : 'Draft'}</span></td>
@@ -1323,6 +1323,17 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     }
     const rows = Array.from(tbody.querySelectorAll<HTMLTableRowElement>('tr[data-id]'));
     rows.sort((a, b) => {
+      if (col === 'episode') {
+        // Numeric sort; blank (no episode_number) always sinks to the bottom
+        // regardless of direction so numbered episodes stay grouped.
+        const as = a.dataset.episode ?? '';
+        const bs = b.dataset.episode ?? '';
+        if (as === '' && bs === '') return 0;
+        if (as === '') return 1;
+        if (bs === '') return -1;
+        const cmp = Number(as) - Number(bs);
+        return sortDir === 'asc' ? cmp : -cmp;
+      }
       const av = (a.dataset[col] ?? '').toLowerCase();
       const bv = (b.dataset[col] ?? '').toLowerCase();
       return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
