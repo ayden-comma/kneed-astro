@@ -87,10 +87,11 @@ export const POST: APIRoute = async ({ request }) => {
   if (!eventType) return text('Ignored', 200); // acknowledge unmapped event types without storing
 
   const data = payload.data ?? {};
-  // Resend webhook delivers tags as an OBJECT/map (e.g. { bakery_id: "...", type: "episode" }),
+  // Resend delivers tags as an OBJECT/map (e.g. { bakery_id: "...", type: "episode" }),
   // NOT an array of {name,value} — verified against Resend's email.clicked payload docs.
-  const tags = (data.tags ?? {}) as Record<string, unknown>;
-  const bakeryId = typeof tags.bakery_id === 'string' ? tags.bakery_id : null;
+  // Transactional emails (welcome/reset/submission-received) are sent WITHOUT tags, so
+  // data.tags is often undefined here — optional-chain and never access it directly.
+  const bakeryId = data?.tags?.bakery_id ?? null;
 
   const row = {
     svix_id:         svixId,
@@ -110,8 +111,9 @@ export const POST: APIRoute = async ({ request }) => {
       .from('email_events')
       .upsert([row], { onConflict: 'svix_id', ignoreDuplicates: true });
     if (error) {
-      console.error('[resend-webhook] insert failed:', error.message);
-      return text('Insert failed', 500); // 5xx → Resend will retry
+      // TEMP: surface the real Postgres error while diagnosing; 5xx → Resend still retries.
+      console.error('email_events insert error', error);
+      return new Response('Insert failed: ' + (error.message ?? JSON.stringify(error)), { status: 500 });
     }
   } catch (e) {
     console.error('[resend-webhook] threw:', e instanceof Error ? e.message : String(e));
