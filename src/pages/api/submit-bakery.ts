@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { createClient } from '@supabase/supabase-js';
 import { env } from 'cloudflare:workers';
+import { renderSubmissionEmail, SUBMISSION_SUBJECT, SUBMISSION_FROM, SUBMISSION_REPLY_TO } from '../../emails/submission-received';
 
 export const prerender = false;
 
@@ -194,6 +195,33 @@ export const POST: APIRoute = async ({ request }) => {
       }
     } else {
       console.warn('[submit-bakery] RESEND_API_KEY not set — email notification skipped');
+    }
+
+    // Confirmation email to the submitter — only if they left an email. Fire-and-forget,
+    // exactly like the admin notification above: a failed send never fails the response.
+    if (resendKey && fields.email) {
+      try {
+        const emailRes = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from:     SUBMISSION_FROM,
+            to:       fields.email,
+            reply_to: SUBMISSION_REPLY_TO,
+            subject:  SUBMISSION_SUBJECT,
+            html:     renderSubmissionEmail(fields.bakery_name, fields.address),
+          }),
+        });
+        if (!emailRes.ok) {
+          const errText = await emailRes.text();
+          console.error('[submit-bakery] submitter Resend error', emailRes.status, errText);
+        }
+      } catch (emailErr) {
+        console.error('[submit-bakery] submitter Resend threw:', emailErr instanceof Error ? emailErr.message : String(emailErr));
+      }
     }
 
     return json(200, { ok: true });

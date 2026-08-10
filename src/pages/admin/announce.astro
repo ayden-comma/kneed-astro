@@ -1,0 +1,200 @@
+---
+// SECURITY: Keep this page a client-fetched shell. Do NOT fetch or render data server-side here — there is no server-side auth gate (session lives in localStorage, not cookies). Data is loaded client-side after adminCheck verifies admin role, and the API routes enforce auth via requireAdmin. Server-rendering data here would leak it to unauthenticated visitors.
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Announce" activePage="announce">
+  <div class="admin-page-header">
+    <h1 class="admin-page-title">Announce</h1>
+  </div>
+
+  <div class="admin-section">
+    <div id="admin-msg" class="admin-msg"></div>
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Episode</th>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="announce-tbody">
+          <tr><td colspan="4"><div class="admin-empty">Loading…</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  import { supabase } from '../../lib/supabase';
+
+  async function authHeaders(): Promise<HeadersInit> {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { window.location.href = '/auth/login'; throw new Error('Session expired'); }
+    return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` };
+  }
+
+  type EpisodeRow = { id: string; name: string; episode_number: number | null; announced_at: string | null };
+  type AnnounceResp = {
+    ok?: boolean;
+    error?: string;
+    sentTo?: string;
+    subscriberCount?: number;
+    recipientCount?: number;
+    failedChunks?: number;
+    alreadyAnnounced?: boolean;
+    announcedAt?: string;
+  };
+
+  const OK_COLOR = 'var(--amber)';
+  const ERR_COLOR = '#e05555';
+
+  const tbody = document.getElementById('announce-tbody')!;
+  const msgEl = document.getElementById('admin-msg')!;
+
+  function esc(v: unknown): string {
+    return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function fmtDate(s: string | null | undefined): string {
+    if (!s) return '';
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  function inlineOf(btn: HTMLElement): HTMLElement {
+    return btn.closest('td')!.querySelector('.announce-inline') as HTMLElement;
+  }
+  async function postAnnounce(payload: Record<string, unknown>): Promise<AnnounceResp> {
+    const res = await fetch('/api/admin-send-announcement', {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return await res.json().catch(() => ({})) as AnnounceResp;
+  }
+
+  function rowHTML(r: EpisodeRow): string {
+    const ep = r.episode_number ? 'Ep. ' + String(r.episode_number).padStart(2, '0') : '';
+    const status = r.announced_at ? 'Announced ' + fmtDate(r.announced_at) : 'Not announced yet';
+    return `<tr>
+      <td>${esc(ep)}</td>
+      <td>${esc(r.name)}</td>
+      <td>${esc(status)}</td>
+      <td>
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+          <button class="admin-btn admin-btn-ghost btn-test" data-id="${esc(r.id)}">Send test to me</button>
+          <button class="admin-btn admin-btn-primary btn-live" data-id="${esc(r.id)}">Send to all subscribers</button>
+        </div>
+        <div class="announce-inline" style="margin-top:0.5rem; font-size:0.85rem; line-height:1.5;"></div>
+      </td>
+    </tr>`;
+  }
+
+  async function loadList() {
+    const { data, error } = await supabase
+      .from('bakeries_cms')
+      .select('id, name, episode_number, announced_at')
+      .eq('published', true)
+      .order('episode_number', { ascending: true });
+    if (error) {
+      tbody.innerHTML = `<tr><td colspan="4"><div class="admin-empty">Error: ${esc(error.message)}</div></td></tr>`;
+      return;
+    }
+    const rows = (data ?? []) as EpisodeRow[];
+    tbody.innerHTML = rows.length === 0
+      ? '<tr><td colspan="4"><div class="admin-empty">No published episodes yet.</div></td></tr>'
+      : rows.map(rowHTML).join('');
+    bindRows();
+  }
+
+  function bindRows() {
+    tbody.querySelectorAll<HTMLButtonElement>('.btn-test').forEach(btn => {
+      btn.addEventListener('click', () => sendTest(btn));
+    });
+    tbody.querySelectorAll<HTMLButtonElement>('.btn-live').forEach(btn => {
+      btn.addEventListener('click', () => startLive(btn, false));
+    });
+  }
+
+  async function sendTest(btn: HTMLElement) {
+    const id = btn.dataset.id!;
+    const inline = inlineOf(btn);
+    inline.style.color = '';
+    inline.textContent = 'Sending test…';
+    try {
+      const data = await postAnnounce({ bakeryId: id, mode: 'test' });
+      if (data.ok) { inline.style.color = OK_COLOR; inline.textContent = 'Test sent to ' + esc(data.sentTo ?? 'you'); }
+      else { inline.style.color = ERR_COLOR; inline.textContent = data.error ?? 'Test failed'; }
+    } catch {
+      inline.style.color = ERR_COLOR; inline.textContent = 'Network error';
+    }
+  }
+
+  // Get the subscriber count, then reveal an in-page confirm line (no native confirm()).
+  async function startLive(btn: HTMLElement, force: boolean) {
+    const inline = inlineOf(btn);
+    inline.style.color = '';
+    inline.textContent = 'Checking subscribers…';
+    let count = 0;
+    try {
+      const data = await postAnnounce({ mode: 'count' });
+      if (!data.ok) { inline.style.color = ERR_COLOR; inline.textContent = data.error ?? 'Could not get subscriber count'; return; }
+      count = data.subscriberCount ?? 0;
+    } catch {
+      inline.style.color = ERR_COLOR; inline.textContent = 'Network error'; return;
+    }
+
+    inline.style.color = '';
+    inline.innerHTML = `<span>This will email ${count} subscribers. This cannot be undone.</span>`;
+    const confirmBtn = document.createElement('button');
+    confirmBtn.className = 'admin-btn admin-btn-primary';
+    confirmBtn.textContent = 'Confirm send';
+    confirmBtn.style.margin = '0 0 0 0.5rem';
+    confirmBtn.addEventListener('click', () => doLive(btn, force));
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'admin-btn admin-btn-ghost';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.margin = '0 0 0 0.3rem';
+    cancelBtn.addEventListener('click', () => { inline.innerHTML = ''; });
+    inline.appendChild(confirmBtn);
+    inline.appendChild(cancelBtn);
+  }
+
+  async function doLive(btn: HTMLElement, force: boolean) {
+    const id = btn.dataset.id!;
+    const inline = inlineOf(btn);
+    inline.style.color = '';
+    inline.textContent = 'Sending…';
+    try {
+      const data = await postAnnounce({ bakeryId: id, mode: 'live', force });
+      if (data.ok) {
+        let txt = 'Sent to ' + (data.recipientCount ?? 0) + ' subscribers';
+        if (data.failedChunks && data.failedChunks > 0) txt += ' (' + data.failedChunks + ' batch(es) failed — check logs)';
+        inline.style.color = OK_COLOR;
+        inline.textContent = txt;
+        setTimeout(loadList, 1400); // refresh so the row's status shows "Announced …"
+      } else if (data.alreadyAnnounced) {
+        inline.style.color = '';
+        inline.innerHTML = `<span>Already announced on ${esc(fmtDate(data.announcedAt))}.</span>`;
+        const again = document.createElement('button');
+        again.className = 'admin-btn admin-btn-ghost';
+        again.textContent = 'Send again anyway';
+        again.style.margin = '0 0 0 0.5rem';
+        again.addEventListener('click', () => startLive(btn, true));
+        inline.appendChild(again);
+      } else {
+        inline.style.color = ERR_COLOR;
+        inline.textContent = data.error ?? 'Send failed';
+      }
+    } catch {
+      inline.style.color = ERR_COLOR;
+      inline.textContent = 'Network error';
+    }
+  }
+
+  loadList();
+  void msgEl; // reserved for future page-level messages
+</script>
