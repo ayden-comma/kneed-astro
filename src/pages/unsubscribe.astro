@@ -1,48 +1,61 @@
 ---
 export const prerender = false;
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { createClient } from '@supabase/supabase-js';
-import { env } from 'cloudflare:workers';
 
+// A token no longer auto-unsubscribes: it lands on a confirmation form that POSTs to
+// /api/unsubscribe. The actual status change happens server-side on submit.
 const token = Astro.url.searchParams.get('token');
 const done = Astro.url.searchParams.has('done');
+const mode: 'confirm' | 'done' | 'form' = token ? 'confirm' : done ? 'done' : 'form';
 
-// Token present → unsubscribe that specific subscriber. Never deletes; only sets status.
-if (token) {
-  const serviceKey  = env.SUPABASE_SERVICE_ROLE_KEY;
-  const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-  if (serviceKey) {
-    const serviceSupabase = createClient(supabaseUrl, serviceKey);
-    const { error } = await serviceSupabase
-      .from('email_subscribers')
-      .update({ status: 'unsubscribed', unsubscribed_at: new Date().toISOString() })
-      .eq('unsubscribe_token', token)
-      .neq('status', 'unsubscribed');
-    if (error) console.error('[unsubscribe] token update failed:', error.message);
-  } else {
-    console.error('[unsubscribe] SUPABASE_SERVICE_ROLE_KEY not configured');
-  }
-}
-
-const mode: 'confirmed' | 'done' | 'form' = token ? 'confirmed' : done ? 'done' : 'form';
+const REASONS = [
+  { value: 'too_many',        label: 'Too many emails' },
+  { value: 'not_relevant',    label: 'Not relevant to me' },
+  { value: 'never_signed_up', label: 'I never signed up' },
+  { value: 'not_expected',    label: 'Not what I expected' },
+  { value: 'other',           label: 'Other' },
+];
 ---
 
 <BaseLayout title="Unsubscribe" description="Manage your (K)Need newsletter subscription.">
   <main class="wf-container py-page">
 
-    {mode === 'confirmed' && (
+    {mode === 'confirm' && (
       <div class="wf-page-head">
         <div class="wf-eyebrow">Newsletter</div>
-        <h1 class="wf-page-h1">You're unsubscribed</h1>
-        <p class="wf-page-intro">You won't receive any more emails from us. You can resubscribe anytime at <a href="/" style="color:var(--amber);">kneed.tv</a>.</p>
+        <h1 class="wf-page-h1">Before you go</h1>
+        <p class="wf-page-intro">Confirm you'd like to stop receiving emails from (K)Need. If you have a moment, telling us why helps — but it's optional.</p>
+      </div>
+    )}
+
+    {mode === 'confirm' && (
+      <div class="simple-body">
+        <form method="POST" action="/api/unsubscribe" style="display:flex;flex-direction:column;gap:1.25rem;max-width:28rem;">
+          <input type="hidden" name="token" value={token} />
+
+          <fieldset style="border:none;padding:0;margin:0;display:flex;flex-direction:column;gap:0.6rem;">
+            <legend style="padding:0;margin-bottom:0.25rem;font-size:0.9rem;color:var(--p-70);">Reason (optional)</legend>
+            {REASONS.map((r) => (
+              <label style="display:flex;align-items:center;gap:0.6rem;cursor:pointer;font-size:0.95rem;">
+                <input type="radio" name="reason" value={r.value} />
+                <span>{r.label}</span>
+              </label>
+            ))}
+          </fieldset>
+
+          <textarea class="auth-input" name="comment" rows="3" placeholder="Anything else? (optional)" style="resize:vertical;"></textarea>
+
+          <button type="submit" class="wf-pill pill-dark">Confirm unsubscribe</button>
+          <a href="/" style="text-align:center;font-size:0.9rem;color:var(--amber);text-decoration:none;">No, keep me subscribed</a>
+        </form>
       </div>
     )}
 
     {mode === 'done' && (
       <div class="wf-page-head">
         <div class="wf-eyebrow">Newsletter</div>
-        <h1 class="wf-page-h1">Unsubscribed</h1>
-        <p class="wf-page-intro">If that email was subscribed, it has now been unsubscribed.</p>
+        <h1 class="wf-page-h1">You're unsubscribed</h1>
+        <p class="wf-page-intro">You won't receive any more emails from us. You can resubscribe anytime at <a href="/" style="color:var(--amber);">kneed.tv</a>.</p>
       </div>
     )}
 

@@ -11,7 +11,7 @@ import {
 
 export const prerender = false;
 
-type Body = { bakeryId?: string; mode?: 'test' | 'live' | 'count'; force?: boolean };
+type Body = { bakeryId?: string; mode?: 'test' | 'live' | 'count' | 'preview'; force?: boolean };
 
 const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 const RESEND_BATCH_ENDPOINT = 'https://api.resend.com/emails/batch';
@@ -35,10 +35,10 @@ export const POST: APIRoute = async ({ request }) => {
     const bakeryId = typeof body.bakeryId === 'string' ? body.bakeryId.trim() : '';
     const mode = body.mode;
     const force = body.force === true;
-    if (mode !== 'test' && mode !== 'live' && mode !== 'count') {
-      return json(400, { error: "mode must be 'test', 'live', or 'count'" });
+    if (mode !== 'test' && mode !== 'live' && mode !== 'count' && mode !== 'preview') {
+      return json(400, { error: "mode must be 'test', 'live', 'count', or 'preview'" });
     }
-    if ((mode === 'test' || mode === 'live') && !bakeryId) return json(400, { error: 'Missing bakeryId' });
+    if ((mode === 'test' || mode === 'live' || mode === 'preview') && !bakeryId) return json(400, { error: 'Missing bakeryId' });
 
     // ── Config ─────────────────────────────────────────────────────
     const serviceKey  = env.SUPABASE_SERVICE_ROLE_KEY;
@@ -105,6 +105,15 @@ export const POST: APIRoute = async ({ request }) => {
       watchUrl,
     };
 
+    // ── PREVIEW: return rendered HTML only; sends nothing, touches nothing ──
+    if (mode === 'preview') {
+      return json(200, {
+        ok: true,
+        mode: 'preview',
+        html: renderEpisodeEmail({ ...baseData, unsubscribeUrl: `${origin}/unsubscribe?token=preview` }),
+      });
+    }
+
     // ── TEST: one email to the acting admin ────────────────────────
     if (mode === 'test') {
       const to = auth.user.email;
@@ -139,7 +148,9 @@ export const POST: APIRoute = async ({ request }) => {
     const recipients = (subs ?? []) as { email: string; unsubscribe_token: string }[];
 
     const emailObjects = recipients.map((sub) => {
+      // Visible in-email link → confirm page. One-click header → API endpoint (RFC 8058).
       const unsubscribeUrl = `${origin}/unsubscribe?token=${sub.unsubscribe_token}`;
+      const oneClickUrl = `${origin}/api/unsubscribe?token=${sub.unsubscribe_token}`;
       return {
         from:     EPISODE_FROM,
         to:       sub.email,
@@ -147,7 +158,7 @@ export const POST: APIRoute = async ({ request }) => {
         subject,
         html:     renderEpisodeEmail({ ...baseData, unsubscribeUrl }),
         headers: {
-          'List-Unsubscribe':      `<${unsubscribeUrl}>`,
+          'List-Unsubscribe':      `<${oneClickUrl}>`,
           'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
         },
       };

@@ -60,13 +60,13 @@ export function renderEpisodeEmail(d: EpisodeEmailData): string {
     <tr><td style="padding:0;">
       <a href="${watch}" style="text-decoration:none;display:block;"><img src="${thumb}" width="600" alt="${title}" style="display:block;width:100%;max-width:600px;height:auto;"></a>
     </td></tr>
-    <tr><td class="px" style="padding:38px 40px 34px;">
-      <div style="font-family:'Archivo Narrow','Arial Narrow',Arial,sans-serif;font-weight:600;font-size:12px;letter-spacing:0.26em;text-transform:uppercase;color:#a96c27;">${eyebrow}</div>
-      <h1 class="h1" style="font-family:'Josefin Sans','Century Gothic',Futura,'Trebuchet MS',Arial,sans-serif;font-weight:300;font-size:31px;letter-spacing:0.09em;text-transform:uppercase;color:#0e0c0a;margin:14px 0 16px;line-height:1.15;">${title}</h1>
-      <p style="font-family:'Barlow',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.65;color:#2b2724;margin:0 0 28px;">${blurb}</p>
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+    <tr><td class="px" align="center" style="padding:38px 40px 34px;">
+      <div style="font-family:'Archivo Narrow','Arial Narrow',Arial,sans-serif;font-weight:600;font-size:12px;letter-spacing:0.26em;text-transform:uppercase;color:#a96c27;text-align:center;">${eyebrow}</div>
+      <h1 class="h1" style="font-family:'Josefin Sans','Century Gothic',Futura,'Trebuchet MS',Arial,sans-serif;font-weight:300;font-size:31px;letter-spacing:0.09em;text-transform:uppercase;color:#0e0c0a;margin:14px 0 16px;line-height:1.15;text-align:center;">${title}</h1>
+      <p style="font-family:'Barlow',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.65;color:#2b2724;margin:0 0 28px;text-align:center;">${blurb}</p>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto"><tr>
       <td align="center" bgcolor="#c8833a" style="background:#c8833a;border-radius:6px;">
-        <a href="${watch}" style="display:inline-block;font-family:'Archivo Narrow','Arial Narrow',Arial,sans-serif;font-weight:600;font-size:13px;letter-spacing:0.18em;text-transform:uppercase;color:#0e0c0a;text-decoration:none;padding:15px 34px;border-radius:6px;">Watch the film</a>
+        <a href="${watch}" style="display:inline-block;font-family:'Archivo Narrow','Arial Narrow',Arial,sans-serif;font-weight:600;font-size:13px;letter-spacing:0.18em;text-transform:uppercase;color:#0e0c0a;text-decoration:none;padding:15px 34px;border-radius:6px;">Watch now</a>
       </td>
       </tr></table>
     </td></tr>
