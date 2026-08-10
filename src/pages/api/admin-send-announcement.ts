@@ -157,6 +157,7 @@ export const POST: APIRoute = async ({ request }) => {
         reply_to: EPISODE_REPLY_TO,
         subject,
         html,
+        tags: [{ name: 'type', value: 'episode' }, { name: 'bakery_id', value: bakeryId }],
       });
       if (!sent) return json(502, { ok: false, mode: 'test', error: 'Test send failed' });
       return json(200, { ok: true, mode: 'test', sentTo: to });
@@ -193,6 +194,7 @@ export const POST: APIRoute = async ({ request }) => {
           'List-Unsubscribe':      `<${oneClickUrl}>`,
           'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
         },
+        tags: [{ name: 'type', value: 'episode' }, { name: 'bakery_id', value: bakeryId }],
       };
     });
 

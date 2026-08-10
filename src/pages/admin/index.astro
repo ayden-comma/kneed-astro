@@ -10,22 +10,30 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   </div>
 
   <div class="admin-stats">
-    <div class="admin-stat-card">
-      <div class="admin-stat-num" id="stat-bakeries">—</div>
-      <div class="admin-stat-label">Bakeries</div>
-    </div>
-    <div class="admin-stat-card">
-      <div class="admin-stat-num" id="stat-members">—</div>
-      <div class="admin-stat-label">Members</div>
-    </div>
-    <div class="admin-stat-card">
-      <div class="admin-stat-num" id="stat-comments">—</div>
-      <div class="admin-stat-label">Comments</div>
-    </div>
-    <div class="admin-stat-card">
-      <div class="admin-stat-num" id="stat-pending">—</div>
-      <div class="admin-stat-label">Pending Submissions</div>
-    </div>
+    <a class="admin-stat-link" href="/admin/bakeries">
+      <div class="admin-stat-card">
+        <div class="admin-stat-num" id="stat-bakeries">—</div>
+        <div class="admin-stat-label">Bakeries</div>
+      </div>
+    </a>
+    <a class="admin-stat-link" href="/admin/members">
+      <div class="admin-stat-card">
+        <div class="admin-stat-num" id="stat-members">—</div>
+        <div class="admin-stat-label">Members</div>
+      </div>
+    </a>
+    <a class="admin-stat-link" href="/admin/comments">
+      <div class="admin-stat-card">
+        <div class="admin-stat-num" id="stat-comments">—</div>
+        <div class="admin-stat-label">Comments</div>
+      </div>
+    </a>
+    <a class="admin-stat-link" href="/admin/submissions">
+      <div class="admin-stat-card">
+        <div class="admin-stat-num" id="stat-pending">—</div>
+        <div class="admin-stat-label">Pending Submissions</div>
+      </div>
+    </a>
   </div>
 
   <div class="admin-dash-grid">
@@ -57,6 +65,13 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     </div>
   </div>
 </AdminLayout>
+
+<style>
+  /* Summary cards are now links — keep the card visuals identical, add a subtle hover. */
+  .admin-stat-link { display: block; text-decoration: none; color: inherit; cursor: pointer; }
+  .admin-stat-link .admin-stat-card { transition: border-color 0.15s, background 0.15s; }
+  .admin-stat-link:hover .admin-stat-card { border-color: var(--border-md); background: var(--surface-3); }
+</style>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
@@ -98,13 +113,15 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     commentsEl.innerHTML = arr.length === 0
       ? '<div class="admin-empty">No comments yet.</div>'
       : arr.map(c => `
+          <a href="/bakeries/${c.bakery_slug}#comment-${c.id}" target="_blank" rel="noopener" style="display:block;text-decoration:none;color:inherit;">
           <div class="admin-activity-item">
             <div class="admin-activity-dot"></div>
             <div>
               <div class="admin-activity-text" style="max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.content}</div>
               <div class="admin-activity-meta">${c.bakery_slug} · ${timeAgo(c.created_at)}</div>
             </div>
-          </div>`).join('');
+          </div>
+          </a>`).join('');
 
     // ── Gated: members count, pending count, recent members ──
     if (!session) {
