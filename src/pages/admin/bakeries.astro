@@ -91,6 +91,22 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
             </div>
             <input type="hidden" id="f-thumbnail" />
           </div>
+          <div class="admin-form-field">
+            <label class="admin-form-label">Email / announcement image</label>
+            <div class="admin-thumb-row">
+              <img id="f-email-img-preview" class="admin-img-preview" src="" alt="" style="display:none;" />
+              <div>
+                <label class="admin-upload-btn">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Upload image
+                  <input type="file" id="f-email-img-file" accept="image/*" style="display:none;" />
+                </label>
+                <div id="f-email-upload-status" class="admin-upload-progress" style="margin-top:0.375rem;"></div>
+              </div>
+            </div>
+            <input type="hidden" id="f-email-image-url" />
+            <p style="margin-top:0.5rem; font-size:0.8rem; color:var(--p-50); line-height:1.5;">Hero image for the episode announcement email. Falls back to the thumbnail if left empty. Use a high-res image, around 1200px wide.</p>
+          </div>
         </div>
 
         <!-- ── TAB 2: LOCATION ───────────────────────────────── -->
@@ -914,6 +930,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
         populateCredits(data.credits as { title: string; name: string }[] | null);
         (field('f-description') as HTMLTextAreaElement).value  = data.description ?? '';
         (field('f-thumbnail') as HTMLInputElement).value       = data.thumbnail ?? '';
+        (field('f-email-image-url') as HTMLInputElement).value  = data.email_image_url ?? '';
         (field('f-hero-tag') as HTMLInputElement).value         = data.hero_tag ?? '';
         (field('f-hero-title') as HTMLInputElement).value       = data.hero_title ?? '';
         (field('f-hero-subtitle') as HTMLTextAreaElement).value = data.hero_subtitle ?? '';
@@ -937,6 +954,9 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
         const preview = document.getElementById('f-thumb-preview') as HTMLImageElement;
         if (data.thumbnail) { preview.src = data.thumbnail; preview.style.display = 'block'; }
         else preview.style.display = 'none';
+        const emailPreview = document.getElementById('f-email-img-preview') as HTMLImageElement;
+        if (data.email_image_url) { emailPreview.src = data.email_image_url; emailPreview.style.display = 'block'; }
+        else emailPreview.style.display = 'none';
 
         // Hero dot: show if bakery has hero content
         const heroTabDot = document.getElementById('hero-tab-dot') as HTMLElement;
@@ -1073,6 +1093,9 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       (field('f-thumbnail') as HTMLInputElement).value = '';
       (document.getElementById('f-thumb-preview') as HTMLImageElement).style.display = 'none';
       (document.getElementById('f-upload-status') as HTMLElement).textContent = '';
+      (field('f-email-image-url') as HTMLInputElement).value = '';
+      (document.getElementById('f-email-img-preview') as HTMLImageElement).style.display = 'none';
+      (document.getElementById('f-email-upload-status') as HTMLElement).textContent = '';
       (field('f-hero-image-url') as HTMLInputElement).value = '';
       (document.getElementById('f-hero-img-preview') as HTMLImageElement).style.display = 'none';
       (document.getElementById('f-hero-upload-status') as HTMLElement).textContent = '';
@@ -1105,6 +1128,24 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     if (json.error) { statusEl.textContent = `Error: ${json.error}`; return; }
     (field('f-thumbnail') as HTMLInputElement).value = json.url ?? '';
     const preview = document.getElementById('f-thumb-preview') as HTMLImageElement;
+    preview.src = json.url ?? ''; preview.style.display = 'block';
+    statusEl.textContent = 'Uploaded ✓';
+  });
+
+  // ── Email / announcement image upload ─────────────────────────
+  document.getElementById('f-email-img-file')!.addEventListener('change', async (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const statusEl = document.getElementById('f-email-upload-status')!;
+    statusEl.textContent = 'Uploading…';
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { statusEl.textContent = 'Not authenticated'; return; }
+    const fd = new FormData(); fd.append('image', file);
+    const res  = await fetch('/api/upload', { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}` }, body: fd });
+    const json = await res.json() as { url?: string; error?: string };
+    if (json.error) { statusEl.textContent = `Error: ${json.error}`; return; }
+    (field('f-email-image-url') as HTMLInputElement).value = json.url ?? '';
+    const preview = document.getElementById('f-email-img-preview') as HTMLImageElement;
     preview.src = json.url ?? ''; preview.style.display = 'block';
     statusEl.textContent = 'Uploaded ✓';
   });
@@ -1221,6 +1262,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       credits:        getCreditsData(),
       description:    (field('f-description') as HTMLTextAreaElement).value.trim() || null,
       thumbnail:      (field('f-thumbnail') as HTMLInputElement).value.trim() || null,
+      email_image_url: (field('f-email-image-url') as HTMLInputElement).value.trim() || null,
       hero_tag:       (field('f-hero-tag') as HTMLInputElement).value.trim() || null,
       hero_title:     (field('f-hero-title') as HTMLInputElement).value.trim() || null,
       hero_subtitle:  (field('f-hero-subtitle') as HTMLTextAreaElement).value.trim() || null,

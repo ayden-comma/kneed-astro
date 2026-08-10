@@ -83,7 +83,7 @@ export const POST: APIRoute = async ({ request }) => {
     // ── Load the bakery ────────────────────────────────────────────
     const { data: bakery, error: bakeryErr } = await svc
       .from('bakeries_cms')
-      .select('name, slug, description, thumbnail, episode_number, published, announced_at')
+      .select('name, slug, description, thumbnail, email_image_url, episode_number, published, announced_at')
       .eq('id', bakeryId)
       .single();
 
@@ -101,7 +101,7 @@ export const POST: APIRoute = async ({ request }) => {
       episodeNumber: bakery.episode_number ?? null,
       title:         bakery.name,
       blurb:         bakery.description ?? '',
-      thumbnailUrl:  bakery.thumbnail ?? '',
+      thumbnailUrl:  bakery.email_image_url || bakery.thumbnail || '',
       watchUrl,
     };
 
