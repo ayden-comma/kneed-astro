@@ -17,6 +17,19 @@ const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 const RESEND_BATCH_ENDPOINT = 'https://api.resend.com/emails/batch';
 const BATCH_SIZE = 100;
 
+// Optimise a Cloudinary delivery URL for email (resize + compress). Non-Cloudinary URLs
+// and URLs that already carry a transform are left untouched.
+function emailImage(url: string): string {
+  if (!url) return '';
+  const marker = '/image/upload/';
+  const i = url.indexOf(marker);
+  if (i === -1) return url;
+  const after = url.slice(i + marker.length);
+  // Don't double-insert if a transform segment is already present.
+  if (/^(w_|h_|c_|q_|f_|t_)/.test(after)) return url;
+  return url.slice(0, i + marker.length) + 'c_fill,g_auto,w_1200,h_675,q_auto,f_jpg/' + after;
+}
+
 export const POST: APIRoute = async ({ request }) => {
   const json = (status: number, body: Record<string, unknown>) =>
     new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -101,7 +114,7 @@ export const POST: APIRoute = async ({ request }) => {
       episodeNumber: bakery.episode_number ?? null,
       title:         bakery.name,
       blurb:         bakery.description ?? '',
-      thumbnailUrl:  bakery.email_image_url || bakery.thumbnail || '',
+      thumbnailUrl:  emailImage(bakery.email_image_url || bakery.thumbnail || ''),
       watchUrl,
     };
 
