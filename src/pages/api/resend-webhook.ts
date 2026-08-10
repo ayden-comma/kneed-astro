@@ -111,9 +111,8 @@ export const POST: APIRoute = async ({ request }) => {
       .from('email_events')
       .upsert([row], { onConflict: 'svix_id', ignoreDuplicates: true });
     if (error) {
-      // TEMP: surface the real Postgres error while diagnosing; 5xx → Resend still retries.
       console.error('email_events insert error', error);
-      return new Response('Insert failed: ' + (error.message ?? JSON.stringify(error)), { status: 500 });
+      return new Response('Insert failed', { status: 500 }); // 5xx → Resend will retry
     }
   } catch (e) {
     console.error('[resend-webhook] threw:', e instanceof Error ? e.message : String(e));

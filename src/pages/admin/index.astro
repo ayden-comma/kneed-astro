@@ -47,23 +47,6 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     </div>
   </div>
 
-  <div class="admin-section">
-    <div class="admin-section-title" style="display:flex;align-items:baseline;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
-      <span>Analytics — Last 28 Days</span>
-      <span style="display:flex;align-items:baseline;gap:0.4rem;flex-shrink:0;">
-        <span id="analytics-avg-engagement" style="font-family:var(--font-display);font-size:1.75rem;font-weight:200;color:var(--amber);line-height:1;">—</span>
-        <span style="font-size:0.68rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--p-35);">avg engagement</span>
-      </span>
-    </div>
-    <div style="position:relative;height:160px;margin-bottom:1.5rem;">
-      <canvas id="analytics-chart" style="display:block;width:100%;height:100%;"></canvas>
-      <div id="analytics-chart-msg" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--p-35);font-size:0.875rem;">Loading…</div>
-    </div>
-    <div class="admin-section-title" style="margin-top:0.25rem;">Top Pages</div>
-    <div id="analytics-top-pages" class="admin-table-wrap">
-      <div class="admin-empty">Loading…</div>
-    </div>
-  </div>
 </AdminLayout>
 
 <style>
@@ -72,8 +55,6 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   .admin-stat-link .admin-stat-card { transition: border-color 0.15s, background 0.15s; }
   .admin-stat-link:hover .admin-stat-card { border-color: var(--border-md); background: var(--surface-3); }
 </style>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
 <script>
   import { supabase } from '../../lib/supabase';
@@ -165,143 +146,12 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
           </div>`).join('');
   }
 
-  function fmtDuration(secs: number): string {
-    const m = Math.floor(secs / 60);
-    const s = Math.round(secs % 60);
-    return m > 0 ? `${m}m ${s}s` : `${s}s`;
-  }
-
-  function fmtDate(yyyymmdd: string): string {
-    const y = yyyymmdd.slice(0, 4), mo = yyyymmdd.slice(4, 6), d = yyyymmdd.slice(6, 8);
-    return new Date(`${y}-${mo}-${d}`).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' });
-  }
-
-  async function loadAnalytics() {
-    const chartMsg   = document.getElementById('analytics-chart-msg')!;
-    const topPagesEl = document.getElementById('analytics-top-pages')!;
-    const avgEl      = document.getElementById('analytics-avg-engagement')!;
-
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      chartMsg.textContent = 'Sign in required';
-      topPagesEl.innerHTML = '<div class="admin-empty">Sign in required</div>';
-      return;
-    }
-
-    let json: { pageviews: any; topPages: any };
-    try {
-      const res = await fetch('/api/analytics', {
-        headers: { 'Authorization': `Bearer ${session.access_token}` },
-      });
-      if (!res.ok) {
-        chartMsg.textContent = "Couldn't load analytics";
-        topPagesEl.innerHTML = '<div class="admin-empty">Couldn\'t load analytics</div>';
-        return;
-      }
-      json = await res.json();
-    } catch {
-      chartMsg.textContent = "Couldn't load analytics";
-      topPagesEl.innerHTML = '<div class="admin-empty">Couldn\'t load analytics</div>';
-      return;
-    }
-
-    // ── Pageviews chart ──────────────────────────────────────────
-    type GARow = { dimensionValues: { value: string }[]; metricValues: { value: string }[] };
-    const pvRows: GARow[] = json.pageviews?.rows ?? [];
-    const labels  = pvRows.map(r => fmtDate(r.dimensionValues[0].value));
-    const pvData  = pvRows.map(r => Number(r.metricValues[0].value));
-
-    chartMsg.style.display = 'none';
-    const canvas  = document.getElementById('analytics-chart') as HTMLCanvasElement;
-    const ctx     = canvas.getContext('2d')!;
-    const amber   = 'rgba(200,131,58,1)';
-    const grad    = ctx.createLinearGradient(0, 0, 0, canvas.offsetHeight || 160);
-    grad.addColorStop(0, 'rgba(200,131,58,0.18)');
-    grad.addColorStop(1, 'rgba(200,131,58,0)');
-
-    new (window as any).Chart(ctx, {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [{
-          data: pvData,
-          borderColor: amber,
-          borderWidth: 1.5,
-          pointRadius: 0,
-          pointHoverRadius: 3,
-          pointHoverBackgroundColor: amber,
-          fill: true,
-          backgroundColor: grad,
-          tension: 0.3,
-        }],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: {
-          callbacks: { label: (c: any) => ` ${c.parsed.y.toLocaleString()} views` },
-          backgroundColor: 'rgba(26,22,19,0.95)',
-          borderColor: 'rgba(242,237,230,0.12)',
-          borderWidth: 1,
-          titleColor: 'rgba(242,237,230,0.5)',
-          bodyColor: 'rgba(200,131,58,1)',
-          titleFont: { size: 10 },
-          bodyFont: { size: 11 },
-        }},
-        scales: {
-          x: {
-            ticks: { color: 'rgba(242,237,230,0.35)', font: { size: 10 }, maxTicksLimit: 7 },
-            grid: { color: 'rgba(242,237,230,0.06)' },
-            border: { color: 'rgba(242,237,230,0.08)' },
-          },
-          y: {
-            ticks: { color: 'rgba(242,237,230,0.35)', font: { size: 10 }, maxTicksLimit: 5 },
-            grid: { color: 'rgba(242,237,230,0.06)' },
-            border: { color: 'rgba(242,237,230,0.08)' },
-          },
-        },
-      },
-    });
-
-    // ── Top pages table ──────────────────────────────────────────
-    const tpRows: GARow[] = json.topPages?.rows ?? [];
-
-    if (tpRows.length === 0) {
-      topPagesEl.innerHTML = '<div class="admin-empty">No page data.</div>';
-    } else {
-      const totalDur = tpRows.reduce((sum, r) => sum + Number(r.metricValues[1].value), 0);
-      avgEl.textContent = fmtDuration(totalDur / tpRows.length);
-
-      topPagesEl.innerHTML = `
-        <table class="admin-table">
-          <thead><tr>
-            <th>Page</th>
-            <th style="text-align:right;white-space:nowrap;">Views</th>
-            <th style="text-align:right;white-space:nowrap;">Avg Engagement</th>
-          </tr></thead>
-          <tbody>
-            ${tpRows.map(r => {
-              const path = r.dimensionValues[0].value;
-              const views = Number(r.metricValues[0].value).toLocaleString();
-              const dur   = fmtDuration(Number(r.metricValues[1].value));
-              return `<tr>
-                <td class="admin-truncate" style="max-width:260px;color:var(--p-70);">${path}</td>
-                <td style="text-align:right;color:var(--amber);font-family:var(--font-display);font-weight:200;font-size:1rem;">${views}</td>
-                <td style="text-align:right;color:var(--p-50);font-size:0.8rem;">${dur}</td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>`;
-    }
-  }
-
   // Run after adminCheck has revealed the content
   const observer = new MutationObserver(() => {
     const content = document.getElementById('admin-content');
     if (content && content.style.display !== 'none') {
       observer.disconnect();
       loadDashboard();
-      loadAnalytics();
     }
   });
   observer.observe(document.body, { childList: false, attributes: true, subtree: true });
@@ -309,6 +159,5 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   const content = document.getElementById('admin-content');
   if (content && content.style.display !== 'none') {
     loadDashboard();
-    loadAnalytics();
   }
 </script>
