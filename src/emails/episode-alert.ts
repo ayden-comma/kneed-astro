@@ -5,7 +5,7 @@
 const LOGO_URL = 'https://res.cloudinary.com/dwffvgcj1/image/upload/v1786232421/K_NEED_LOGO_-_LIGHT_LG_lstkle.png';
 const SENDER_ADDRESS = 'Comma Films Pty Ltd, Australia';
 
-export const EPISODE_FROM = 'hello@mail.kneed.tv';
+export const EPISODE_FROM = '"(K)Need" <hello@mail.kneed.tv>';
 export const EPISODE_REPLY_TO = 'hello@commafilms.com.au';
 
 function esc(v: unknown): string {

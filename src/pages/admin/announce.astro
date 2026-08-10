@@ -15,9 +15,9 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       <table class="admin-table">
         <thead>
           <tr>
-            <th>Episode</th>
-            <th>Name</th>
-            <th>Status</th>
+            <th class="th-sortable" data-sort="episode" style="cursor:pointer;">Episode <span class="sort-ind" data-for="episode"></span></th>
+            <th class="th-sortable" data-sort="name" style="cursor:pointer;">Name <span class="sort-ind" data-for="name"></span></th>
+            <th class="th-sortable" data-sort="status" style="cursor:pointer;">Status <span class="sort-ind" data-for="status"></span></th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -68,6 +68,11 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   const tbody = document.getElementById('announce-tbody')!;
   const msgEl = document.getElementById('admin-msg')!;
 
+  type SortKey = 'episode' | 'name' | 'status';
+  let _rows: EpisodeRow[] = [];
+  let _sortKey: SortKey = 'episode';
+  let _sortDir: 1 | -1 = 1; // 1 = ascending, -1 = descending
+
   function esc(v: unknown): string {
     return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
@@ -106,6 +111,46 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     </tr>`;
   }
 
+  function sortRows(rows: EpisodeRow[]): EpisodeRow[] {
+    const copy = rows.slice();
+    copy.sort((a, b) => {
+      let cmp = 0;
+      if (_sortKey === 'episode') {
+        const an = a.episode_number, bn = b.episode_number;
+        if (an == null && bn == null) cmp = 0;
+        else if (an == null) return 1;   // null episode numbers always last
+        else if (bn == null) return -1;
+        else cmp = an - bn;
+      } else if (_sortKey === 'name') {
+        cmp = (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' });
+      } else { // status: announced state, then announced_at
+        const aa = a.announced_at ? 1 : 0;
+        const bb = b.announced_at ? 1 : 0;
+        if (aa !== bb) cmp = aa - bb;
+        else if (a.announced_at && b.announced_at) cmp = new Date(a.announced_at).getTime() - new Date(b.announced_at).getTime();
+        else cmp = 0;
+      }
+      return cmp * _sortDir;
+    });
+    return copy;
+  }
+
+  function updateSortIndicators() {
+    document.querySelectorAll<HTMLElement>('.sort-ind').forEach((el) => {
+      el.textContent = el.dataset.for === _sortKey ? (_sortDir === 1 ? '▲' : '▼') : '';
+    });
+  }
+
+  function render() {
+    if (_rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4"><div class="admin-empty">No published episodes yet.</div></td></tr>';
+    } else {
+      tbody.innerHTML = sortRows(_rows).map(rowHTML).join('');
+      bindRows();
+    }
+    updateSortIndicators();
+  }
+
   async function loadList() {
     const { data, error } = await supabase
       .from('bakeries_cms')
@@ -116,11 +161,8 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       tbody.innerHTML = `<tr><td colspan="4"><div class="admin-empty">Error: ${esc(error.message)}</div></td></tr>`;
       return;
     }
-    const rows = (data ?? []) as EpisodeRow[];
-    tbody.innerHTML = rows.length === 0
-      ? '<tr><td colspan="4"><div class="admin-empty">No published episodes yet.</div></td></tr>'
-      : rows.map(rowHTML).join('');
-    bindRows();
+    _rows = (data ?? []) as EpisodeRow[];
+    render();
   }
 
   function bindRows() {
@@ -243,6 +285,16 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       inline.textContent = 'Network error';
     }
   }
+
+  // Sortable headers — same list re-renders from _rows without re-fetching.
+  document.querySelectorAll<HTMLElement>('.th-sortable').forEach((th) => {
+    th.addEventListener('click', () => {
+      const key = th.dataset.sort as SortKey;
+      if (_sortKey === key) _sortDir = _sortDir === 1 ? -1 : 1;
+      else { _sortKey = key; _sortDir = 1; }
+      render();
+    });
+  });
 
   loadList();
   void msgEl; // reserved for future page-level messages

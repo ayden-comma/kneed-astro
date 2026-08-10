@@ -18,7 +18,7 @@ const FACEBOOK_URL = 'https://www.facebook.com/kneedtv';
 const SENDER_ADDRESS = 'Comma Films Pty Ltd, Australia';
 
 export const WELCOME_SUBJECT = 'Welcome to (K)Need';
-export const WELCOME_FROM = 'hello@mail.kneed.tv';
+export const WELCOME_FROM = '"(K)Need" <hello@mail.kneed.tv>';
 export const WELCOME_REPLY_TO = 'hello@commafilms.com.au';
 
 export function renderWelcomeEmail(unsubscribeUrl: string): string {

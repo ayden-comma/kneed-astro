@@ -180,7 +180,7 @@ export const POST: APIRoute = async ({ request }) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from:    'hello@mail.kneed.tv',
+            from:    '"(K)Need" <hello@mail.kneed.tv>',
             to:      'ayden@commafilms.com.au',
             subject: `New bakery submission: ${fields.bakery_name}`,
             text:    lines,

@@ -5,7 +5,7 @@ const LOGO_URL = 'https://res.cloudinary.com/dwffvgcj1/image/upload/v1786232421/
 const SENDER_ADDRESS = 'Comma Films Pty Ltd, Australia';
 
 export const SUBMISSION_SUBJECT = 'Thanks for the tip';
-export const SUBMISSION_FROM = 'hello@mail.kneed.tv';
+export const SUBMISSION_FROM = '"(K)Need" <hello@mail.kneed.tv>';
 export const SUBMISSION_REPLY_TO = 'hello@commafilms.com.au';
 
 function esc(v: string): string {
