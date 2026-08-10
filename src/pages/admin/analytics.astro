@@ -212,7 +212,10 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     if (u.includes('facebook.com'))  return 'Facebook';
     if (u.includes('/unsubscribe'))  return 'Unsubscribe';
     if (u.includes('/bakeries/'))    return 'Episode page';
-    try { return new URL(url).pathname; } catch { return url; }
+    try {
+      const path = new URL(url).pathname;
+      return path === '/' ? 'Homepage' : path;
+    } catch { return url; }
   }
 
   function sortBroadcasts(list: EmailBroadcast[]): EmailBroadcast[] {
@@ -255,14 +258,24 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     </tr>`;
     if (!open) return main;
 
-    const linkLines = (b.links ?? []).length === 0
-      ? '<div class="admin-activity-meta" style="color:var(--p-35);">No link clicks recorded.</div>'
-      : b.links.map(l =>
-          `<div class="admin-activity-meta" title="${esc(l.url)}" style="max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(linkLabel(l.url))} — ${l.count}</div>`
-        ).join('');
-    const summary = `<div style="font-size:0.8rem;color:var(--p-50);margin-bottom:0.5rem;">${b.clicked_total} total clicks from ${b.clicked_unique} unique recipients</div>`;
-    const detail = `<tr class="email-detail-row"><td colspan="7" style="background:var(--surface);padding:0.875rem 1rem;">${summary}${linkLines}</td></tr>`;
-    return main + detail;
+    // Muted sub-header spanning the row, above the aligned link rows.
+    const summaryRow = `<tr class="email-detail-row"><td colspan="7" style="background:var(--surface);padding:0.75rem 1rem 0.5rem;font-size:0.8rem;color:var(--p-50);">${b.clicked_total} total clicks from ${b.clicked_unique} unique recipients</td></tr>`;
+
+    // One row per clicked link, ranked by count desc, aligned to the parent columns:
+    // label in the Bakery column (indented/muted), count in the Clicked column.
+    const sortedLinks = [...(b.links ?? [])].sort((x, y) => y.count - x.count);
+    const linkRows = sortedLinks.length === 0
+      ? `<tr class="email-detail-row"><td colspan="7" style="background:var(--surface);padding:0 1rem 0.75rem;color:var(--p-35);font-size:0.85rem;">No link clicks recorded.</td></tr>`
+      : sortedLinks.map(l => `<tr class="email-detail-row" style="background:var(--surface);">
+          <td></td>
+          <td title="${esc(l.url)}" style="padding-left:1.75rem;color:var(--p-50);font-size:0.85rem;max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(linkLabel(l.url))}</td>
+          <td></td>
+          <td></td>
+          <td style="text-align:right;color:var(--p-70);font-size:0.85rem;">${l.count}</td>
+          <td></td>
+          <td></td>
+        </tr>`).join('');
+    return main + summaryRow + linkRows;
   }
 
   function updateEmailSortIndicators() {
