@@ -16,9 +16,8 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       <table class="admin-table">
         <thead>
           <tr>
+            <th>EPISODE</th>
             <th class="th-sortable" data-sort="name">Name <span class="sort-indicator"></span></th>
-            <th>Category</th>
-            <th>Suburb</th>
             <th class="th-sortable" data-sort="status">Status <span class="sort-indicator"></span></th>
             <th class="th-sortable" data-sort="modified">Modified <span class="sort-indicator"></span></th>
             <th class="th-sortable" data-sort="publishedAt">Published <span class="sort-indicator"></span></th>
@@ -26,7 +25,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
           </tr>
         </thead>
         <tbody id="bakery-tbody">
-          <tr><td colspan="7"><div class="admin-empty">Loading…</div></td></tr>
+          <tr><td colspan="6"><div class="admin-empty">Loading…</div></td></tr>
         </tbody>
       </table>
     </div>
@@ -371,7 +370,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   // ── Types ─────────────────────────────────────────────────────
   type BakeryRow = {
     id: string; name: string; slug: string; category: string;
-    suburb: string | null; published: boolean;
+    suburb: string | null; published: boolean; episode_number: number | null;
     updated_at: string | null; published_at: string | null;
   };
   type ImgRow = { src: string; caption: string };
@@ -876,10 +875,11 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   }
 
   function rowHTML(b: BakeryRow) {
+    // Episode label — identical formatting to announce.astro (inline expression there).
+    const ep = b.episode_number ? 'Ep. ' + String(b.episode_number).padStart(2, '0') : '';
     return `<tr data-id="${b.id}" data-name="${b.name.toLowerCase()}" data-modified="${b.updated_at ?? ''}" data-status="${b.published ? 'published' : 'draft'}" data-published-at="${b.published_at ?? ''}">
+      <td>${ep}</td>
       <td><strong>${b.name}</strong><br/><span style="font-size:0.75rem;color:var(--p-35);">${b.slug}</span></td>
-      <td>${b.category}</td>
-      <td>${b.suburb ?? '—'}</td>
       <td><span class="admin-badge admin-badge-${b.published ? 'published' : 'draft'} toggle-publish" data-slug="${b.slug}" data-published="${b.published}" data-published-at="${b.published_at ?? ''}" title="Click to change status">${b.published ? 'Published' : 'Draft'}</span></td>
       <td>${fmtDate(b.updated_at)}</td>
       <td>${fmtDate(b.published_at)}</td>
@@ -893,12 +893,12 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   async function loadList() {
     const { data, error } = await supabase
       .from('bakeries_cms')
-      .select('id, name, slug, category, suburb, published, updated_at, published_at')
+      .select('id, name, slug, category, suburb, published, episode_number, updated_at, published_at')
       .order('updated_at', { ascending: false });
-    if (error) { tbody.innerHTML = `<tr><td colspan="7"><div class="admin-empty">Error: ${error.message}</div></td></tr>`; return; }
+    if (error) { tbody.innerHTML = `<tr><td colspan="6"><div class="admin-empty">Error: ${error.message}</div></td></tr>`; return; }
     const rows = (data ?? []) as BakeryRow[];
     tbody.innerHTML = rows.length === 0
-      ? '<tr><td colspan="7"><div class="admin-empty">No bakeries yet. Add your first one.</div></td></tr>'
+      ? '<tr><td colspan="6"><div class="admin-empty">No bakeries yet. Add your first one.</div></td></tr>'
       : rows.map(rowHTML).join('');
     bindRowButtons();
     updateSortIcons();
