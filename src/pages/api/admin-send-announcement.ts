@@ -21,7 +21,6 @@ const BATCH_SIZE = 100;
 // any existing leading transform (but preserving a v123 version segment and the public ID).
 function emailImage(url: string): string {
   if (!url) return '';
-  const CLOUD = 'dwffvgcj1';
   const TX = 'c_fill,g_auto,w_1200,h_675,q_auto,f_jpg';
   const marker = '/image/upload/';
   const i = url.indexOf(marker);
@@ -39,8 +38,13 @@ function emailImage(url: string): string {
     }
     return url.slice(0, i + marker.length) + TX + '/' + after;
   }
+  // Non-Cloudinary URL (e.g. an Unsplash/Pexels placeholder hotlink).
+  // Cloudinary fetch delivery is restricted on this account, so a fetch-wrapped
+  // URL would 401 and render as a broken image. Return the URL as-is instead:
+  // uncropped but visible. Real images are uploaded to Cloudinary and are cropped
+  // by the /image/upload/ branch above.
   if (/^https?:\/\//.test(url)) {
-    return `https://res.cloudinary.com/${CLOUD}/image/fetch/${TX}/${encodeURIComponent(url)}`;
+    return url;
   }
   return url;
 }
