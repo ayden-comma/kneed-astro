@@ -86,7 +86,8 @@ export const GET: APIRoute = async ({ request }) => {
     const broadcasts = [...byBakery.values()].map((a) => {
       const meta = metaMap.get(a.bakery_id) ?? { name: null, episode_number: null };
       const clicked_unique = a.clickedRecipients.size;
-      const topLinks = [...a.linkCounts.entries()]
+      // Full clicked-link breakdown, sorted by count descending.
+      const links = [...a.linkCounts.entries()]
         .map(([url, count]) => ({ url, count }))
         .sort((x, y) => y.count - x.count);
       return {
@@ -99,7 +100,7 @@ export const GET: APIRoute = async ({ request }) => {
         clicked_unique,
         clicked_total:      a.clicked_total,
         click_through_rate: a.delivered > 0 ? clicked_unique / a.delivered : 0,
-        topLinks,
+        links,
       };
     });
 

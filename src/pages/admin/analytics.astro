@@ -194,8 +194,125 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     clicked_total: number;
     clicked_unique: number;
     click_through_rate: number;
-    topLinks: { url: string; count: number }[];
+    links: { url: string; count: number }[];
   };
+  type EmailSortKey = 'episode' | 'bakery' | 'sent' | 'delivered' | 'clicked' | 'ctr';
+
+  let _broadcasts: EmailBroadcast[] = [];
+  const _open = new Set<string>();        // bakery_ids of expanded rows (multiple allowed)
+  let _emailSortKey: EmailSortKey = 'episode';
+  let _emailSortDir: 1 | -1 = 1;          // default: episode ascending, blanks last
+
+  // Map a clicked URL to a friendly label (case-insensitive substring match).
+  function linkLabel(url: string): string {
+    const u = url.toLowerCase();
+    if (u.includes('instagram.com')) return 'Instagram';
+    if (u.includes('tiktok.com'))    return 'TikTok';
+    if (u.includes('youtube.com'))   return 'YouTube';
+    if (u.includes('facebook.com'))  return 'Facebook';
+    if (u.includes('/unsubscribe'))  return 'Unsubscribe';
+    if (u.includes('/bakeries/'))    return 'Episode page';
+    try { return new URL(url).pathname; } catch { return url; }
+  }
+
+  function sortBroadcasts(list: EmailBroadcast[]): EmailBroadcast[] {
+    const copy = list.slice();
+    copy.sort((a, b) => {
+      let cmp = 0;
+      switch (_emailSortKey) {
+        case 'episode': {
+          const an = a.episode_number, bn = b.episode_number;
+          if (an == null && bn == null) cmp = 0;
+          else if (an == null) return 1;   // blanks always last, regardless of direction
+          else if (bn == null) return -1;
+          else cmp = an - bn;
+          break;
+        }
+        case 'bakery':    cmp = (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }); break;
+        case 'sent':      cmp = a.sent - b.sent; break;
+        case 'delivered': cmp = a.delivered - b.delivered; break;
+        case 'clicked':   cmp = a.clicked_unique - b.clicked_unique; break;
+        case 'ctr':       cmp = a.click_through_rate - b.click_through_rate; break;
+      }
+      return cmp * _emailSortDir;
+    });
+    return copy;
+  }
+
+  function emailRowHTML(b: EmailBroadcast): string {
+    const open = _open.has(b.bakery_id);
+    const ep   = b.episode_number ? 'Ep. ' + String(b.episode_number).padStart(2, '0') : '';
+    const ctr  = (b.click_through_rate * 100).toFixed(1) + '%';
+    const caret = open ? '▾' : '▸';
+    const main = `<tr class="email-row" data-id="${esc(b.bakery_id)}" style="cursor:pointer;">
+      <td>${esc(ep)}</td>
+      <td style="color:var(--p-70);">${esc(b.name ?? '—')}</td>
+      <td style="text-align:right;">${b.sent}</td>
+      <td style="text-align:right;">${b.delivered}</td>
+      <td style="text-align:right;color:var(--amber);font-family:var(--font-display);font-weight:200;font-size:1rem;">${b.clicked_unique}</td>
+      <td style="text-align:right;color:var(--p-50);">${ctr}</td>
+      <td style="text-align:right;color:var(--p-35);width:1.5rem;">${caret}</td>
+    </tr>`;
+    if (!open) return main;
+
+    const linkLines = (b.links ?? []).length === 0
+      ? '<div class="admin-activity-meta" style="color:var(--p-35);">No link clicks recorded.</div>'
+      : b.links.map(l =>
+          `<div class="admin-activity-meta" title="${esc(l.url)}" style="max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(linkLabel(l.url))} — ${l.count}</div>`
+        ).join('');
+    const summary = `<div style="font-size:0.8rem;color:var(--p-50);margin-bottom:0.5rem;">${b.clicked_total} total clicks from ${b.clicked_unique} unique recipients</div>`;
+    const detail = `<tr class="email-detail-row"><td colspan="7" style="background:var(--surface);padding:0.875rem 1rem;">${summary}${linkLines}</td></tr>`;
+    return main + detail;
+  }
+
+  function updateEmailSortIndicators() {
+    document.querySelectorAll<HTMLElement>('#email-analytics th.th-sortable').forEach((th) => {
+      const icon = th.querySelector('.sort-indicator');
+      if (icon) icon.textContent = th.dataset.sort === _emailSortKey ? (_emailSortDir === 1 ? ' ▲' : ' ▼') : '';
+    });
+  }
+
+  function renderEmail() {
+    const el = document.getElementById('email-analytics')!;
+    if (_broadcasts.length === 0) {
+      el.innerHTML = '<div class="admin-empty">No email broadcasts with tracked events yet.</div>';
+      return;
+    }
+    const sorted = sortBroadcasts(_broadcasts);
+    el.innerHTML = `
+      <table class="admin-table">
+        <thead><tr>
+          <th class="th-sortable" data-sort="episode" style="cursor:pointer;">Episode <span class="sort-indicator"></span></th>
+          <th class="th-sortable" data-sort="bakery" style="cursor:pointer;">Bakery <span class="sort-indicator"></span></th>
+          <th class="th-sortable" data-sort="sent" style="cursor:pointer;text-align:right;">Sent <span class="sort-indicator"></span></th>
+          <th class="th-sortable" data-sort="delivered" style="cursor:pointer;text-align:right;">Delivered <span class="sort-indicator"></span></th>
+          <th class="th-sortable" data-sort="clicked" style="cursor:pointer;text-align:right;">Clicked <span class="sort-indicator"></span></th>
+          <th class="th-sortable" data-sort="ctr" style="cursor:pointer;text-align:right;">CTR <span class="sort-indicator"></span></th>
+          <th></th>
+        </tr></thead>
+        <tbody>
+          ${sorted.map(emailRowHTML).join('')}
+        </tbody>
+      </table>`;
+
+    // Header clicks sort; body-row clicks expand (separate elements — no interference).
+    el.querySelectorAll<HTMLElement>('th.th-sortable').forEach((th) => {
+      th.addEventListener('click', () => {
+        const key = th.dataset.sort as EmailSortKey;
+        if (_emailSortKey === key) _emailSortDir = _emailSortDir === 1 ? -1 : 1;
+        else { _emailSortKey = key; _emailSortDir = 1; }
+        renderEmail();
+      });
+    });
+    el.querySelectorAll<HTMLElement>('tr.email-row').forEach((tr) => {
+      tr.addEventListener('click', () => {
+        const id = tr.dataset.id!;
+        if (_open.has(id)) _open.delete(id); else _open.add(id);
+        renderEmail();
+      });
+    });
+    updateEmailSortIndicators();
+  }
 
   async function loadEmailAnalytics() {
     const el = document.getElementById('email-analytics')!;
@@ -208,52 +325,8 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       el.innerHTML = '<div class="admin-empty">Couldn\'t load email analytics</div>';
       return;
     }
-
-    const broadcasts = json.broadcasts ?? [];
-    if (broadcasts.length === 0) {
-      el.innerHTML = '<div class="admin-empty">No email broadcasts with tracked events yet.</div>';
-      return;
-    }
-
-    // Sort by episode number ascending, blanks last.
-    broadcasts.sort((a, b) => {
-      const an = a.episode_number, bn = b.episode_number;
-      if (an == null && bn == null) return 0;
-      if (an == null) return 1;
-      if (bn == null) return -1;
-      return an - bn;
-    });
-
-    el.innerHTML = `
-      <table class="admin-table">
-        <thead><tr>
-          <th>Episode</th>
-          <th>Bakery</th>
-          <th style="text-align:right;">Sent</th>
-          <th style="text-align:right;">Delivered</th>
-          <th style="text-align:right;">Clicked</th>
-          <th style="text-align:right;">CTR</th>
-          <th>Top links</th>
-        </tr></thead>
-        <tbody>
-          ${broadcasts.map(b => {
-            const ep  = b.episode_number ? 'Ep. ' + String(b.episode_number).padStart(2, '0') : '';
-            const ctr = (b.click_through_rate * 100).toFixed(1) + '%';
-            const links = (b.topLinks ?? []).slice(0, 4).map(l =>
-              `<div class="admin-activity-meta" style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(l.url)} — ${l.count}</div>`
-            ).join('') || '<span style="color:var(--p-35);">—</span>';
-            return `<tr>
-              <td>${esc(ep)}</td>
-              <td style="color:var(--p-70);">${esc(b.name ?? '—')}</td>
-              <td style="text-align:right;">${b.sent}</td>
-              <td style="text-align:right;">${b.delivered}</td>
-              <td style="text-align:right;color:var(--amber);font-family:var(--font-display);font-weight:200;font-size:1rem;">${b.clicked_unique}</td>
-              <td style="text-align:right;color:var(--p-50);">${ctr}</td>
-              <td>${links}</td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>`;
+    _broadcasts = json.broadcasts ?? [];
+    renderEmail();
   }
 
   // Run after adminCheck has revealed the content (chart needs a visible, sized container).
