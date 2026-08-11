@@ -288,7 +288,12 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
     saveBtn.disabled = false; saveBtn.textContent = 'Save changes';
 
-    if (error) { showError(error.message); return; }
+    if (error) {
+      // 23505 = unique violation; the case-insensitive index on lower(username) rejects
+      // usernames that differ only by case from an existing one.
+      showError(error.code === '23505' ? 'That username is taken. Please choose another.' : error.message);
+      return;
+    }
 
     _initialConsent = consent;
     successEl.style.display = '';

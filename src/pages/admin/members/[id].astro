@@ -39,6 +39,21 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
         </div>
       </div>
 
+      <!-- Edit email -->
+      <div style="border-top:1px solid var(--border);padding-top:1.5rem;margin-bottom:2rem;">
+        <div class="admin-section-title">Email</div>
+        <div style="display:flex;gap:0.75rem;align-items:flex-start;flex-wrap:wrap;max-width:32rem;">
+          <input class="admin-form-input" id="f-email" type="email" placeholder="email@example.com" style="flex:1;min-width:12rem;" />
+          <button class="admin-btn admin-btn-primary" id="save-email">Save</button>
+        </div>
+      </div>
+
+      <!-- Password reset -->
+      <div style="border-top:1px solid var(--border);padding-top:1.5rem;margin-bottom:2rem;">
+        <div class="admin-section-title">Password</div>
+        <button class="admin-btn admin-btn-ghost" id="btn-send-reset">Send password reset email</button>
+      </div>
+
       <!-- Delete account -->
       <div style="border-top:1px solid var(--border);padding-top:1.5rem;">
         <div class="admin-section-title">Danger zone</div>
@@ -132,11 +147,15 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
     if (p.location)      { el('m-location-wrap').style.display = ''; el('m-location').textContent = p.location; }
 
     (el('f-username') as HTMLInputElement).value = p.username ?? '';
+    (el('f-email') as HTMLInputElement).value = data.email ?? '';
 
     // Disable actions on a deleted (anonymized) member.
     if (deleted) {
       (el('f-username') as HTMLInputElement).disabled = true;
       (el('save-username') as HTMLButtonElement).disabled = true;
+      (el('f-email') as HTMLInputElement).disabled = true;
+      (el('save-email') as HTMLButtonElement).disabled = true;
+      (el('btn-send-reset') as HTMLButtonElement).disabled = true;
       (el('btn-delete') as HTMLButtonElement).disabled = true;
     }
 
@@ -169,6 +188,56 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
       showMsg('Could not update username.', 'error');
     } finally {
       btn.disabled = false; btn.textContent = 'Save';
+    }
+  });
+
+  // ── Save email ─────────────────────────────────────────────────
+  el('save-email').addEventListener('click', async () => {
+    const email = (el('f-email') as HTMLInputElement).value.trim();
+    if (!email) { showMsg('Email is required.', 'error'); return; }
+    const btn = el('save-email') as HTMLButtonElement;
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      const res = await fetch('/api/admin-update-email', {
+        method: 'POST', headers: await authHeaders(),
+        body: JSON.stringify({ id: memberId, email }),
+      });
+      const data = await res.json().catch(() => ({})) as { ok?: boolean; error?: string; subscriberSync?: string };
+      if (res.ok && data.ok) {
+        if (_member) _member.email = email;
+        el('m-email').textContent = email;
+        showMsg(data.subscriberSync === 'skipped'
+          ? 'Email updated. Newsletter not moved — the new email already has a subscription.'
+          : 'Email updated.', 'success');
+      } else {
+        showMsg(data.error || 'Could not update email.', 'error');
+      }
+    } catch {
+      showMsg('Could not update email.', 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Save';
+    }
+  });
+
+  // ── Send password reset ────────────────────────────────────────
+  el('btn-send-reset').addEventListener('click', async () => {
+    const email = _member?.email;
+    if (!email) { showMsg('This member has no email to send a reset to.', 'error'); return; }
+    if (!confirm(`Send a password reset email to ${email}?`)) return;
+    const btn = el('btn-send-reset') as HTMLButtonElement;
+    btn.disabled = true; btn.textContent = 'Sending…';
+    try {
+      const res = await fetch('/api/admin-send-reset', {
+        method: 'POST', headers: await authHeaders(),
+        body: JSON.stringify({ id: memberId }),
+      });
+      const data = await res.json().catch(() => ({})) as { ok?: boolean; error?: string; email?: string };
+      if (res.ok && data.ok) showMsg(`Reset email sent to ${data.email ?? email}.`, 'success');
+      else showMsg(data.error || 'Could not send reset email.', 'error');
+    } catch {
+      showMsg('Could not send reset email.', 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Send password reset email';
     }
   });
 

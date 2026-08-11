@@ -31,19 +31,28 @@ export const POST: APIRoute = async ({ request }) => {
     const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
     if (!serviceKey) return json(500, { error: 'Server configuration error' });
     const svc = createClient(supabaseUrl, serviceKey);
-
-    const errors: string[] = [];
     const nowIso = new Date().toISOString();
 
-    // Look up the auth email first (needed for the email-keyed unsubscribe, and it's gone
-    // after the auth user is deleted below).
+    // ── Step 1: hard-delete private data FIRST. If any fails, STOP and return — do NOT
+    //           anonymize or delete the auth user (keeps the operation retryable). ──
+    const step1Errors: string[] = [];
+    for (const table of ['ratings', 'saves', 'comment_votes'] as const) {
+      const { error } = await svc.from(table).delete().eq('user_id', id);
+      if (error) step1Errors.push(`${table}: ${error.message}`);
+    }
+    if (step1Errors.length) {
+      console.error('[admin-delete-member] step 1 (private data) failed:', step1Errors.join(' | '));
+      return json(500, { ok: false, errors: step1Errors });
+    }
+
+    // Auth email — needed for the email-keyed unsubscribe, and gone after the auth delete.
     let email: string | null = null;
     const { data: authData, error: getErr } = await svc.auth.admin.getUserById(id);
     if (getErr) console.warn('[admin-delete-member] getUserById failed:', getErr.message);
     else email = authData.user?.email ?? null;
 
-    // ── 1. Anonymize the profile IN PLACE (never delete it — that would cascade-wipe
-    //        the user's comments/forum posts, which we keep as "Bread enthusiast"). ──
+    // ── Step 2: anonymize the profile IN PLACE (never delete it — that would cascade-wipe
+    //           the user's comments/forum posts, which we keep as "Bread enthusiast"). ──
     const { error: anonErr } = await svc
       .from('profiles')
       .update({
@@ -59,33 +68,37 @@ export const POST: APIRoute = async ({ request }) => {
         deleted_at:              nowIso,
       })
       .eq('id', id);
-    if (anonErr) errors.push(`anonymize: ${anonErr.message}`);
-
-    // ── 3. Hard-delete private data. The profile survives, so FK cascades won't fire —
-    //        delete these explicitly. (comments/forum kept and de-identified via the profile.) ──
-    for (const table of ['ratings', 'saves', 'comment_votes'] as const) {
-      const { error } = await svc.from(table).delete().eq('user_id', id);
-      if (error) errors.push(`${table}: ${error.message}`);
+    if (anonErr) {
+      console.error('[admin-delete-member] step 2 (anonymize) failed:', anonErr.message);
+      return json(500, { ok: false, errors: [`anonymize: ${anonErr.message}`] });
     }
 
-    // ── 5. Newsletter: only if requested, unsubscribe by email (subscriptions are email-keyed). ──
+    // ── Step 3: newsletter — only if requested, unsubscribe by email (email-keyed). ──
     if (unsubscribe && email) {
       const { error: unsubErr } = await svc
         .from('email_subscribers')
         .update({ status: 'unsubscribed', unsubscribed_at: nowIso, unsubscribe_reason: 'account_deleted' })
         .eq('email', email.toLowerCase())
         .neq('status', 'unsubscribed');
-      if (unsubErr) errors.push(`unsubscribe: ${unsubErr.message}`);
+      if (unsubErr) {
+        console.error('[admin-delete-member] step 3 (unsubscribe) failed:', unsubErr.message);
+        return json(500, { ok: false, errors: [`unsubscribe: ${unsubErr.message}`] });
+      }
     }
 
-    // ── 2. Delete the Supabase Auth user LAST (removes login + email). ──
+    // ── Step 4: delete the Supabase Auth user LAST. "User not found" = already gone = OK;
+    //           only a genuine network/permission failure is an error. ──
     const { error: authDelErr } = await svc.auth.admin.deleteUser(id);
-    if (authDelErr) errors.push(`auth delete: ${authDelErr.message}`);
-
-    if (errors.length) {
-      console.error('[admin-delete-member] partial failure:', errors.join(' | '));
-      return json(500, { ok: false, errors });
+    if (authDelErr) {
+      const e = authDelErr as { status?: number; code?: string; message?: string };
+      const alreadyGone = e.status === 404 || e.code === 'user_not_found' || /not\s*found/i.test(e.message ?? '');
+      if (!alreadyGone) {
+        console.error('[admin-delete-member] step 4 (auth delete) failed:', authDelErr.message);
+        return json(500, { ok: false, errors: [`auth delete: ${authDelErr.message}`] });
+      }
+      console.warn('[admin-delete-member] auth user already gone — treated as success');
     }
+
     return json(200, { ok: true });
   } catch (err) {
     console.error('[admin-delete-member] threw:', err instanceof Error ? err.message : String(err));

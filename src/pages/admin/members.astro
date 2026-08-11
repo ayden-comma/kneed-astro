@@ -13,6 +13,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   <div class="admin-section">
     <div id="admin-msg" class="admin-msg"></div>
     <div class="admin-filters">
+      <input class="admin-filter-select" id="member-search" type="search" placeholder="Search name or username…" style="flex:1;min-width:12rem;" />
       <select class="admin-filter-select" id="role-filter">
         <option value="">All roles</option>
         <option value="admin">Admin</option>
@@ -46,11 +47,12 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` };
   }
 
-  type MemberRow = { id: string; display_name: string | null; role: string; created_at: string };
+  type MemberRow = { id: string; display_name: string | null; username: string | null; role: string; created_at: string };
 
   const msgEl  = document.getElementById('admin-msg')!;
   const tbody  = document.getElementById('member-tbody')!;
   const filter = document.getElementById('role-filter') as unknown as HTMLSelectElement;
+  const search = document.getElementById('member-search') as unknown as HTMLInputElement;
 
   function showMsg(text: string, type: 'error' | 'success') {
     msgEl.textContent = text;
@@ -71,7 +73,8 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
            ${m.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
          </button>`
       : '';
-    return `<tr data-id="${m.id}" data-role="${m.role}">
+    const searchIdx = `${m.display_name ?? ''} ${m.username ?? ''}`.toLowerCase();
+    return `<tr data-id="${m.id}" data-role="${m.role}" data-search="${searchIdx.replace(/"/g, '&quot;')}">
       <td><a href="/admin/members/${m.id}" style="color:inherit;text-decoration:none;"><strong>${m.display_name || 'Anonymous'}</strong></a>${youBadge}</td>
       <td><span class="admin-badge admin-badge-${m.role === 'admin' ? 'admin' : 'member'}">${m.role}</span></td>
       <td style="white-space:nowrap;">${fmtDate(m.created_at)}</td>
@@ -85,7 +88,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, display_name, role, created_at')
+      .select('id, display_name, username, role, created_at')
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
     if (error) { tbody.innerHTML = `<tr><td colspan="4"><div class="admin-empty">Error: ${error.message}</div></td></tr>`; return; }
@@ -129,12 +132,20 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     });
   }
 
-  filter.addEventListener('change', () => {
-    const val = filter.value;
+  // Role filter and name/username search work together — a row shows only if it passes both.
+  function applyFilters() {
+    const roleVal = filter.value;
+    const q = search.value.trim().toLowerCase();
     tbody.querySelectorAll('tr[data-role]').forEach(row => {
-      (row as HTMLElement).style.display = (!val || row.getAttribute('data-role') === val) ? '' : 'none';
+      const el = row as HTMLElement;
+      const roleOk   = !roleVal || row.getAttribute('data-role') === roleVal;
+      const searchOk = !q || (row.getAttribute('data-search') ?? '').includes(q);
+      el.style.display = roleOk && searchOk ? '' : 'none';
     });
-  });
+  }
+
+  filter.addEventListener('change', applyFilters);
+  search.addEventListener('input', applyFilters);
 
   loadList();
 </script>
