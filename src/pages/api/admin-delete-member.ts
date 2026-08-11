@@ -57,7 +57,9 @@ export const POST: APIRoute = async ({ request }) => {
       .from('profiles')
       .update({
         display_name:            'Bread enthusiast',
-        username:                null,
+        // username is NOT NULL — use a unique, non-null tombstone. The id is a UUID, so
+        // `deleted_<id>` satisfies both NOT NULL and the lower(username) unique index.
+        username:                `deleted_${id}`,
         bio:                     null,
         date_of_birth:           null,
         gender:                  null,
