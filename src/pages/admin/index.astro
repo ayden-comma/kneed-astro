@@ -137,13 +137,15 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     membersEl.innerHTML = marr.length === 0
       ? '<div class="admin-empty">No members yet.</div>'
       : marr.map(m => `
+          <a href="/admin/members/${m.id}" style="display:block;text-decoration:none;color:inherit;">
           <div class="admin-activity-item">
             <div class="admin-activity-dot"></div>
             <div>
               <div class="admin-activity-text">${m.display_name || 'Anonymous'}</div>
               <div class="admin-activity-meta">Joined ${timeAgo(m.created_at)}</div>
             </div>
-          </div>`).join('');
+          </div>
+          </a>`).join('');
   }
 
   // Run after adminCheck has revealed the content

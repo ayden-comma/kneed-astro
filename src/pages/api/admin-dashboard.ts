@@ -20,9 +20,9 @@ export const GET: APIRoute = async ({ request }) => {
       { count: pendingCount },
       { data: recentMembers },
     ] = await Promise.all([
-      serviceClient.from('profiles').select('*', { count: 'exact', head: true }),
+      serviceClient.from('profiles').select('*', { count: 'exact', head: true }).is('deleted_at', null),
       serviceClient.from('submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-      serviceClient.from('profiles').select('id, display_name, created_at').order('created_at', { ascending: false }).limit(5),
+      serviceClient.from('profiles').select('id, display_name, created_at').is('deleted_at', null).order('created_at', { ascending: false }).limit(5),
     ]);
 
     return new Response(

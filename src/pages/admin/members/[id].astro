@@ -1,0 +1,208 @@
+---
+// SECURITY: Keep this page a client-fetched shell. Do NOT fetch or render data server-side here — there is no server-side auth gate (session lives in localStorage, not cookies). Data is loaded client-side after adminCheck verifies admin role, and the API routes enforce auth via requireAdmin. Server-rendering data here would leak it to unauthenticated visitors.
+export const prerender = false;
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Member" activePage="members">
+  <div class="admin-page-header">
+    <a href="/admin/members" class="admin-btn admin-btn-ghost admin-btn-sm">&larr; Members</a>
+  </div>
+
+  <div class="admin-section">
+    <div id="admin-msg" class="admin-msg"></div>
+    <div id="member-loading" class="admin-empty">Loading…</div>
+
+    <div id="member-detail" style="display:none;">
+      <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+        <h1 class="admin-page-title" id="m-display-name" style="margin:0;">—</h1>
+        <span id="m-role-badge" class="admin-badge admin-badge-member">member</span>
+        <span id="m-deleted-badge" class="admin-badge" style="display:none;background:rgba(239,68,68,0.15);color:#f87171;">Deleted</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem 2rem;margin-bottom:2rem;">
+        <div><div class="admin-form-label">Email</div><div id="m-email" style="color:var(--p-70);">—</div></div>
+        <div><div class="admin-form-label">Joined</div><div id="m-joined" style="color:var(--p-70);">—</div></div>
+        <div><div class="admin-form-label">Bio</div><div id="m-bio" style="color:var(--p-70);">—</div></div>
+        <div><div class="admin-form-label">Newsletter</div><div id="m-subscriber" style="color:var(--p-70);">—</div></div>
+        <div id="m-dob-wrap" style="display:none;"><div class="admin-form-label">Date of Birth</div><div id="m-dob" style="color:var(--p-70);">—</div></div>
+        <div id="m-gender-wrap" style="display:none;"><div class="admin-form-label">Gender</div><div id="m-gender" style="color:var(--p-70);">—</div></div>
+        <div id="m-location-wrap" style="display:none;"><div class="admin-form-label">Location</div><div id="m-location" style="color:var(--p-70);">—</div></div>
+      </div>
+
+      <!-- Edit username -->
+      <div style="border-top:1px solid var(--border);padding-top:1.5rem;margin-bottom:2rem;">
+        <div class="admin-section-title">Username</div>
+        <div style="display:flex;gap:0.75rem;align-items:flex-start;flex-wrap:wrap;max-width:32rem;">
+          <input class="admin-form-input" id="f-username" placeholder="username" style="flex:1;min-width:12rem;" />
+          <button class="admin-btn admin-btn-primary" id="save-username">Save</button>
+        </div>
+      </div>
+
+      <!-- Delete account -->
+      <div style="border-top:1px solid var(--border);padding-top:1.5rem;">
+        <div class="admin-section-title">Danger zone</div>
+        <button class="admin-btn admin-btn-danger" id="btn-delete">Delete account</button>
+        <span id="delete-self-note" style="display:none;font-size:0.8rem;color:var(--p-35);margin-left:0.5rem;">You can't delete your own account here.</span>
+
+        <div id="delete-confirm" style="display:none;margin-top:1rem;padding:1rem;border:1px solid rgba(239,68,68,0.3);border-radius:0.75rem;background:rgba(239,68,68,0.06);max-width:34rem;">
+          <p style="margin:0 0 0.75rem;font-size:0.9rem;color:var(--p-70);line-height:1.6;">
+            Permanently delete the account for <strong id="confirm-name" style="color:var(--parchment);"></strong> <span id="confirm-email" style="color:var(--p-50);"></span>?
+            Their login is removed and their profile is anonymized to “Bread enthusiast”. Comments are kept but de-identified. This can't be undone.
+          </p>
+          <label style="display:flex;align-items:center;gap:0.6rem;cursor:pointer;font-size:0.875rem;color:var(--p-70);margin-bottom:1rem;">
+            <input type="checkbox" id="chk-unsub" style="accent-color:var(--amber);" />
+            Also unsubscribe this email from all (K)Need emails
+          </label>
+          <div style="display:flex;gap:0.75rem;">
+            <button class="admin-btn admin-btn-danger" id="btn-confirm-delete">Delete account</button>
+            <button class="admin-btn admin-btn-ghost" id="btn-cancel-delete">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  import { supabase } from '../../../lib/supabase';
+
+  const memberId = window.location.pathname.split('/').filter(Boolean).pop() ?? '';
+
+  async function authHeaders(): Promise<HeadersInit> {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { window.location.href = '/auth/login'; throw new Error('Session expired'); }
+    return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` };
+  }
+
+  const msgEl     = document.getElementById('admin-msg')!;
+  const loadingEl = document.getElementById('member-loading')!;
+  const detailEl  = document.getElementById('member-detail')!;
+
+  function showMsg(text: string, type: 'error' | 'success') {
+    msgEl.textContent = text;
+    msgEl.className = `admin-msg admin-msg-${type} is-visible`;
+    setTimeout(() => msgEl.classList.remove('is-visible'), 4000);
+  }
+  function el<T extends HTMLElement = HTMLElement>(id: string) { return document.getElementById(id) as T; }
+  function fmtDate(d: string | null) {
+    return d ? new Date(d).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+  }
+
+  type Member = {
+    profile: {
+      id: string; display_name: string | null; username: string | null; bio: string | null;
+      role: string; created_at: string; date_of_birth: string | null; gender: string | null;
+      location: string | null; demographics_consent: boolean | null; deleted_at: string | null;
+    };
+    email: string | null;
+    subscriberStatus: string | null;
+  };
+
+  let _member: Member | null = null;
+
+  async function loadMember() {
+    if (!memberId) { loadingEl.textContent = 'Invalid member.'; return; }
+    let data: Member & { error?: string };
+    try {
+      const res = await fetch(`/api/admin-get-member?id=${encodeURIComponent(memberId)}`, { headers: await authHeaders() });
+      data = await res.json();
+      if (!res.ok) { loadingEl.textContent = data.error || 'Could not load member.'; return; }
+    } catch {
+      loadingEl.textContent = 'Could not load member.'; return;
+    }
+    _member = data;
+    const p = data.profile;
+    const deleted = !!p.deleted_at;
+
+    el('m-display-name').textContent = p.display_name || 'Anonymous';
+    const roleBadge = el('m-role-badge');
+    roleBadge.textContent = p.role;
+    roleBadge.className = `admin-badge admin-badge-${p.role === 'admin' ? 'admin' : 'member'}`;
+    if (deleted) el('m-deleted-badge').style.display = '';
+
+    el('m-email').textContent      = data.email || '—';
+    el('m-joined').textContent     = fmtDate(p.created_at);
+    el('m-bio').textContent        = p.bio || '—';
+    el('m-subscriber').textContent = data.subscriberStatus === 'subscribed' ? 'Subscribed'
+      : data.subscriberStatus === 'unsubscribed' ? 'Unsubscribed' : 'Not subscribed';
+
+    if (p.date_of_birth) { el('m-dob-wrap').style.display = ''; el('m-dob').textContent = p.date_of_birth; }
+    if (p.gender)        { el('m-gender-wrap').style.display = ''; el('m-gender').textContent = p.gender; }
+    if (p.location)      { el('m-location-wrap').style.display = ''; el('m-location').textContent = p.location; }
+
+    (el('f-username') as HTMLInputElement).value = p.username ?? '';
+
+    // Disable actions on a deleted (anonymized) member.
+    if (deleted) {
+      (el('f-username') as HTMLInputElement).disabled = true;
+      (el('save-username') as HTMLButtonElement).disabled = true;
+      (el('btn-delete') as HTMLButtonElement).disabled = true;
+    }
+
+    // Can't delete yourself.
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.id === memberId) {
+      (el('btn-delete') as HTMLButtonElement).disabled = true;
+      el('delete-self-note').style.display = '';
+    }
+
+    loadingEl.style.display = 'none';
+    detailEl.style.display = '';
+  }
+
+  // ── Save username ──────────────────────────────────────────────
+  el('save-username').addEventListener('click', async () => {
+    const username = (el('f-username') as HTMLInputElement).value.trim();
+    if (!username) { showMsg('Username is required.', 'error'); return; }
+    const btn = el('save-username') as HTMLButtonElement;
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      const res = await fetch('/api/admin-update-member', {
+        method: 'POST', headers: await authHeaders(),
+        body: JSON.stringify({ id: memberId, username }),
+      });
+      const data = await res.json().catch(() => ({})) as { ok?: boolean; error?: string };
+      if (res.ok && data.ok) showMsg('Username updated.', 'success');
+      else showMsg(data.error || 'Could not update username.', 'error');
+    } catch {
+      showMsg('Could not update username.', 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Save';
+    }
+  });
+
+  // ── Delete flow ────────────────────────────────────────────────
+  el('btn-delete').addEventListener('click', () => {
+    if (!_member) return;
+    el('confirm-name').textContent = _member.profile.display_name || 'Anonymous';
+    el('confirm-email').textContent = _member.email ? `(${_member.email})` : '';
+    el('delete-confirm').style.display = '';
+  });
+  el('btn-cancel-delete').addEventListener('click', () => { el('delete-confirm').style.display = 'none'; });
+
+  el('btn-confirm-delete').addEventListener('click', async () => {
+    const unsubscribe = (el('chk-unsub') as HTMLInputElement).checked;
+    const btn = el('btn-confirm-delete') as HTMLButtonElement;
+    btn.disabled = true; btn.textContent = 'Deleting…';
+    try {
+      const res = await fetch('/api/admin-delete-member', {
+        method: 'POST', headers: await authHeaders(),
+        body: JSON.stringify({ id: memberId, unsubscribe }),
+      });
+      const data = await res.json().catch(() => ({})) as { ok?: boolean; error?: string; errors?: string[] };
+      if (res.ok && data.ok) {
+        window.location.href = '/admin/members';
+        return;
+      }
+      const detail = data.errors?.join('; ') || data.error || 'Delete failed.';
+      showMsg(`Delete failed: ${detail}`, 'error');
+      btn.disabled = false; btn.textContent = 'Delete account';
+    } catch {
+      showMsg('Delete failed.', 'error');
+      btn.disabled = false; btn.textContent = 'Delete account';
+    }
+  });
+
+  loadMember();
+</script>
