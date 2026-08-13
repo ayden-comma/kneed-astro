@@ -337,30 +337,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   }
   import { Editor } from '@tiptap/core';
   import StarterKit from '@tiptap/starter-kit';
-  import Image from '@tiptap/extension-image';
-
-  const CustomImage = Image.extend({
-    addAttributes() {
-      return {
-        ...this.parent?.(),
-        size: {
-          default: 'full',
-          parseHTML: element => element.getAttribute('data-size') || 'full',
-          renderHTML: attributes => ({
-            'data-size': attributes.size,
-            class: (attributes.class || '') + ' tiptap-img-' + attributes.size,
-          }),
-        },
-        align: {
-          default: 'center',
-          parseHTML: element => element.getAttribute('data-align') || 'center',
-          renderHTML: attributes => ({
-            'data-align': attributes.align,
-          }),
-        },
-      };
-    },
-  });
+  import { CustomImage } from '../../lib/tiptapImage';
   import Link from '@tiptap/extension-link';
   import Underline from '@tiptap/extension-underline';
   import TextAlign from '@tiptap/extension-text-align';

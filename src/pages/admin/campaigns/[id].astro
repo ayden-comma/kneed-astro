@@ -52,6 +52,19 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
           </button>
         </div>
         <div class="rte-content" id="f-body-content"></div>
+        <!-- Floating image controls, shown when an image is selected (mirrors bakeries). -->
+        <div id="tiptap-img-toolbar" class="tiptap-img-toolbar" style="display:none;">
+          <span class="tiptap-img-toolbar-label">Size</span>
+          <button type="button" class="tiptap-img-size-btn" data-size="small">S</button>
+          <button type="button" class="tiptap-img-size-btn" data-size="medium">M</button>
+          <button type="button" class="tiptap-img-size-btn" data-size="large">L</button>
+          <button type="button" class="tiptap-img-size-btn" data-size="full">Full</button>
+          <span class="tiptap-img-toolbar-divider"></span>
+          <span class="tiptap-img-toolbar-label">Align</span>
+          <button type="button" class="tiptap-img-align-btn" data-align="left">←</button>
+          <button type="button" class="tiptap-img-align-btn" data-align="center">↔</button>
+          <button type="button" class="tiptap-img-align-btn" data-align="right">→</button>
+        </div>
         <input type="file" id="rte-img-upload" accept="image/*" style="display:none;" />
       </div>
     </div>
@@ -85,7 +98,7 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
   import { supabase } from '../../../lib/supabase';
   import { Editor } from '@tiptap/core';
   import StarterKit from '@tiptap/starter-kit';
-  import Image from '@tiptap/extension-image';
+  import { CustomImage } from '../../../lib/tiptapImage';
   import Link from '@tiptap/extension-link';
 
   async function authHeaders(): Promise<HeadersInit> {
@@ -152,13 +165,14 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
           strike: false,
           code: false,
         }),
-        Image,
+        CustomImage,
         Link.configure({ openOnClick: false }),
       ],
       content: '',
       onTransaction: () => updateToolbar(),
     });
     bindToolbar();
+    bindImageBubble();
   }
 
   function updateToolbar() {
@@ -217,6 +231,55 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
         bodyEditor.chain().focus(pos).setImage({ src: json.url }).run();
       } else {
         setInline(json.error || 'Image upload failed.', ERR_COLOR);
+      }
+    });
+  }
+
+  // Show a floating Size/Align toolbar over the selected image (mirrors bakeries).
+  function bindImageBubble() {
+    if (!bodyEditor) return;
+    bodyEditor.on('selectionUpdate', () => {
+      const { selection } = bodyEditor!.state;
+      const node = selection.$anchor.nodeAfter || selection.$from.nodeAfter;
+      const toolbar = document.getElementById('tiptap-img-toolbar');
+      if (!toolbar) return;
+
+      if (node?.type.name === 'image') {
+        const imgEl = (bodyEditor!.view.nodeDOM(selection.$anchor.pos) as HTMLElement) ||
+                      (bodyEditor!.view.nodeDOM(selection.from) as HTMLElement);
+        if (imgEl && (imgEl.tagName === 'IMG' || imgEl.querySelector?.('img'))) {
+          const actualImg = imgEl.tagName === 'IMG' ? imgEl : imgEl.querySelector('img');
+          if (actualImg) {
+            const imgRect = actualImg.getBoundingClientRect();
+            const wrapEl = document.querySelector('.rte-wrap') as HTMLElement;
+            const wrapRect = wrapEl?.getBoundingClientRect();
+            if (wrapRect) {
+              toolbar.style.display = 'flex';
+              toolbar.style.top = (imgRect.top - wrapRect.top - 48 + wrapEl.scrollTop) + 'px';
+              toolbar.style.left = (imgRect.left - wrapRect.left) + 'px';
+            }
+          }
+        }
+
+        toolbar.querySelectorAll('.tiptap-img-size-btn').forEach(btn => {
+          btn.classList.toggle('active', (btn as HTMLElement).dataset.size === node.attrs.size);
+        });
+        toolbar.querySelectorAll('.tiptap-img-align-btn').forEach(btn => {
+          btn.classList.toggle('active', (btn as HTMLElement).dataset.align === node.attrs.align);
+        });
+
+        toolbar.querySelectorAll('.tiptap-img-size-btn').forEach(btn => {
+          (btn as HTMLElement).onclick = () => {
+            bodyEditor!.chain().focus().updateAttributes('image', { size: (btn as HTMLElement).dataset.size }).run();
+          };
+        });
+        toolbar.querySelectorAll('.tiptap-img-align-btn').forEach(btn => {
+          (btn as HTMLElement).onclick = () => {
+            bodyEditor!.chain().focus().updateAttributes('image', { align: (btn as HTMLElement).dataset.align }).run();
+          };
+        });
+      } else {
+        toolbar.style.display = 'none';
       }
     });
   }

@@ -94,7 +94,22 @@ export function markdownToEmailHtml(md: string): string {
 // clients. Only the whitelisted node/mark types below are emitted; anything else is
 // skipped, so raw/unknown HTML can never reach the inbox. All text is escaped.
 
-const IMG_STYLE = "display:block;width:100%;max-width:600px;height:auto;margin:18px auto;";
+// Email clients ignore classes, so the editor's size/align choices must become inline
+// styles. Width is capped by max-width (the Cloudinary transform still fetches w_1200 for
+// retina headroom); alignment is done with the left/right margins. Bakeries' CustomImage
+// uses size = small | medium | large | full and align = left | center | right.
+function imageStyle(size: unknown, align: unknown): string {
+  const maxWidth =
+    size === 'small'  ? '200px' :
+    size === 'medium' ? '400px' :
+    size === 'large'  ? '500px' :
+    '600px'; // full or absent
+  const margin =
+    align === 'left'  ? '18px 0' :
+    align === 'right' ? '18px 0 18px auto' :  // margin-left:auto, margin-right:0
+    '18px auto';                              // center or absent
+  return `display:block;width:100%;max-width:${maxWidth};height:auto;margin:${margin};`;
+}
 
 // Impose a width-only Cloudinary transform for email (downscale to fit, never upscale;
 // preserve aspect ratio). Adapted from admin-send-announcement.ts's emailImage().
@@ -204,7 +219,8 @@ export function tiptapToEmailHtml(doc: unknown): string {
         const src = node.attrs?.src;
         if (!src) break;
         const alt = esc(node.attrs?.alt ?? '');
-        out.push(`<img src="${esc(campaignImage(String(src)))}" alt="${alt}" style="${IMG_STYLE}" />`);
+        const style = imageStyle(node.attrs?.size, node.attrs?.align);
+        out.push(`<img src="${esc(campaignImage(String(src)))}" alt="${alt}" style="${style}" />`);
         break;
       }
       // Any other node type (youtube, blockquote, orderedList, table, raw html…) is skipped.
