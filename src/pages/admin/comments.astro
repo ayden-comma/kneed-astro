@@ -114,6 +114,11 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     return new Date(d).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
+  // Escape user-originated text before interpolating into innerHTML (stored-XSS guard).
+  function esc(v: unknown): string {
+    return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
   function sortedRows(): CommentRow[] {
     const rows = [..._allRows];
     rows.sort((a, b) => {
@@ -158,8 +163,8 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     const hasReplies = _hasReplies.has(c.id);
     const popover = (!isReply && hasReplies) ? popoverHTML(c.id) : '';
     return `<tr data-id="${c.id}" data-bakery="${c.bakery_slug}" data-is-reply="${isReply}" data-has-replies="${hasReplies}">
-      <td><span class="admin-truncate" style="display:block;max-width:280px;">${c.content}</span></td>
-      <td style="white-space:nowrap;">${name}</td>
+      <td><span class="admin-truncate" style="display:block;max-width:280px;">${esc(c.content)}</span></td>
+      <td style="white-space:nowrap;">${esc(name)}</td>
       <td style="white-space:nowrap;">
         ${c.bakery_slug}
         <a href="/bakeries/${c.bakery_slug}#comment-${c.id}" target="_blank" style="color:var(--amber); margin-left:0.3rem;" title="View comment">

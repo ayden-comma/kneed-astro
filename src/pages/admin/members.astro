@@ -64,18 +64,23 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     return new Date(d).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
+  // Escape user-originated text before interpolating into innerHTML (stored-XSS guard).
+  function esc(v: unknown): string {
+    return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
   function rowHTML(m: MemberRow, currentUserId: string) {
     const isYou = m.id === currentUserId;
     const youBadge = isYou ? ' <span style="font-size:0.7rem;color:var(--p-35);">(you)</span>' : '';
     const toggleBtn = !isYou
       ? `<button class="admin-btn admin-btn-ghost admin-btn-sm btn-toggle-role"
-           data-id="${m.id}" data-role="${m.role}" data-name="${m.display_name ?? 'this member'}">
+           data-id="${m.id}" data-role="${m.role}" data-name="${esc(m.display_name ?? 'this member')}">
            ${m.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
          </button>`
       : '';
     const searchIdx = `${m.display_name ?? ''} ${m.username ?? ''}`.toLowerCase();
-    return `<tr data-id="${m.id}" data-role="${m.role}" data-search="${searchIdx.replace(/"/g, '&quot;')}">
-      <td><a href="/admin/members/${m.id}" style="color:inherit;text-decoration:none;"><strong>${m.display_name || 'Anonymous'}</strong></a>${youBadge}</td>
+    return `<tr data-id="${m.id}" data-role="${m.role}" data-search="${esc(searchIdx)}">
+      <td><a href="/admin/members/${m.id}" style="color:inherit;text-decoration:none;"><strong>${esc(m.display_name || 'Anonymous')}</strong></a>${youBadge}</td>
       <td><span class="admin-badge admin-badge-${m.role === 'admin' ? 'admin' : 'member'}">${m.role}</span></td>
       <td style="white-space:nowrap;">${fmtDate(m.created_at)}</td>
       <td>${toggleBtn}</td>

@@ -60,15 +60,20 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     return new Date(d).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
+  // Escape user-originated text before interpolating into innerHTML (stored-XSS guard).
+  function esc(v: unknown): string {
+    return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
   function cardHTML(s: SubRow) {
     const submitter = s.submitted_name || s.profiles?.display_name || s.email || 'Anonymous';
     const location  = [s.suburb, s.address].filter(Boolean).join(' · ');
     const links = [
-      s.website   ? `<a class="sub-card-link" href="${s.website.startsWith('http') ? s.website : 'https://' + s.website}" target="_blank" rel="noopener noreferrer">${s.website}</a>` : '',
-      s.instagram ? `<a class="sub-card-link" href="https://instagram.com/${s.instagram.replace('@', '')}" target="_blank" rel="noopener noreferrer">${s.instagram}</a>` : '',
+      s.website   ? `<a class="sub-card-link" href="${esc(s.website.startsWith('http') ? s.website : 'https://' + s.website)}" target="_blank" rel="noopener noreferrer">${esc(s.website)}</a>` : '',
+      s.instagram ? `<a class="sub-card-link" href="https://instagram.com/${esc(s.instagram.replace('@', ''))}" target="_blank" rel="noopener noreferrer">${esc(s.instagram)}</a>` : '',
     ].filter(Boolean).join('');
     const shortlistReject = s.status === 'pending'
-      ? `<button class="sub-btn sub-btn-approve btn-shortlist" data-id="${s.id}" data-name="${s.bakery_name}">Shortlist</button>
+      ? `<button class="sub-btn sub-btn-approve btn-shortlist" data-id="${s.id}" data-name="${esc(s.bakery_name)}">Shortlist</button>
          <button class="sub-btn sub-btn-reject btn-reject" data-id="${s.id}">Reject</button>`
       : '';
     const contactBtn = s.email
@@ -77,23 +82,23 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
           const body    = encodeURIComponent(
             'Hi,\n\nThank you for submitting ' + s.bakery_name + ' to (K)Need.\n\nWe\'d love to learn more about your bakery and discuss filming a story with you.\n\nCould we arrange a time to chat?\n\nBest,\nThe (K)Need Team'
           );
-          return `<a class="sub-btn sub-btn-contact" href="mailto:${s.email}?subject=${subject}&body=${body}">Contact →</a>`;
+          return `<a class="sub-btn sub-btn-contact" href="mailto:${esc(s.email)}?subject=${subject}&body=${body}">Contact →</a>`;
         })()
       : `<span class="sub-no-email">No email</span>`;
     return `<div class="sub-card" data-id="${s.id}" data-status="${s.status}">
       <div class="sub-card-top">
         <div style="display:flex; align-items:center; gap:0.6rem;">
           <input type="checkbox" class="sub-select-cb" data-id="${s.id}" style="cursor:pointer; flex-shrink:0;" />
-          <div class="sub-card-name">${s.bakery_name}</div>
+          <div class="sub-card-name">${esc(s.bakery_name)}</div>
         </div>
         <span class="sub-status-badge sub-status-${s.status}">${s.status}</span>
       </div>
-      ${location ? `<div class="sub-card-meta">${location}</div>` : ''}
-      ${(s.email || s.phone) ? `<div class="sub-card-meta">${[s.email, s.phone].filter(Boolean).join(' · ')}</div>` : ''}
+      ${location ? `<div class="sub-card-meta">${esc(location)}</div>` : ''}
+      ${(s.email || s.phone) ? `<div class="sub-card-meta">${esc([s.email, s.phone].filter(Boolean).join(' · '))}</div>` : ''}
       ${links    ? `<div class="sub-card-links">${links}</div>`   : ''}
-      ${s.notes  ? `<div class="sub-card-notes">${s.notes}</div>` : ''}
+      ${s.notes  ? `<div class="sub-card-notes">${esc(s.notes)}</div>` : ''}
       <div class="sub-card-footer">
-        <div class="sub-card-by">${submitter} · ${fmtDate(s.created_at)}</div>
+        <div class="sub-card-by">${esc(submitter)} · ${fmtDate(s.created_at)}</div>
         <div class="sub-card-actions">
           ${contactBtn}
           ${shortlistReject}

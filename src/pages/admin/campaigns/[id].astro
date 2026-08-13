@@ -27,18 +27,37 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
     </div>
 
     <div class="admin-form-group" style="margin-bottom:0.5rem;">
-      <label class="admin-form-label" for="f-body">Body</label>
-      <textarea class="admin-form-input" id="f-body" rows="16" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace; line-height:1.6; resize:vertical;" placeholder="Write your message…"></textarea>
+      <label class="admin-form-label">Body</label>
+      <!-- Same TipTap rich-text editor as the bakeries admin (.rte-* styles live in admin.css). -->
+      <div class="rte-wrap" id="tiptap-editor">
+        <div class="rte-toolbar" id="rte-toolbar">
+          <button type="button" class="rte-btn" data-cmd="bold" title="Bold">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>
+          </button>
+          <button type="button" class="rte-btn" data-cmd="italic" title="Italic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>
+          </button>
+          <div class="rte-sep"></div>
+          <button type="button" class="rte-btn" data-cmd="h2" title="Heading 2">H2</button>
+          <div class="rte-sep"></div>
+          <button type="button" class="rte-btn" data-cmd="bulletList" title="Bullet list">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          </button>
+          <div class="rte-sep"></div>
+          <button type="button" class="rte-btn" data-cmd="image" title="Insert image">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          </button>
+          <button type="button" class="rte-btn" data-cmd="link" title="Insert link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          </button>
+        </div>
+        <div class="rte-content" id="f-body-content"></div>
+        <input type="file" id="rte-img-upload" accept="image/*" style="display:none;" />
+      </div>
     </div>
     <div style="font-size:0.78rem; color:var(--p-35); line-height:1.7; margin-bottom:1.25rem;">
-      Supports a small markdown subset:
-      <code>## Heading</code> ·
-      <code>**bold**</code> ·
-      <code>*italic*</code> ·
-      <code>[link](https://…)</code> ·
-      <code>- bullet</code> lists ·
-      blank lines separate paragraphs ·
-      a line that is only <code>[Button text](https://…)</code> becomes an orange button.
+      Rich text: <strong>bold</strong>, <em>italic</em>, a Heading (H2), bullet lists, links, and uploaded images.
+      A paragraph containing just a link becomes an orange button in the email.
     </div>
 
     <div id="form-actions" style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
@@ -64,6 +83,10 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
 
 <script>
   import { supabase } from '../../../lib/supabase';
+  import { Editor } from '@tiptap/core';
+  import StarterKit from '@tiptap/starter-kit';
+  import Image from '@tiptap/extension-image';
+  import Link from '@tiptap/extension-link';
 
   async function authHeaders(): Promise<HeadersInit> {
     const { data: { session } } = await supabase.auth.getSession();
@@ -76,6 +99,7 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
     subject: string | null;
     preheader: string | null;
     body_markdown: string | null;
+    body_json: unknown | null;
     status: string | null;
     recipient_count: number | null;
     sent_at: string | null;
@@ -106,13 +130,103 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
 
   const subjectEl  = el<HTMLInputElement>('f-subject');
   const preheadEl  = el<HTMLInputElement>('f-preheader');
-  const bodyEl     = el<HTMLTextAreaElement>('f-body');
+
+  // ── TipTap editor (only the six tools this email supports) ──────────────────────
+  let bodyEditor: Editor | null = null;
+
+  function initBodyEditor() {
+    const host = document.getElementById('f-body-content');
+    if (!host || bodyEditor) return;
+    bodyEditor = new Editor({
+      element: host,
+      extensions: [
+        // Restrict StarterKit to the whitelisted set: paragraph, H2 only, bold, italic,
+        // bulletList. Disable every other node AND mark (strike/code) so nothing can be
+        // typed in the editor that the email serializer would silently drop.
+        StarterKit.configure({
+          heading: { levels: [2] },
+          orderedList: false,
+          blockquote: false,
+          codeBlock: false,
+          horizontalRule: false,
+          strike: false,
+          code: false,
+        }),
+        Image,
+        Link.configure({ openOnClick: false }),
+      ],
+      content: '',
+      onTransaction: () => updateToolbar(),
+    });
+    bindToolbar();
+  }
+
+  function updateToolbar() {
+    if (!bodyEditor) return;
+    document.querySelectorAll<HTMLButtonElement>('.rte-btn[data-cmd]').forEach(btn => {
+      const cmd = btn.dataset.cmd!;
+      let active = false;
+      if (cmd === 'bold')            active = bodyEditor!.isActive('bold');
+      else if (cmd === 'italic')     active = bodyEditor!.isActive('italic');
+      else if (cmd === 'h2')         active = bodyEditor!.isActive('heading', { level: 2 });
+      else if (cmd === 'bulletList') active = bodyEditor!.isActive('bulletList');
+      else if (cmd === 'link')       active = bodyEditor!.isActive('link');
+      btn.classList.toggle('is-active', active);
+    });
+  }
+
+  let _savedEditorPos: number | null = null;
+
+  function bindToolbar() {
+    const imgUpload = document.getElementById('rte-img-upload') as HTMLInputElement;
+    document.querySelectorAll<HTMLButtonElement>('.rte-btn[data-cmd]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!bodyEditor) return;
+        const cmd = btn.dataset.cmd!;
+        const chain = bodyEditor.chain().focus();
+        if      (cmd === 'bold')        chain.toggleBold().run();
+        else if (cmd === 'italic')      chain.toggleItalic().run();
+        else if (cmd === 'h2')          chain.toggleHeading({ level: 2 }).run();
+        else if (cmd === 'bulletList')  chain.toggleBulletList().run();
+        else if (cmd === 'image') {
+          _savedEditorPos = bodyEditor.state.selection.anchor;
+          imgUpload.click();
+        } else if (cmd === 'link') {
+          const prev = bodyEditor.getAttributes('link').href ?? '';
+          const url = prompt('URL:', prev);
+          if (url === null) return;
+          if (url === '') { chain.unsetLink().run(); return; }
+          chain.setLink({ href: url }).run();
+        }
+      });
+    });
+
+    // Image embedding via the SAME /api/upload → Cloudinary flow the bakeries editor uses.
+    imgUpload.addEventListener('change', async () => {
+      const file = imgUpload.files?.[0];
+      if (!file || !bodyEditor) return;
+      imgUpload.value = '';
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const fd = new FormData(); fd.append('image', file);
+      const res  = await fetch('/api/upload', { method: 'POST', headers: { Authorization: `Bearer ${session.access_token}` }, body: fd });
+      const json = await res.json() as { url?: string; error?: string };
+      if (json.url) {
+        const pos = _savedEditorPos ?? bodyEditor.state.doc.content.size;
+        _savedEditorPos = null;
+        bodyEditor.chain().focus(pos).setImage({ src: json.url }).run();
+      } else {
+        setInline(json.error || 'Image upload failed.', ERR_COLOR);
+      }
+    });
+  }
 
   function lockForSent(c: Campaign) {
     _status = 'sent';
     subjectEl.disabled = true;
     preheadEl.disabled = true;
-    bodyEl.disabled = true;
+    bodyEditor?.setEditable(false);
+    el('rte-toolbar').style.display = 'none';    // hide the formatting toolbar once sent
     el('form-actions').style.display = 'none';   // hide Save / Test / Live once sent
     const banner = el('sent-banner');
     banner.style.display = '';
@@ -132,8 +246,17 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
   function applyCampaign(c: Campaign) {
     subjectEl.value = c.subject ?? '';
     preheadEl.value = c.preheader ?? '';
-    bodyEl.value = c.body_markdown ?? '';
     el('page-title').textContent = c.subject || 'Campaign';
+
+    if (c.body_json != null) {
+      // Load the stored TipTap document into the editor.
+      bodyEditor?.commands.setContent(c.body_json as any);
+    } else if ((c.body_markdown ?? '').trim() !== '') {
+      // Legacy draft: markdown body with no rich-text JSON yet. There's only one such
+      // draft, so no migration — just prompt a one-time re-entry.
+      setInline('This draft’s body was written in the old markdown editor and needs to be re-entered here before sending.', ERR_COLOR);
+    }
+
     if (c.status === 'sent') lockForSent(c);
   }
 
@@ -163,7 +286,8 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
           id: isNew ? undefined : campaignId,
           subject,
           preheader: preheadEl.value,
-          body_markdown: bodyEl.value,
+          // Store the TipTap JSON document; body_markdown is left untouched server-side.
+          body_json: bodyEditor ? bodyEditor.getJSON() : null,
         }),
       });
       const data = await res.json().catch(() => ({})) as { ok?: boolean; error?: string; campaign?: Campaign };
@@ -279,5 +403,6 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
   el('btn-test').addEventListener('click', doTest);
   el('btn-live').addEventListener('click', startLive);
 
+  initBodyEditor();
   loadCampaign();
 </script>

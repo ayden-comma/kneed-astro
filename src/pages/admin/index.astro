@@ -59,6 +59,11 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 <script>
   import { supabase } from '../../lib/supabase';
 
+  // Escape user-originated text before interpolating into innerHTML (stored-XSS guard).
+  function esc(v: unknown): string {
+    return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
   function timeAgo(dateStr: string) {
     const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
@@ -98,7 +103,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
           <div class="admin-activity-item">
             <div class="admin-activity-dot"></div>
             <div>
-              <div class="admin-activity-text" style="max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.content}</div>
+              <div class="admin-activity-text" style="max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(c.content)}</div>
               <div class="admin-activity-meta">${c.bakery_slug} · ${timeAgo(c.created_at)}</div>
             </div>
           </div>
@@ -141,7 +146,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
           <div class="admin-activity-item">
             <div class="admin-activity-dot"></div>
             <div>
-              <div class="admin-activity-text">${m.display_name || 'Anonymous'}</div>
+              <div class="admin-activity-text">${esc(m.display_name || 'Anonymous')}</div>
               <div class="admin-activity-meta">Joined ${timeAgo(m.created_at)}</div>
             </div>
           </div>

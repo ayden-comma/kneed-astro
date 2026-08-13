@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { createClient } from '@supabase/supabase-js';
 import { env } from 'cloudflare:workers';
 import { requireAdmin } from '../../lib/requireAdmin';
-import { renderCampaignEmail, markdownToEmailHtml } from '../../emails/campaign';
+import { renderCampaignEmail, markdownToEmailHtml, tiptapToEmailHtml } from '../../emails/campaign';
 // Reuse the episode broadcast's sender identity — no new email dependency.
 import { EPISODE_FROM, EPISODE_REPLY_TO } from '../../emails/episode-alert';
 
@@ -74,7 +74,7 @@ export const POST: APIRoute = async ({ request }) => {
     // ── Load the campaign ──
     const { data: campaign, error: cErr } = await svc
       .from('campaigns')
-      .select('id, subject, preheader, body_markdown, status')
+      .select('id, subject, preheader, body_markdown, body_json, status')
       .eq('id', id)
       .single();
     if (cErr || !campaign) {
@@ -84,7 +84,11 @@ export const POST: APIRoute = async ({ request }) => {
 
     const origin = new URL(request.url).origin;
     const subject = campaign.subject as string;
-    const bodyHtml = markdownToEmailHtml(campaign.body_markdown ?? '');
+    // Serialize from the TipTap JSON document; fall back to the legacy markdown body
+    // only when body_json is null (the one pre-existing draft).
+    const bodyHtml = campaign.body_json != null
+      ? tiptapToEmailHtml(campaign.body_json)
+      : markdownToEmailHtml(campaign.body_markdown ?? '');
     const preheader = (campaign.preheader as string) ?? '';
     const tags = [{ name: 'type', value: 'campaign' }, { name: 'campaign_id', value: id }];
 
@@ -95,6 +99,12 @@ export const POST: APIRoute = async ({ request }) => {
         mode: 'preview',
         html: renderCampaignEmail({ subject, preheader, bodyHtml, unsubscribeUrl: `${origin}/unsubscribe?token=preview` }),
       });
+    }
+
+    // ── Guard: don't actually send an empty body. Preview/count are already handled
+    //    above and stay permitted; only test/live reach here. ──
+    if (bodyHtml.trim() === '') {
+      return json(400, { ok: false, error: 'Campaign body is empty — add content before sending.' });
     }
 
     // ── TEST: one email to the acting admin ──

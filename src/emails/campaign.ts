@@ -88,6 +88,133 @@ export function markdownToEmailHtml(md: string): string {
   return out.join('\n');
 }
 
+// ── TipTap JSON → the SAME inline-styled email HTML as the markdown renderer ─────
+// The email is ALWAYS serialized from the editor's JSON document through this walker —
+// never from TipTap's own getHTML(), whose class-based markup doesn't survive email
+// clients. Only the whitelisted node/mark types below are emitted; anything else is
+// skipped, so raw/unknown HTML can never reach the inbox. All text is escaped.
+
+const IMG_STYLE = "display:block;width:100%;max-width:600px;height:auto;margin:18px auto;";
+
+// Impose a width-only Cloudinary transform for email (downscale to fit, never upscale;
+// preserve aspect ratio). Adapted from admin-send-announcement.ts's emailImage().
+function campaignImage(url: string): string {
+  if (!url) return '';
+  const TX = 'c_limit,w_1200,q_auto,f_jpg';
+  const marker = '/image/upload/';
+  const i = url.indexOf(marker);
+  if (i === -1) return url; // non-Cloudinary URL — leave untouched
+  let after = url.slice(i + marker.length);
+  const firstSlash = after.indexOf('/');
+  if (firstSlash !== -1) {
+    const firstSeg = after.slice(0, firstSlash);
+    const looksLikeTransform = /(^|,)(c|w|h|g|q|f|t|e|ar|dpr|b|bo|r|o|a|fl|l|u|x|y|z|co|pg)_/.test(firstSeg);
+    const isVersion = /^v\d+$/.test(firstSeg);
+    if (looksLikeTransform && !isVersion) after = after.slice(firstSlash + 1);
+  }
+  return url.slice(0, i + marker.length) + TX + '/' + after;
+}
+
+interface TTNode {
+  type?: string;
+  text?: string;
+  attrs?: Record<string, any>;
+  marks?: { type?: string; attrs?: Record<string, any> }[];
+  content?: TTNode[];
+}
+
+// Render an array of inline nodes (text + hardBreak) with their marks applied.
+function inlineNodes(nodes: TTNode[] | undefined): string {
+  if (!nodes) return '';
+  let html = '';
+  for (const n of nodes) {
+    if (n.type === 'hardBreak') { html += '<br>'; continue; }
+    if (n.type !== 'text' || typeof n.text !== 'string') continue; // skip unknown inline nodes
+    let piece = esc(n.text);
+    const marks = n.marks ?? [];
+    const hasBold = marks.some(m => m.type === 'bold');
+    const hasItalic = marks.some(m => m.type === 'italic');
+    const link = marks.find(m => m.type === 'link');
+    if (hasBold) piece = `<strong>${piece}</strong>`;
+    if (hasItalic) piece = `<em>${piece}</em>`;
+    if (link?.attrs?.href) piece = `<a href="${esc(link.attrs.href)}" style="${A_STYLE}">${piece}</a>`;
+    html += piece;
+  }
+  return html;
+}
+
+// A paragraph is a button iff every child is linked text pointing at the same href
+// (no other text). Returns { text, href } or null.
+function paragraphAsButton(node: TTNode): { text: string; href: string } | null {
+  const children = node.content ?? [];
+  if (children.length === 0) return null;
+  let href: string | null = null;
+  let text = '';
+  for (const c of children) {
+    if (c.type !== 'text' || typeof c.text !== 'string') return null;
+    const link = (c.marks ?? []).find(m => m.type === 'link');
+    const h = link?.attrs?.href;
+    if (!h) return null;
+    if (href === null) href = h;
+    else if (href !== h) return null;
+    text += c.text;
+  }
+  if (!href || !text.trim()) return null;
+  return { text, href };
+}
+
+function listItemHtml(item: TTNode): string {
+  // A listItem wraps block nodes (usually a single paragraph). Flatten their inline text.
+  const parts = (item.content ?? [])
+    .filter(b => b.type === 'paragraph' || b.type === 'heading')
+    .map(b => inlineNodes(b.content));
+  return `<li style="${LI_STYLE}">${parts.join('<br>')}</li>`;
+}
+
+export function tiptapToEmailHtml(doc: unknown): string {
+  const root = doc as TTNode | null;
+  const blocks: TTNode[] = root?.content ?? [];
+  const out: string[] = [];
+
+  for (const node of blocks) {
+    switch (node.type) {
+      case 'paragraph': {
+        // A paragraph containing only a single link becomes the orange CTA button.
+        const btn = paragraphAsButton(node);
+        if (btn) { out.push(ctaButton(btn.text, btn.href)); break; }
+        const inner = inlineNodes(node.content);
+        if (inner.trim() === '') break; // skip empty paragraphs
+        out.push(`<p style="${P_STYLE}">${inner}</p>`);
+        break;
+      }
+      case 'heading': {
+        // Only level 2 is enabled in the editor; render any heading as the h2 style.
+        out.push(`<h2 style="${H2_STYLE}">${inlineNodes(node.content)}</h2>`);
+        break;
+      }
+      case 'bulletList': {
+        const items = (node.content ?? [])
+          .filter(i => i.type === 'listItem')
+          .map(listItemHtml)
+          .join('');
+        if (items) out.push(`<ul style="${UL_STYLE}">${items}</ul>`);
+        break;
+      }
+      case 'image': {
+        const src = node.attrs?.src;
+        if (!src) break;
+        const alt = esc(node.attrs?.alt ?? '');
+        out.push(`<img src="${esc(campaignImage(String(src)))}" alt="${alt}" style="${IMG_STYLE}" />`);
+        break;
+      }
+      // Any other node type (youtube, blockquote, orderedList, table, raw html…) is skipped.
+      default: break;
+    }
+  }
+
+  return out.join('\n');
+}
+
 // ── Full branded email shell (identical to episode-alert.ts) ────────────────────
 export interface CampaignEmailData {
   subject: string;
