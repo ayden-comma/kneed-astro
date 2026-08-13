@@ -13,6 +13,12 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
   <div class="admin-section">
     <div id="admin-msg" class="admin-msg"></div>
 
+    <!-- Starter templates (create mode only; cards populated client-side) -->
+    <div id="template-picker" style="display:none; margin-bottom:1.5rem;">
+      <div class="admin-form-label" style="margin-bottom:0.6rem;">Start from a template</div>
+      <div id="template-cards" style="display:flex; flex-wrap:wrap; gap:0.6rem;"></div>
+    </div>
+
     <!-- Sent banner (shown only when the campaign has been sent) -->
     <div id="sent-banner" style="display:none; margin-bottom:1.25rem; padding:0.75rem 1rem; border-radius:6px; background:var(--surface-3); border:1px solid var(--border-md); font-size:0.9rem; color:var(--p-70);"></div>
 
@@ -80,6 +86,21 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
       <button class="admin-btn admin-btn-primary" id="btn-live" type="button">Send to all subscribers</button>
     </div>
     <div id="inline-status" style="margin-top:0.75rem; font-size:0.9rem; line-height:1.6;"></div>
+
+    <!-- Danger zone (drafts only; revealed once the draft exists, never for sent) -->
+    <div id="danger-zone" style="display:none; margin-top:2rem; border-top:1px solid var(--border); padding-top:1.5rem;">
+      <div class="admin-section-title">Danger zone</div>
+      <button class="admin-btn admin-btn-danger" id="btn-delete-draft" type="button">Delete draft</button>
+      <div id="delete-confirm" style="display:none; margin-top:1rem; padding:1rem; border:1px solid rgba(239,68,68,0.3); border-radius:0.75rem; background:rgba(239,68,68,0.06); max-width:34rem;">
+        <p style="margin:0 0 1rem; font-size:0.9rem; color:var(--p-70); line-height:1.6;">
+          Permanently delete the draft <strong id="delete-confirm-subject" style="color:var(--parchment);"></strong>? This can't be undone.
+        </p>
+        <div style="display:flex; gap:0.75rem;">
+          <button class="admin-btn admin-btn-danger" id="btn-confirm-delete" type="button">Delete draft</button>
+          <button class="admin-btn admin-btn-ghost" id="btn-cancel-delete" type="button">Cancel</button>
+        </div>
+      </div>
+    </div>
   </div>
 </AdminLayout>
 
@@ -132,6 +153,11 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
   let isNew = campaignId === 'new';
   let _status: string | null = isNew ? 'draft' : null;
 
+  // Tracks whether the user has edited subject/preheader/body since the last template
+  // was applied — used to decide whether switching templates needs a confirm.
+  let _dirty = false;
+  let _suppressDirty = false;   // set while programmatically loading content (template / draft)
+
   function fmtDate(s: string | null | undefined): string {
     if (!s) return '';
     const d = new Date(s);
@@ -171,6 +197,7 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
       content: '',
       onTransaction: () => updateToolbar(),
     });
+    bodyEditor.on('update', () => { if (!_suppressDirty) _dirty = true; });
     bindToolbar();
     bindImageBubble();
   }
@@ -307,13 +334,16 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
   }
 
   function applyCampaign(c: Campaign) {
+    _status = c.status ?? 'draft';
     subjectEl.value = c.subject ?? '';
     preheadEl.value = c.preheader ?? '';
     el('page-title').textContent = c.subject || 'Campaign';
 
     if (c.body_json != null) {
-      // Load the stored TipTap document into the editor.
+      // Load the stored TipTap document into the editor (programmatic — not a user edit).
+      _suppressDirty = true;
       bodyEditor?.commands.setContent(c.body_json as any);
+      _suppressDirty = false;
     } else if ((c.body_markdown ?? '').trim() !== '') {
       // Legacy draft: markdown body with no rich-text JSON yet. There's only one such
       // draft, so no migration — just prompt a one-time re-entry.
@@ -321,10 +351,116 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
     }
 
     if (c.status === 'sent') lockForSent(c);
+    updateDangerZone();
+  }
+
+  // Delete is available only for an existing (persisted) draft — never for a sent
+  // campaign, and not for a brand-new unsaved one (nothing to delete yet).
+  function updateDangerZone() {
+    el('danger-zone').style.display = (!isNew && _status !== 'sent') ? '' : 'none';
+  }
+
+  // ── Starter templates (create mode only) ───────────────────────────────────────
+  // Bodies use ONLY supported nodes (p, h2, strong, em, a, ul/li). A paragraph whose
+  // sole content is a link serializes to the orange CTA button. [PLACEHOLDERS] flag
+  // the bits the admin still needs to fill in.
+  type Template = { key: string; label: string; subject: string; preheader: string; body: string };
+  const TEMPLATES: Template[] = [
+    { key: 'blank', label: 'Blank', subject: '', preheader: '', body: '' },
+    {
+      key: 'production',
+      label: 'Production update',
+      subject: "From the cutting room: [what's happening]",
+      preheader: 'A look behind the scenes of (K)Need.',
+      body: `<p>Hi [first name], here's a quick behind-the-scenes update from the (K)Need team.</p>
+<h2>Where we're at</h2>
+<p>[Describe what you've been working on lately — filming, editing, the current focus.]</p>
+<p>[A second paragraph with a little more detail, or a personal note from the team.]</p>
+<h2>Coming up</h2>
+<p>[What's next — the next episode, a rough release window, what to look out for.]</p>`,
+    },
+    {
+      key: 'season',
+      label: 'Season announcement',
+      subject: '[Season/Episode name] is coming',
+      preheader: 'New from (K)Need.',
+      body: `<p>[Big news — announce the new season or episode in a sentence or two.]</p>
+<h2>What to expect</h2>
+<ul><li>[First thing to look forward to]</li><li>[Second thing]</li><li>[Third thing]</li></ul>
+<p><a href="https://kneed.tv">[Watch the trailer]</a></p>`,
+    },
+    {
+      key: 'event',
+      label: 'Event invite',
+      subject: "You're invited: [event name]",
+      preheader: 'Join us — details inside.',
+      body: `<p>[Warm invitation — what the event is and why they'll want to be there.]</p>
+<ul><li>When: [date and time]</li><li>Where: [venue / address]</li><li>What: [what to expect on the day]</li></ul>
+<p><a href="https://kneed.tv">[RSVP / Get tickets]</a></p>`,
+    },
+    {
+      key: 'bakery',
+      label: 'Bakery scene news',
+      subject: 'Fresh from the scene: [month]',
+      preheader: "News from Melbourne's bakeries.",
+      body: `<p>[Short intro — set up this month's roundup of bakery news.]</p>
+<h2>[Bakery name]</h2>
+<p>[A couple of sentences on what's new with this bakery.]</p>
+<h2>[Bakery name]</h2>
+<p>[A couple of sentences on the second bakery.]</p>
+<p>[Closing note — a sign-off, or a nudge to reply with tips.]</p>`,
+    },
+    {
+      key: 'thankyou',
+      label: 'Thank you',
+      subject: 'Thank you',
+      preheader: 'A note from (K)Need.',
+      body: `<p>[Open with a genuine thank you — to subscribers, supporters, or a particular group.]</p>
+<p>[A second paragraph on what their support has made possible.]</p>
+<p>[A short closing line and sign-off from the team.]</p>`,
+    },
+  ];
+
+  const CARD_STYLE = 'padding:0.6rem 0.95rem; border-radius:0.5rem; border:1px solid var(--border); background:var(--surface-2); color:var(--p-70); font-size:0.85rem; font-weight:500; cursor:pointer; line-height:1;';
+  function styleCard(btn: HTMLElement, active: boolean) {
+    btn.style.cssText = CARD_STYLE + (active
+      ? 'border-color:var(--amber); color:var(--parchment); background:var(--amber-10);'
+      : '');
+  }
+
+  function renderTemplatePicker() {
+    const cards = el('template-cards');
+    cards.innerHTML = '';
+    TEMPLATES.forEach(t => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'campaign-tpl-card';
+      btn.dataset.key = t.key;
+      btn.textContent = t.label;
+      styleCard(btn, false);
+      btn.addEventListener('click', () => applyTemplate(t));
+      cards.appendChild(btn);
+    });
+    el('template-picker').style.display = '';
+  }
+
+  function applyTemplate(t: Template) {
+    // Before the user has typed, switching just replaces the prefill; after edits, warn.
+    if (_dirty && !confirm(`Replace your current draft with the “${t.label}” template? Your changes will be lost.`)) return;
+    _suppressDirty = true;
+    subjectEl.value = t.subject;
+    preheadEl.value = t.preheader;
+    bodyEditor?.commands.setContent(t.body || '<p></p>');
+    _suppressDirty = false;
+    _dirty = false;
+    el('page-title').textContent = t.subject || 'New campaign';
+    document.querySelectorAll<HTMLElement>('.campaign-tpl-card').forEach(c => {
+      styleCard(c, c.dataset.key === t.key);
+    });
   }
 
   async function loadCampaign() {
-    if (isNew) { el('page-title').textContent = 'New campaign'; return; }
+    if (isNew) { el('page-title').textContent = 'New campaign'; renderTemplatePicker(); return; }
     try {
       const res = await fetch(`/api/admin-campaigns?id=${encodeURIComponent(campaignId)}`, { headers: await authHeaders() });
       if (!res.ok) { setInline('Could not load this campaign.', ERR_COLOR); return; }
@@ -360,8 +496,11 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
           campaignId = data.campaign.id;
           isNew = false;
           window.history.replaceState({}, '', `/admin/campaigns/${campaignId}`);
+          el('template-picker').style.display = 'none'; // no longer create mode
+          updateDangerZone();                            // draft now exists → deletable
         }
         el('page-title').textContent = data.campaign.subject || 'Campaign';
+        _dirty = false;
         setInline('Draft saved.', OK_COLOR);
         return true;
       }
@@ -465,6 +604,34 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
   el('btn-preview').addEventListener('click', doPreview);
   el('btn-test').addEventListener('click', doTest);
   el('btn-live').addEventListener('click', startLive);
+
+  // Subject/preheader edits count as "dirty" for the template-replace warning.
+  subjectEl.addEventListener('input', () => { _dirty = true; });
+  preheadEl.addEventListener('input', () => { _dirty = true; });
+
+  // ── Delete draft ───────────────────────────────────────────────
+  el('btn-delete-draft').addEventListener('click', () => {
+    el('delete-confirm-subject').textContent = subjectEl.value.trim() || '(no subject)';
+    el('delete-confirm').style.display = '';
+  });
+  el('btn-cancel-delete').addEventListener('click', () => { el('delete-confirm').style.display = 'none'; });
+  el('btn-confirm-delete').addEventListener('click', async () => {
+    const btn = el<HTMLButtonElement>('btn-confirm-delete');
+    btn.disabled = true; btn.textContent = 'Deleting…';
+    try {
+      const res = await fetch('/api/admin-campaign-delete', {
+        method: 'POST', headers: await authHeaders(), body: JSON.stringify({ id: campaignId }),
+      });
+      const data = await res.json().catch(() => ({})) as { ok?: boolean; error?: string };
+      if (res.ok && data.ok) { window.location.href = '/admin/campaigns'; return; }
+      setInline(data.error || 'Could not delete draft.', ERR_COLOR);
+      el('delete-confirm').style.display = 'none';
+    } catch {
+      setInline('Could not delete draft.', ERR_COLOR);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Delete draft';
+    }
+  });
 
   initBodyEditor();
   loadCampaign();
