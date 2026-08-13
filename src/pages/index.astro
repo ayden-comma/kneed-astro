@@ -6,13 +6,14 @@ import { HIDE_ARTICLES, HIDE_MAP } from '../config/features';
 export const prerender = false;
 
 const [{ data: bakeryRows }, { data: articleRows }, { data: heroFeatureRows }] = await Promise.all([
-  supabase.from('bakeries_cms').select('slug, name, suburb, category, thumbnail, video_id').eq('published', true).order('name'),
+  supabase.from('bakeries_cms').select('slug, name, suburb, category, thumbnail, video_id, episode_number').eq('published', true).order('name'),
   supabase.from('articles_cms').select('slug, title, category, thumbnail').eq('published', true).order('updated_at', { ascending: false }),
   supabase.from('hero_features').select('bakery_slug, article_slug, content_type, sort_order').eq('active', true).order('sort_order'),
 ]);
 
 const bakeries = (bakeryRows ?? []).map((b: any) => ({
   slug: b.slug, name: b.name, suburb: b.suburb, category: b.category,
+  episode_number: b.episode_number ?? null,
   thumbnail: b.thumbnail || (b.video_id ? `https://img.youtube.com/vi/${b.video_id}/maxresdefault.jpg` : '/images/og-default.jpg'),
 }));
 const kneedToKnow = (articleRows ?? []).map((a: any) => ({
@@ -21,7 +22,7 @@ const kneedToKnow = (articleRows ?? []).map((a: any) => ({
 }));
 
 // Build hero slides from hero_features + bakeries_cms
-type HeroSlide = { tag: string; title: string; bakery: string; subtitle: string; image: string; bgWord: string; slug: string };
+type HeroSlide = { tag: string; title: string; bakery: string; subtitle: string; image: string; bgWord: string; slug: string; ep: number | null };
 let heroSlides: HeroSlide[] = [];
 
 if (heroFeatureRows && heroFeatureRows.length > 0) {
@@ -33,7 +34,7 @@ if (heroFeatureRows && heroFeatureRows.length > 0) {
 
   const [bakeryResult, articleResult] = await Promise.all([
     bakerySlugList.length > 0
-      ? supabase.from('bakeries_cms').select('slug, name, hero_tag, hero_title, hero_subtitle, hero_bg_word, hero_image_url, thumbnail, video_id').in('slug', bakerySlugList).eq('published', true)
+      ? supabase.from('bakeries_cms').select('slug, name, hero_tag, hero_title, hero_subtitle, hero_bg_word, hero_image_url, thumbnail, video_id, episode_number').in('slug', bakerySlugList).eq('published', true)
       : Promise.resolve({ data: null }),
     articleSlugList.length > 0
       ? supabase.from('articles_cms').select('slug, title, hero_tag, hero_title, hero_subtitle, hero_bg_word, hero_image_url, thumbnail').in('slug', articleSlugList).eq('published', true)
@@ -48,11 +49,14 @@ if (heroFeatureRows && heroFeatureRows.length > 0) {
       if (hf.content_type === 'article') {
         const a = heroArticles.find((x: any) => x.slug === hf.article_slug);
         if (!a) return null;
+        const aTitle = a.hero_title || a.title;
         return {
           tag: a.hero_tag || (a.title ? a.title.split(' ')[0] : 'Article'),
-          title: a.hero_title || a.title,
+          title: aTitle,
           bakery: '',
-          subtitle: a.hero_subtitle || '',
+          // Placeholder guard: a subtitle that just repeats the title reads as a mistake.
+          subtitle: (a.hero_subtitle && a.hero_subtitle.trim().toLowerCase() !== String(aTitle).trim().toLowerCase()) ? a.hero_subtitle : '',
+          ep: null,
           image: a.hero_image_url || a.thumbnail || '/images/og-default.jpg',
           bgWord: a.hero_bg_word || (a.title ? a.title.split(' ')[0].toUpperCase() : 'KNEED'),
           slug: `/kneed-to-know/${a.slug}`,
@@ -60,11 +64,15 @@ if (heroFeatureRows && heroFeatureRows.length > 0) {
       } else {
         const b = heroBakeries.find((x: any) => x.slug === hf.bakery_slug);
         if (!b) return null;
+        const bTitle = b.hero_title || b.name;
         return {
           tag: b.hero_tag || b.category || 'Bakery',
-          title: b.hero_title || b.name,
-          bakery: b.name,
-          subtitle: b.hero_subtitle || '',
+          title: bTitle,
+          // Placeholder guards: hide the amber bakery line and the subtitle when they
+          // just repeat the headline (common while hero copy is still placeholder).
+          bakery: (b.name && b.name.trim().toLowerCase() !== String(bTitle).trim().toLowerCase()) ? b.name : '',
+          subtitle: (b.hero_subtitle && b.hero_subtitle.trim().toLowerCase() !== String(bTitle).trim().toLowerCase()) ? b.hero_subtitle : '',
+          ep: b.episode_number ?? null,
           image: b.hero_image_url || b.thumbnail || (b.video_id ? `https://img.youtube.com/vi/${b.video_id}/maxresdefault.jpg` : '/images/og-default.jpg'),
           bgWord: b.hero_bg_word || b.name.split(' ')[0].toUpperCase(),
           slug: `/bakeries/${b.slug}`,
@@ -79,11 +87,12 @@ if (heroSlides.length === 0) {
   heroSlides = bakeries.slice(0, 5).map((b: any) => ({
     tag: b.category || 'Bakery',
     title: b.name,
-    bakery: b.name,
+    bakery: '',
     subtitle: '',
     image: b.thumbnail,
     bgWord: b.name.split(' ')[0].toUpperCase(),
     slug: `/bakeries/${b.slug}`,
+    ep: b.episode_number ?? null,
   }));
 }
 ---
@@ -124,7 +133,7 @@ if (heroSlides.length === 0) {
             <span class="eyebrow-dot"></span>
             <span class="eyebrow-tag" id="hero-eyebrow-tag">Sourdough</span>
             <span class="eyebrow-rule"></span>
-            <span class="eyebrow-meta" id="hero-eyebrow-meta">Now Playing · Ep. 01</span>
+            <span class="eyebrow-meta" id="hero-eyebrow-meta">{heroSlides[0]?.ep ? `Ep. ${String(heroSlides[0].ep).padStart(2, '0')} · Now Playing` : 'Now Playing'}</span>
           </div>
           <h1 class="hero-title" id="hero-title"></h1>
           <span class="hero-bakery-line" id="hero-bakery-line"></span>
@@ -268,7 +277,7 @@ if (heroSlides.length === 0) {
           </div>
           <div class="nl-form" style="position:relative;z-index:2;">
             <input type="email" id="nl-email" placeholder="Your email address" class="nl-input" />
-            <button class="nl-btn" id="nl-btn">Get updates</button>
+            <button class="nl-btn" id="nl-btn">Get each film first</button>
           </div>
           <div id="nl-error" style="position:relative;z-index:2;display:none;margin-top:0.5rem;color:#e8a39b;font-size:0.8rem;"></div>
         </div>
@@ -282,9 +291,9 @@ if (heroSlides.length === 0) {
     <div class="nl-modal-card">
       <button id="nl-modal-skip" class="nl-modal-close" aria-label="Close">×</button>
       <div id="nl-modal-s1">
-        <div class="nl-modal-check">YOU'RE ON THE LIST!</div>
-        <p class="nl-modal-question">Want to save bakeries and join the discussion?</p>
-        <a id="nl-modal-join" href="#" class="nl-modal-join">Create a free account</a>
+        <div class="nl-modal-check">YOU'VE PULLED UP A CHAIR</div>
+        <p class="nl-modal-question">Each new film lands in your inbox first. Want to save bakeries and join the discussion too?</p>
+        <a id="nl-modal-join" href="#" class="nl-modal-join">Join (K)Need, free</a>
       </div>
       <div id="nl-modal-s2" style="display:none;">
         <div class="auth-card-logo">
@@ -305,7 +314,7 @@ if (heroSlides.length === 0) {
           <input class="auth-input" type="password" id="nl-modal-pw" placeholder="••••••••" autocomplete="new-password" />
         </div>
         <div class="auth-subscribed-note">You're subscribed to updates</div>
-        <button id="nl-modal-create" class="auth-submit" type="button">Create account</button>
+        <button id="nl-modal-create" class="auth-submit" type="button">Join (K)Need</button>
         <div class="auth-footer">Already have an account? <a href="/auth/login">Sign in</a></div>
       </div>
     </div>
@@ -744,7 +753,8 @@ if (heroSlides.length === 0) {
     function applySlide(idx) {
       var s = HERO_SLIDES[idx];
       if (tagEl) tagEl.textContent = s.tag;
-      if (metaEl) metaEl.textContent = 'Ep. ' + String(idx + 1).padStart(2, '0') + ' · Now Playing';
+      // Real episode number (not the slide index); slides without one just say "Now Playing".
+      if (metaEl) metaEl.textContent = s.ep ? 'Ep. ' + String(s.ep).padStart(2, '0') + ' · Now Playing' : 'Now Playing';
       if (titleEl) titleEl.textContent = s.title;
       if (bakeryEl) bakeryEl.textContent = s.bakery;
       if (subtitleEl) subtitleEl.textContent = s.subtitle;
@@ -1072,7 +1082,7 @@ if (heroSlides.length === 0) {
       if (errorEl) errorEl.textContent = '';
       if (!email || !password) { if (errorEl) errorEl.textContent = 'Please fill in all fields.'; return; }
       if (password.length < 6) { if (errorEl) errorEl.textContent = 'Password must be at least 6 characters.'; return; }
-      if (signupBtn) { signupBtn.disabled = true; signupBtn.textContent = 'Creating account…'; }
+      if (signupBtn) { signupBtn.disabled = true; signupBtn.textContent = 'Joining…'; }
       // No opt-in here: the modal only opens after the homepage form already subscribed
       // this email (consent_source 'homepage_form'), shown by the static "You're
       // subscribed" note above. Account-to-subscriber user_id linking is handled by the
@@ -1080,7 +1090,7 @@ if (heroSlides.length === 0) {
       const { error } = await supabase.auth.signUp({ email, password });
       if (error) {
         if (errorEl) errorEl.textContent = error.message;
-        if (signupBtn) { signupBtn.disabled = false; signupBtn.textContent = 'Create account'; }
+        if (signupBtn) { signupBtn.disabled = false; signupBtn.textContent = 'Join (K)Need'; }
       } else {
         if (errorEl) { errorEl.style.color = 'var(--amber)'; errorEl.textContent = 'Check your email to confirm your account.'; }
         if (signupBtn) { signupBtn.disabled = true; signupBtn.textContent = 'Email sent'; }

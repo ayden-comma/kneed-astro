@@ -95,16 +95,23 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 
   function rowHTML(r: EpisodeRow): string {
     const ep = r.episode_number ? 'Ep. ' + String(r.episode_number).padStart(2, '0') : '';
-    const status = r.announced_at ? 'Announced ' + fmtDate(r.announced_at) : 'Not announced yet';
+    const announced = !!r.announced_at;
+    const status = announced ? '✓ Announced ' + fmtDate(r.announced_at) : 'Not announced yet';
+    // Once an episode has gone out, demote the live-send button to a quiet ghost so the
+    // page isn't a wall of identical orange "send to everyone" buttons. The double-send
+    // guard in the API still applies either way.
+    const liveBtn = announced
+      ? `<button class="admin-btn admin-btn-ghost btn-live" data-id="${esc(r.id)}">Send again…</button>`
+      : `<button class="admin-btn admin-btn-primary btn-live" data-id="${esc(r.id)}">Send to all subscribers</button>`;
     return `<tr>
       <td>${esc(ep)}</td>
       <td>${esc(r.name)}</td>
-      <td>${esc(status)}</td>
+      <td${announced ? ' style="color:var(--amber);"' : ''}>${esc(status)}</td>
       <td>
         <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
           <button class="admin-btn admin-btn-ghost btn-preview" data-id="${esc(r.id)}">Preview</button>
           <button class="admin-btn admin-btn-ghost btn-test" data-id="${esc(r.id)}">Send test to me</button>
-          <button class="admin-btn admin-btn-primary btn-live" data-id="${esc(r.id)}">Send to all subscribers</button>
+          ${liveBtn}
         </div>
         <div class="announce-inline" style="margin-top:0.5rem; font-size:0.85rem; line-height:1.5;"></div>
       </td>

@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 ---
-<BaseLayout title="Sign Up" description="Create your account with (K)Need.">
+<BaseLayout title="Join (K)Need" description="Pull up a chair. Join (K)Need to save bakeries, rate films and join the discussion.">
   <main class="auth-page">
     <div class="auth-card">
 
@@ -27,7 +27,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         <input class="auth-input" type="password" id="password" placeholder="••••••••" autocomplete="new-password" />
       </div>
 
-      <button id="signup-btn" class="auth-submit" type="button">Create account</button>
+      <button id="signup-btn" class="auth-submit" type="button">Join (K)Need</button>
 
       <div class="auth-footer">
         Already have an account? <a href="/auth/login">Sign in</a>
@@ -63,13 +63,13 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     if (!email || !password) { errorEl.textContent = 'Please fill in all fields.'; return; }
     if (password.length < 6) { errorEl.textContent = 'Password must be at least 6 characters.'; return; }
     signupBtn.disabled = true;
-    signupBtn.textContent = 'Creating account…';
+    signupBtn.textContent = 'Joining…';
     const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/auth/callback` } });
     if (error) {
       errorEl.style.color = '';
       errorEl.textContent = error.message;
       signupBtn.disabled = false;
-      signupBtn.textContent = 'Create account';
+      signupBtn.textContent = 'Join (K)Need';
     } else {
       // Supabase obfuscates an existing confirmed account by returning success with
       // an empty identities array. Detect that and point the user at login instead.
@@ -78,7 +78,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         errorEl.style.color = 'var(--amber)';
         errorEl.innerHTML = 'This email is already registered. <a href="/auth/login" style="color:var(--amber);text-decoration:underline;">Log in instead</a>.';
         signupBtn.disabled = false;
-        signupBtn.textContent = 'Create account';
+        signupBtn.textContent = 'Join (K)Need';
         return;
       }
       errorEl.style.color = 'var(--amber)';

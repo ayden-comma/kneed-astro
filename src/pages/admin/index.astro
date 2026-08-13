@@ -84,7 +84,8 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     ] = await Promise.all([
       supabase.from('bakeries_cms').select('*', { count: 'exact', head: true }),
       supabase.from('comments').select('*', { count: 'exact', head: true }),
-      supabase.from('comments').select('id, content, bakery_slug, created_at').order('created_at', { ascending: false }).limit(5),
+      // Over-fetch so we can drop orphans (comments on since-deleted bakeries) and still show 5.
+      supabase.from('comments').select('id, content, bakery_slug, created_at').order('created_at', { ascending: false }).limit(10),
     ]);
 
     const s = (id: string, val: number | null) => {
@@ -95,7 +96,14 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     s('stat-comments', commentCount);
 
     const commentsEl = document.getElementById('recent-comments')!;
-    const arr = (recentComments ?? []) as { id: string; content: string; bakery_slug: string; created_at: string }[];
+    let arr = (recentComments ?? []) as { id: string; content: string; bakery_slug: string; created_at: string }[];
+    // Orphan guard: a comment whose bakery was deleted would deep-link to a 404.
+    if (arr.length > 0) {
+      const slugs = [...new Set(arr.map(c => c.bakery_slug))];
+      const { data: liveBakeries } = await supabase.from('bakeries_cms').select('slug').in('slug', slugs);
+      const liveSet = new Set((liveBakeries ?? []).map((b: { slug: string }) => b.slug));
+      arr = arr.filter(c => liveSet.has(c.bakery_slug)).slice(0, 5);
+    }
     commentsEl.innerHTML = arr.length === 0
       ? '<div class="admin-empty">No comments yet.</div>'
       : arr.map(c => `

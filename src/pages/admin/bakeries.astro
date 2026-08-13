@@ -12,6 +12,15 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 
   <div class="admin-section">
     <div id="admin-msg" class="admin-msg"></div>
+    <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center; margin-bottom:1rem;">
+      <input class="admin-form-input" id="bk-search" type="search" placeholder="Search name, slug, category, suburb…" style="max-width:20rem;" />
+      <select class="admin-form-input" id="bk-status-filter" style="max-width:9.5rem;">
+        <option value="">All statuses</option>
+        <option value="published">Published</option>
+        <option value="draft">Draft</option>
+      </select>
+      <span id="bk-count" style="font-size:0.8rem; color:var(--p-50); margin-left:auto;"></span>
+    </div>
     <div class="admin-table-wrap">
       <table class="admin-table">
         <thead>
@@ -348,7 +357,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   type BakeryRow = {
     id: string; name: string; slug: string; category: string;
     suburb: string | null; published: boolean; episode_number: number | null;
-    updated_at: string | null; published_at: string | null;
+    updated_at: string | null; published_at: string | null; thumbnail: string | null;
   };
   type ImgRow = { src: string; caption: string };
 
@@ -854,9 +863,13 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   function rowHTML(b: BakeryRow) {
     // Episode label — identical formatting to announce.astro (inline expression there).
     const ep = b.episode_number ? 'Ep. ' + String(b.episode_number).padStart(2, '0') : '';
-    return `<tr data-id="${b.id}" data-name="${b.name.toLowerCase()}" data-episode="${b.episode_number ?? ''}" data-modified="${b.updated_at ?? ''}" data-status="${b.published ? 'published' : 'draft'}" data-published-at="${b.published_at ?? ''}">
+    const searchBlob = [b.name, b.slug, b.category, b.suburb].filter(Boolean).join(' ').toLowerCase();
+    const thumb = b.thumbnail
+      ? `<img src="${b.thumbnail}" alt="" loading="lazy" style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--border);flex:none;" />`
+      : `<span style="width:44px;height:44px;border-radius:6px;border:1px dashed var(--border);flex:none;display:inline-block;"></span>`;
+    return `<tr data-id="${b.id}" data-name="${b.name.toLowerCase()}" data-search="${searchBlob.replace(/"/g, '&quot;')}" data-episode="${b.episode_number ?? ''}" data-modified="${b.updated_at ?? ''}" data-status="${b.published ? 'published' : 'draft'}" data-published-at="${b.published_at ?? ''}">
       <td>${ep}</td>
-      <td><strong>${b.name}</strong><br/><span style="font-size:0.75rem;color:var(--p-35);">${b.slug}</span></td>
+      <td><div style="display:flex;align-items:center;gap:0.65rem;">${thumb}<span><strong>${b.name}</strong><br/><span style="font-size:0.75rem;color:var(--p-35);">${b.slug}</span></span></div></td>
       <td><span class="admin-badge admin-badge-${b.published ? 'published' : 'draft'} toggle-publish" data-slug="${b.slug}" data-published="${b.published}" data-published-at="${b.published_at ?? ''}" title="Click to change status">${b.published ? 'Published' : 'Draft'}</span></td>
       <td>${fmtDate(b.updated_at)}</td>
       <td>${fmtDate(b.published_at)}</td>
@@ -870,7 +883,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   async function loadList() {
     const { data, error } = await supabase
       .from('bakeries_cms')
-      .select('id, name, slug, category, suburb, published, episode_number, updated_at, published_at')
+      .select('id, name, slug, category, suburb, published, episode_number, updated_at, published_at, thumbnail')
       .order('updated_at', { ascending: false });
     if (error) { tbody.innerHTML = `<tr><td colspan="6"><div class="admin-empty">Error: ${error.message}</div></td></tr>`; return; }
     const rows = (data ?? []) as BakeryRow[];
@@ -879,7 +892,31 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       : rows.map(rowHTML).join('');
     bindRowButtons();
     updateSortIcons();
+    applyFilters();
   }
+
+  // ── Search + status filter (hides rows; composes with DOM-reorder sorting) ──
+  const searchInput  = document.getElementById('bk-search') as HTMLInputElement | null;
+  const statusSelect = document.getElementById('bk-status-filter') as HTMLSelectElement | null;
+  const countEl      = document.getElementById('bk-count');
+
+  function applyFilters() {
+    const q = (searchInput?.value ?? '').trim().toLowerCase();
+    const status = statusSelect?.value ?? '';
+    const rows = Array.from(tbody.querySelectorAll<HTMLTableRowElement>('tr[data-id]'));
+    let shown = 0;
+    rows.forEach(tr => {
+      const matchesQ = !q || (tr.dataset.search ?? '').includes(q);
+      const matchesStatus = !status || tr.dataset.status === status;
+      const show = matchesQ && matchesStatus;
+      tr.style.display = show ? '' : 'none';
+      if (show) shown++;
+    });
+    if (countEl) countEl.textContent = rows.length ? `${shown} of ${rows.length}` : '';
+  }
+
+  searchInput?.addEventListener('input', applyFilters);
+  statusSelect?.addEventListener('change', applyFilters);
 
   function bindRowButtons() {
     tbody.querySelectorAll('.btn-edit-bakery').forEach(btn => {
