@@ -50,6 +50,16 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
           </button>
           <div class="rte-sep"></div>
+          <button type="button" class="rte-btn" data-cmd="alignLeft" title="Align left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
+          </button>
+          <button type="button" class="rte-btn" data-cmd="alignCenter" title="Align centre">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+          </button>
+          <button type="button" class="rte-btn" data-cmd="alignRight" title="Align right">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div class="rte-sep"></div>
           <button type="button" class="rte-btn" data-cmd="image" title="Insert image">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
           </button>
@@ -121,6 +131,7 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
   import StarterKit from '@tiptap/starter-kit';
   import { CustomImage } from '../../../lib/tiptapImage';
   import Link from '@tiptap/extension-link';
+  import TextAlign from '@tiptap/extension-text-align';
 
   async function authHeaders(): Promise<HeadersInit> {
     const { data: { session } } = await supabase.auth.getSession();
@@ -193,6 +204,7 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
         }),
         CustomImage,
         Link.configure({ openOnClick: false }),
+        TextAlign.configure({ types: ['heading', 'paragraph'] }),
       ],
       content: '',
       onTransaction: () => updateToolbar(),
@@ -207,11 +219,14 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
     document.querySelectorAll<HTMLButtonElement>('.rte-btn[data-cmd]').forEach(btn => {
       const cmd = btn.dataset.cmd!;
       let active = false;
-      if (cmd === 'bold')            active = bodyEditor!.isActive('bold');
-      else if (cmd === 'italic')     active = bodyEditor!.isActive('italic');
-      else if (cmd === 'h2')         active = bodyEditor!.isActive('heading', { level: 2 });
-      else if (cmd === 'bulletList') active = bodyEditor!.isActive('bulletList');
-      else if (cmd === 'link')       active = bodyEditor!.isActive('link');
+      if (cmd === 'bold')             active = bodyEditor!.isActive('bold');
+      else if (cmd === 'italic')      active = bodyEditor!.isActive('italic');
+      else if (cmd === 'h2')          active = bodyEditor!.isActive('heading', { level: 2 });
+      else if (cmd === 'bulletList')  active = bodyEditor!.isActive('bulletList');
+      else if (cmd === 'link')        active = bodyEditor!.isActive('link');
+      else if (cmd === 'alignLeft')   active = bodyEditor!.isActive({ textAlign: 'left' });
+      else if (cmd === 'alignCenter') active = bodyEditor!.isActive({ textAlign: 'center' });
+      else if (cmd === 'alignRight')  active = bodyEditor!.isActive({ textAlign: 'right' });
       btn.classList.toggle('is-active', active);
     });
   }
@@ -229,6 +244,9 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
         else if (cmd === 'italic')      chain.toggleItalic().run();
         else if (cmd === 'h2')          chain.toggleHeading({ level: 2 }).run();
         else if (cmd === 'bulletList')  chain.toggleBulletList().run();
+        else if (cmd === 'alignLeft')   chain.setTextAlign('left').run();
+        else if (cmd === 'alignCenter') chain.setTextAlign('center').run();
+        else if (cmd === 'alignRight')  chain.setTextAlign('right').run();
         else if (cmd === 'image') {
           _savedEditorPos = bodyEditor.state.selection.anchor;
           imgUpload.click();

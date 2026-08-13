@@ -41,12 +41,25 @@ function inline(text: string): string {
   return s;
 }
 
-function ctaButton(text: string, url: string): string {
-  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px auto;"><tr>
+function ctaButton(text: string, url: string, align: 'left' | 'center' | 'right' = 'center'): string {
+  // Align the wrapper table via both the (email-reliable) align attribute and margins.
+  const margin = align === 'left' ? '24px 0' : align === 'right' ? '24px 0 24px auto' : '24px auto';
+  return `<table role="presentation" align="${align}" cellpadding="0" cellspacing="0" border="0" style="margin:${margin};"><tr>
       <td align="center" bgcolor="#c8833a" style="background:#c8833a;border-radius:6px;">
         <a href="${esc(url)}" style="display:inline-block;font-family:'Archivo Narrow','Arial Narrow',Arial,sans-serif;font-weight:600;font-size:13px;letter-spacing:0.18em;text-transform:uppercase;color:#0e0c0a;text-decoration:none;padding:15px 34px;border-radius:6px;">${esc(text)}</a>
       </td>
       </tr></table>`;
+}
+
+// TextAlign stores the chosen alignment on paragraph/heading nodes (default is null =
+// unaligned). Emit an inline text-align only when an explicit alignment is present.
+function alignStyle(node: TTNode): string {
+  const a = node.attrs?.textAlign;
+  return (a === 'left' || a === 'center' || a === 'right') ? `text-align:${a};` : '';
+}
+function blockButtonAlign(node: TTNode): 'left' | 'center' | 'right' {
+  const a = node.attrs?.textAlign;
+  return (a === 'left' || a === 'right') ? a : 'center'; // default (null) and 'center' → centred
 }
 
 export function markdownToEmailHtml(md: string): string {
@@ -194,17 +207,18 @@ export function tiptapToEmailHtml(doc: unknown): string {
   for (const node of blocks) {
     switch (node.type) {
       case 'paragraph': {
-        // A paragraph containing only a single link becomes the orange CTA button.
+        // A paragraph containing only a single link becomes the orange CTA button,
+        // aligned per the paragraph's textAlign (default centred).
         const btn = paragraphAsButton(node);
-        if (btn) { out.push(ctaButton(btn.text, btn.href)); break; }
+        if (btn) { out.push(ctaButton(btn.text, btn.href, blockButtonAlign(node))); break; }
         const inner = inlineNodes(node.content);
         if (inner.trim() === '') break; // skip empty paragraphs
-        out.push(`<p style="${P_STYLE}">${inner}</p>`);
+        out.push(`<p style="${P_STYLE}${alignStyle(node)}">${inner}</p>`);
         break;
       }
       case 'heading': {
         // Only level 2 is enabled in the editor; render any heading as the h2 style.
-        out.push(`<h2 style="${H2_STYLE}">${inlineNodes(node.content)}</h2>`);
+        out.push(`<h2 style="${H2_STYLE}${alignStyle(node)}">${inlineNodes(node.content)}</h2>`);
         break;
       }
       case 'bulletList': {
