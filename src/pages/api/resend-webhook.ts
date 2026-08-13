@@ -92,6 +92,9 @@ export const POST: APIRoute = async ({ request }) => {
   // Transactional emails (welcome/reset/submission-received) are sent WITHOUT tags, so
   // data.tags is often undefined here — optional-chain and never access it directly.
   const bakeryId = data?.tags?.bakery_id ?? null;
+  // Campaign emails are tagged { type: 'campaign', campaign_id: '<id>' } — same object-map
+  // shape as bakery_id; null-safe because transactional/episode emails omit it.
+  const campaignId = data?.tags?.campaign_id ?? null;
 
   const row = {
     svix_id:         svixId,
@@ -99,13 +102,15 @@ export const POST: APIRoute = async ({ request }) => {
     event_type:      eventType,
     recipient:       (Array.isArray(data.to) ? (data.to[0] ?? '') : '').toLowerCase(),
     bakery_id:       bakeryId,
+    campaign_id:     campaignId,
     clicked_url:     data.click?.link ?? null,
     event_at:        data.created_at ?? null,
     raw:             payload,
   };
 
+  const svc = createClient(import.meta.env.PUBLIC_SUPABASE_URL as string, env.SUPABASE_SERVICE_ROLE_KEY);
+
   try {
-    const svc = createClient(import.meta.env.PUBLIC_SUPABASE_URL as string, env.SUPABASE_SERVICE_ROLE_KEY);
     // Idempotent on svix_id: INSERT ... ON CONFLICT (svix_id) DO NOTHING.
     const { error } = await svc
       .from('email_events')
@@ -117,6 +122,32 @@ export const POST: APIRoute = async ({ request }) => {
   } catch (e) {
     console.error('[resend-webhook] threw:', e instanceof Error ? e.message : String(e));
     return text('Internal error', 500);
+  }
+
+  // ── Best-effort auto-suppression. The event is already stored; a failure here must NOT
+  //    make Resend retry (it would re-store nothing new and re-attempt a failing update),
+  //    so we log and still return 200. ──
+  //  • email.complained  → ALWAYS suppress (reason 'complaint').
+  //  • email.bounced     → suppress ONLY hard/permanent bounces (reason 'bounced'). Resend
+  //    nests the classification at data.bounce.type: "Permanent" is a hard bounce; "Transient"
+  //    (full mailbox, out-of-office, greylisting) and "Undetermined" are soft — never suppress
+  //    those, or a temporary condition would wrongly unsubscribe a valid recipient.
+  if (row.recipient && (payload.type === 'email.complained' || payload.type === 'email.bounced')) {
+    const reason = payload.type === 'email.complained'
+      ? 'complaint'
+      : (data.bounce?.type === 'Permanent' ? 'bounced' : null);
+    if (reason) {
+      try {
+        const { error: supErr } = await svc
+          .from('email_subscribers')
+          .update({ status: 'unsubscribed', unsubscribe_reason: reason, unsubscribed_at: new Date().toISOString() })
+          .eq('email', row.recipient)          // recipient is already lowercased above
+          .neq('status', 'unsubscribed');      // don't touch already-unsubscribed rows
+        if (supErr) console.error(`[resend-webhook] suppression (${reason}) update failed:`, supErr.message);
+      } catch (e) {
+        console.error('[resend-webhook] suppression threw:', e instanceof Error ? e.message : String(e));
+      }
+    }
   }
 
   return text('OK', 200);

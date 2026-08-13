@@ -1,0 +1,283 @@
+---
+// SECURITY: Keep this page a client-fetched shell. Do NOT fetch or render data server-side here — there is no server-side auth gate (session lives in localStorage, not cookies). Data is loaded client-side after adminCheck verifies admin role, and the API routes enforce auth via requireAdmin. Server-rendering data here would leak it to unauthenticated visitors.
+export const prerender = false;
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Campaign" activePage="campaigns">
+  <div class="admin-page-header" style="display:flex; justify-content:space-between; align-items:center; gap:1rem;">
+    <h1 class="admin-page-title" id="page-title">Campaign</h1>
+    <a class="admin-btn admin-btn-ghost" href="/admin/campaigns">← All campaigns</a>
+  </div>
+
+  <div class="admin-section">
+    <div id="admin-msg" class="admin-msg"></div>
+
+    <!-- Sent banner (shown only when the campaign has been sent) -->
+    <div id="sent-banner" style="display:none; margin-bottom:1.25rem; padding:0.75rem 1rem; border-radius:6px; background:var(--surface-3); border:1px solid var(--border-md); font-size:0.9rem; color:var(--p-70);"></div>
+
+    <div class="admin-form-group" style="margin-bottom:1rem;">
+      <label class="admin-form-label" for="f-subject">Subject</label>
+      <input class="admin-form-input" id="f-subject" type="text" placeholder="What's this email about?" />
+    </div>
+
+    <div class="admin-form-group" style="margin-bottom:1rem;">
+      <label class="admin-form-label" for="f-preheader">Preheader</label>
+      <input class="admin-form-input" id="f-preheader" type="text" placeholder="Preview line shown after the subject in the inbox" />
+    </div>
+
+    <div class="admin-form-group" style="margin-bottom:0.5rem;">
+      <label class="admin-form-label" for="f-body">Body</label>
+      <textarea class="admin-form-input" id="f-body" rows="16" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace; line-height:1.6; resize:vertical;" placeholder="Write your message…"></textarea>
+    </div>
+    <div style="font-size:0.78rem; color:var(--p-35); line-height:1.7; margin-bottom:1.25rem;">
+      Supports a small markdown subset:
+      <code>## Heading</code> ·
+      <code>**bold**</code> ·
+      <code>*italic*</code> ·
+      <code>[link](https://…)</code> ·
+      <code>- bullet</code> lists ·
+      blank lines separate paragraphs ·
+      a line that is only <code>[Button text](https://…)</code> becomes an orange button.
+    </div>
+
+    <div id="form-actions" style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+      <button class="admin-btn admin-btn-primary" id="btn-save" type="button">Save draft</button>
+      <button class="admin-btn admin-btn-ghost" id="btn-preview" type="button">Preview</button>
+      <button class="admin-btn admin-btn-ghost" id="btn-test" type="button">Send test to me</button>
+      <button class="admin-btn admin-btn-primary" id="btn-live" type="button">Send to all subscribers</button>
+    </div>
+    <div id="inline-status" style="margin-top:0.75rem; font-size:0.9rem; line-height:1.6;"></div>
+  </div>
+</AdminLayout>
+
+<!-- Email preview modal (iframe srcdoc = rendered email HTML) -->
+<div id="preview-modal" style="display:none; position:fixed; inset:0; z-index:1000; align-items:flex-start; justify-content:center; padding:2rem 1rem; background:rgba(0,0,0,0.75); overflow-y:auto;">
+  <div style="position:relative; width:100%; max-width:640px; background:#f2ede6; border-radius:8px; overflow:hidden;">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:0.75rem 1rem; background:#0e0c0a;">
+      <span style="color:#f2ede6; font-family:var(--font-cond); font-size:0.75rem; letter-spacing:0.15em; text-transform:uppercase;">Email preview</span>
+      <button id="preview-close" class="admin-btn admin-btn-ghost" type="button">Close</button>
+    </div>
+    <iframe id="preview-frame" title="Email preview" style="display:block; width:100%; height:80vh; border:0; background:#e4ddd2;"></iframe>
+  </div>
+</div>
+
+<script>
+  import { supabase } from '../../../lib/supabase';
+
+  async function authHeaders(): Promise<HeadersInit> {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { window.location.href = '/auth/login'; throw new Error('Session expired'); }
+    return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` };
+  }
+
+  type Campaign = {
+    id: string;
+    subject: string | null;
+    preheader: string | null;
+    body_markdown: string | null;
+    status: string | null;
+    recipient_count: number | null;
+    sent_at: string | null;
+  };
+  type SendResp = {
+    ok?: boolean; error?: string; sentTo?: string; subscriberCount?: number;
+    recipientCount?: number; failedChunks?: number; alreadySent?: boolean; html?: string;
+  };
+
+  const OK_COLOR = 'var(--amber)';
+  const ERR_COLOR = '#e05555';
+
+  const el = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+
+  // Route id: the last path segment. 'new' = create mode (no row yet).
+  let campaignId = window.location.pathname.split('/').filter(Boolean).pop() ?? '';
+  let isNew = campaignId === 'new';
+  let _status: string | null = isNew ? 'draft' : null;
+
+  function fmtDate(s: string | null | undefined): string {
+    if (!s) return '';
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  function setInline(text: string, color = '') {
+    const box = el('inline-status'); box.style.color = color; box.textContent = text;
+  }
+
+  const subjectEl  = el<HTMLInputElement>('f-subject');
+  const preheadEl  = el<HTMLInputElement>('f-preheader');
+  const bodyEl     = el<HTMLTextAreaElement>('f-body');
+
+  function lockForSent(c: Campaign) {
+    _status = 'sent';
+    subjectEl.disabled = true;
+    preheadEl.disabled = true;
+    bodyEl.disabled = true;
+    el('form-actions').style.display = 'none';   // hide Save / Test / Live once sent
+    const banner = el('sent-banner');
+    banner.style.display = '';
+    banner.textContent = `Sent ${fmtDate(c.sent_at)} to ${c.recipient_count ?? 0} subscriber${(c.recipient_count ?? 0) === 1 ? '' : 's'}. This campaign is locked and read-only.`;
+    // Keep a Preview affordance available on sent campaigns.
+    const wrap = document.createElement('div');
+    wrap.style.marginTop = '0.75rem';
+    const pv = document.createElement('button');
+    pv.className = 'admin-btn admin-btn-ghost';
+    pv.type = 'button';
+    pv.textContent = 'Preview';
+    pv.addEventListener('click', doPreview);
+    wrap.appendChild(pv);
+    banner.parentElement!.insertBefore(wrap, banner.nextSibling);
+  }
+
+  function applyCampaign(c: Campaign) {
+    subjectEl.value = c.subject ?? '';
+    preheadEl.value = c.preheader ?? '';
+    bodyEl.value = c.body_markdown ?? '';
+    el('page-title').textContent = c.subject || 'Campaign';
+    if (c.status === 'sent') lockForSent(c);
+  }
+
+  async function loadCampaign() {
+    if (isNew) { el('page-title').textContent = 'New campaign'; return; }
+    try {
+      const res = await fetch(`/api/admin-campaigns?id=${encodeURIComponent(campaignId)}`, { headers: await authHeaders() });
+      if (!res.ok) { setInline('Could not load this campaign.', ERR_COLOR); return; }
+      const data = await res.json() as { campaign?: Campaign };
+      if (data.campaign) applyCampaign(data.campaign);
+    } catch {
+      setInline('Could not load this campaign.', ERR_COLOR);
+    }
+  }
+
+  // ── Save (create or update draft) ──
+  async function doSave(): Promise<boolean> {
+    if (_status === 'sent') return false;
+    const subject = subjectEl.value.trim();
+    if (!subject) { setInline('Subject is required.', ERR_COLOR); return false; }
+    const btn = el<HTMLButtonElement>('btn-save');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      const res = await fetch('/api/admin-campaign-save', {
+        method: 'POST', headers: await authHeaders(),
+        body: JSON.stringify({
+          id: isNew ? undefined : campaignId,
+          subject,
+          preheader: preheadEl.value,
+          body_markdown: bodyEl.value,
+        }),
+      });
+      const data = await res.json().catch(() => ({})) as { ok?: boolean; error?: string; campaign?: Campaign };
+      if (res.ok && data.ok && data.campaign) {
+        if (isNew) {
+          // Adopt the new id and swap the URL so subsequent saves update this row.
+          campaignId = data.campaign.id;
+          isNew = false;
+          window.history.replaceState({}, '', `/admin/campaigns/${campaignId}`);
+        }
+        el('page-title').textContent = data.campaign.subject || 'Campaign';
+        setInline('Draft saved.', OK_COLOR);
+        return true;
+      }
+      setInline(data.error || 'Could not save.', ERR_COLOR);
+      return false;
+    } catch {
+      setInline('Could not save.', ERR_COLOR);
+      return false;
+    } finally {
+      btn.disabled = false; btn.textContent = 'Save draft';
+    }
+  }
+
+  async function postSend(payload: Record<string, unknown>): Promise<SendResp> {
+    const res = await fetch('/api/admin-campaign-send', {
+      method: 'POST', headers: await authHeaders(), body: JSON.stringify(payload),
+    });
+    return await res.json().catch(() => ({})) as SendResp;
+  }
+
+  // ── Preview ── (saves first so the preview reflects the current text)
+  const previewModal = el('preview-modal');
+  const previewFrame = el<HTMLIFrameElement>('preview-frame');
+  el('preview-close')?.addEventListener('click', () => { previewModal.style.display = 'none'; previewFrame.srcdoc = ''; });
+  previewModal.addEventListener('click', (e) => { if (e.target === previewModal) { previewModal.style.display = 'none'; previewFrame.srcdoc = ''; } });
+
+  async function doPreview() {
+    // A sent campaign is immutable — preview straight from the stored row.
+    if (_status !== 'sent') { const saved = await doSave(); if (!saved) return; }
+    setInline('Loading preview…');
+    try {
+      const data = await postSend({ id: campaignId, mode: 'preview' });
+      if (data.ok && data.html) {
+        setInline('');
+        previewFrame.srcdoc = data.html;
+        previewModal.style.display = 'flex';
+      } else {
+        setInline(data.error || 'Preview failed.', ERR_COLOR);
+      }
+    } catch { setInline('Network error.', ERR_COLOR); }
+  }
+
+  // ── Send test ──
+  async function doTest() {
+    const saved = await doSave(); if (!saved) return;
+    setInline('Sending test…');
+    try {
+      const data = await postSend({ id: campaignId, mode: 'test' });
+      if (data.ok) setInline('Test sent to ' + (data.sentTo ?? 'you') + '.', OK_COLOR);
+      else setInline(data.error || 'Test failed.', ERR_COLOR);
+    } catch { setInline('Network error.', ERR_COLOR); }
+  }
+
+  // ── Send to all (in-page confirm showing the live recipient count) ──
+  async function startLive() {
+    const saved = await doSave(); if (!saved) return;
+    setInline('Checking subscribers…');
+    let count = 0;
+    try {
+      const data = await postSend({ mode: 'count' });
+      if (!data.ok) { setInline(data.error || 'Could not get subscriber count.', ERR_COLOR); return; }
+      count = data.subscriberCount ?? 0;
+    } catch { setInline('Network error.', ERR_COLOR); return; }
+
+    const box = el('inline-status');
+    box.style.color = '';
+    box.innerHTML = `<span>This will email ${count} subscriber${count === 1 ? '' : 's'}. This cannot be undone.</span>`;
+    const confirmBtn = document.createElement('button');
+    confirmBtn.className = 'admin-btn admin-btn-primary';
+    confirmBtn.textContent = 'Confirm send';
+    confirmBtn.style.margin = '0 0 0 0.5rem';
+    confirmBtn.addEventListener('click', doLive);
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'admin-btn admin-btn-ghost';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.margin = '0 0 0 0.3rem';
+    cancelBtn.addEventListener('click', () => { box.innerHTML = ''; });
+    box.appendChild(confirmBtn);
+    box.appendChild(cancelBtn);
+  }
+
+  async function doLive() {
+    setInline('Sending…');
+    try {
+      const data = await postSend({ id: campaignId, mode: 'live' });
+      if (data.ok) {
+        let txt = 'Sent to ' + (data.recipientCount ?? 0) + ' subscribers';
+        if (data.failedChunks && data.failedChunks > 0) txt += ' (' + data.failedChunks + ' batch(es) failed — check logs)';
+        setInline(txt, OK_COLOR);
+        setTimeout(loadCampaign, 1200); // reload → locks the form as sent
+      } else if (data.alreadySent) {
+        setInline('This campaign has already been sent.', ERR_COLOR);
+        setTimeout(loadCampaign, 800);
+      } else {
+        setInline(data.error || 'Send failed.', ERR_COLOR);
+      }
+    } catch { setInline('Network error.', ERR_COLOR); }
+  }
+
+  el('btn-save').addEventListener('click', doSave);
+  el('btn-preview').addEventListener('click', doPreview);
+  el('btn-test').addEventListener('click', doTest);
+  el('btn-live').addEventListener('click', startLive);
+
+  loadCampaign();
+</script>

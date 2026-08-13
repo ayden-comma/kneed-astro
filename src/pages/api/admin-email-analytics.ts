@@ -9,6 +9,7 @@ type EventRow = {
   event_type: string;
   recipient: string | null;
   bakery_id: string | null;
+  campaign_id: string | null;
   clicked_url: string | null;
 };
 
@@ -25,11 +26,11 @@ export const GET: APIRoute = async ({ request }) => {
     if (!serviceKey) return json(500, { error: 'Server configuration error' });
     const svc = createClient(supabaseUrl, serviceKey);
 
-    // Only attributable events (bakery_id present) feed per-broadcast aggregates.
+    // Attributable events carry either a bakery_id (episode) or a campaign_id (campaign).
     const { data: events, error: evErr } = await svc
       .from('email_events')
-      .select('event_type, recipient, bakery_id, clicked_url')
-      .not('bakery_id', 'is', null);
+      .select('event_type, recipient, bakery_id, campaign_id, clicked_url')
+      .or('bakery_id.not.is.null,campaign_id.not.is.null');
     if (evErr) {
       console.error('[admin-email-analytics] events load failed:', evErr.message);
       return json(500, { error: 'Failed to load events' });
@@ -37,9 +38,11 @@ export const GET: APIRoute = async ({ request }) => {
 
     const rows = (events ?? []) as EventRow[];
 
-    // ── Aggregate in JS, grouped by bakery_id ──────────────────────
+    // ── Aggregate in JS. Each broadcast is keyed by kind+id so episodes and campaigns
+    //    never collide even in the unlikely event of a shared UUID. ──────────────────
     type Agg = {
-      bakery_id: string;
+      kind: 'episode' | 'campaign';
+      id: string;
       sent: number;
       delivered: number;
       bounced: number;
@@ -47,14 +50,17 @@ export const GET: APIRoute = async ({ request }) => {
       clickedRecipients: Set<string>;
       linkCounts: Map<string, number>;
     };
-    const byBakery = new Map<string, Agg>();
+    const byBroadcast = new Map<string, Agg>();
 
     for (const r of rows) {
-      const id = r.bakery_id as string;
-      let a = byBakery.get(id);
+      const kind: 'episode' | 'campaign' = r.bakery_id ? 'episode' : 'campaign';
+      const id = (r.bakery_id ?? r.campaign_id) as string | null;
+      if (!id) continue;
+      const key = `${kind}:${id}`;
+      let a = byBroadcast.get(key);
       if (!a) {
-        a = { bakery_id: id, sent: 0, delivered: 0, bounced: 0, clicked_total: 0, clickedRecipients: new Set(), linkCounts: new Map() };
-        byBakery.set(id, a);
+        a = { kind, id, sent: 0, delivered: 0, bounced: 0, clicked_total: 0, clickedRecipients: new Set(), linkCounts: new Map() };
+        byBroadcast.set(key, a);
       }
       switch (r.event_type) {
         case 'sent':      a.sent++; break;
@@ -68,9 +74,12 @@ export const GET: APIRoute = async ({ request }) => {
       }
     }
 
-    // ── Join to bakeries_cms for name + episode_number ─────────────
-    const bakeryIds = [...byBakery.keys()];
-    let metaMap = new Map<string, { name: string | null; episode_number: number | null }>();
+    // ── Join to bakeries_cms (episode name + number) and campaigns (subject) ──
+    const aggs = [...byBroadcast.values()];
+    const bakeryIds   = aggs.filter(a => a.kind === 'episode').map(a => a.id);
+    const campaignIds = aggs.filter(a => a.kind === 'campaign').map(a => a.id);
+
+    const bakeryMeta = new Map<string, { name: string | null; episode_number: number | null }>();
     if (bakeryIds.length > 0) {
       const { data: bakeries, error: bErr } = await svc
         .from('bakeries_cms')
@@ -80,20 +89,36 @@ export const GET: APIRoute = async ({ request }) => {
         console.error('[admin-email-analytics] bakery meta load failed:', bErr.message);
         return json(500, { error: 'Failed to load bakery metadata' });
       }
-      metaMap = new Map((bakeries ?? []).map((b: any) => [b.id as string, { name: b.name ?? null, episode_number: b.episode_number ?? null }]));
+      for (const b of (bakeries ?? []) as any[]) bakeryMeta.set(b.id as string, { name: b.name ?? null, episode_number: b.episode_number ?? null });
     }
 
-    const broadcasts = [...byBakery.values()].map((a) => {
-      const meta = metaMap.get(a.bakery_id) ?? { name: null, episode_number: null };
+    const campaignMeta = new Map<string, { subject: string | null }>();
+    if (campaignIds.length > 0) {
+      const { data: camps, error: cErr } = await svc
+        .from('campaigns')
+        .select('id, subject')
+        .in('id', campaignIds);
+      if (cErr) {
+        console.error('[admin-email-analytics] campaign meta load failed:', cErr.message);
+        return json(500, { error: 'Failed to load campaign metadata' });
+      }
+      for (const c of (camps ?? []) as any[]) campaignMeta.set(c.id as string, { subject: c.subject ?? null });
+    }
+
+    const broadcasts = aggs.map((a) => {
       const clicked_unique = a.clickedRecipients.size;
-      // Full clicked-link breakdown, sorted by count descending.
       const links = [...a.linkCounts.entries()]
         .map(([url, count]) => ({ url, count }))
         .sort((x, y) => y.count - x.count);
+      const name = a.kind === 'episode'
+        ? (bakeryMeta.get(a.id)?.name ?? null)
+        : (campaignMeta.get(a.id)?.subject ?? null);
+      const episode_number = a.kind === 'episode' ? (bakeryMeta.get(a.id)?.episode_number ?? null) : null;
       return {
-        bakery_id:          a.bakery_id,
-        name:               meta.name,
-        episode_number:     meta.episode_number,
+        kind:               a.kind,
+        id:                 a.id,
+        name,
+        episode_number,
         sent:               a.sent,
         delivered:          a.delivered,
         bounced:            a.bounced,

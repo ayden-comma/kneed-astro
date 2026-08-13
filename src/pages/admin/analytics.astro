@@ -30,7 +30,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 
   <!-- ── EMAIL: episode-announcement click analytics ──────────── -->
   <div class="admin-section">
-    <div class="admin-section-title">Email — Episode Announcements</div>
+    <div class="admin-section-title">Email — Broadcasts</div>
     <div id="email-analytics" class="admin-table-wrap">
       <div class="admin-empty">Loading…</div>
     </div>
@@ -185,7 +185,8 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 
   // ── EMAIL: episode-announcement click analytics ─────────────────
   type EmailBroadcast = {
-    bakery_id: string;
+    kind: 'episode' | 'campaign';
+    id: string;
     name: string | null;
     episode_number: number | null;
     sent: number;
@@ -199,7 +200,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   type EmailSortKey = 'episode' | 'bakery' | 'sent' | 'delivered' | 'clicked' | 'ctr';
 
   let _broadcasts: EmailBroadcast[] = [];
-  const _open = new Set<string>();        // bakery_ids of expanded rows (multiple allowed)
+  const _open = new Set<string>();        // ids of expanded rows (multiple allowed)
   let _emailSortKey: EmailSortKey = 'episode';
   let _emailSortDir: 1 | -1 = 1;          // default: episode ascending, blanks last
 
@@ -243,11 +244,12 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   }
 
   function emailRowHTML(b: EmailBroadcast): string {
-    const open = _open.has(b.bakery_id);
-    const ep   = b.episode_number ? 'Ep. ' + String(b.episode_number).padStart(2, '0') : '';
+    const open = _open.has(b.id);
+    // Episode column is blank for campaigns (they have no episode number).
+    const ep   = b.kind === 'episode' && b.episode_number ? 'Ep. ' + String(b.episode_number).padStart(2, '0') : '';
     const ctr  = (b.click_through_rate * 100).toFixed(1) + '%';
     const caret = open ? '▾' : '▸';
-    const main = `<tr class="email-row" data-id="${esc(b.bakery_id)}" style="cursor:pointer;">
+    const main = `<tr class="email-row" data-id="${esc(b.id)}" style="cursor:pointer;">
       <td>${esc(ep)}</td>
       <td style="color:var(--p-70);">${esc(b.name ?? '—')}</td>
       <td style="text-align:right;">${b.sent}</td>
@@ -296,7 +298,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       <table class="admin-table">
         <thead><tr>
           <th class="th-sortable" data-sort="episode" style="cursor:pointer;">Episode <span class="sort-indicator"></span></th>
-          <th class="th-sortable" data-sort="bakery" style="cursor:pointer;">Bakery <span class="sort-indicator"></span></th>
+          <th class="th-sortable" data-sort="bakery" style="cursor:pointer;">Bakery / Campaign <span class="sort-indicator"></span></th>
           <th class="th-sortable" data-sort="sent" style="cursor:pointer;text-align:right;">Sent <span class="sort-indicator"></span></th>
           <th class="th-sortable" data-sort="delivered" style="cursor:pointer;text-align:right;">Delivered <span class="sort-indicator"></span></th>
           <th class="th-sortable" data-sort="clicked" style="cursor:pointer;text-align:right;">Clicked <span class="sort-indicator"></span></th>
