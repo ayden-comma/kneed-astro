@@ -340,15 +340,20 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
     banner.style.display = '';
     banner.textContent = `Sent ${fmtDate(c.sent_at)} to ${c.recipient_count ?? 0} subscriber${(c.recipient_count ?? 0) === 1 ? '' : 's'}. This campaign is locked and read-only.`;
     // Keep a Preview affordance available on sent campaigns.
-    const wrap = document.createElement('div');
-    wrap.style.marginTop = '0.75rem';
-    const pv = document.createElement('button');
-    pv.className = 'admin-btn admin-btn-ghost';
-    pv.type = 'button';
-    pv.textContent = 'Preview';
-    pv.addEventListener('click', doPreview);
-    wrap.appendChild(pv);
-    banner.parentElement!.insertBefore(wrap, banner.nextSibling);
+    // Idempotent: lockForSent runs again when the page reloads campaign state right
+    // after a live send, which used to stack a second Preview button.
+    if (!document.getElementById('sent-preview-wrap')) {
+      const wrap = document.createElement('div');
+      wrap.id = 'sent-preview-wrap';
+      wrap.style.marginTop = '0.75rem';
+      const pv = document.createElement('button');
+      pv.className = 'admin-btn admin-btn-ghost';
+      pv.type = 'button';
+      pv.textContent = 'Preview';
+      pv.addEventListener('click', doPreview);
+      wrap.appendChild(pv);
+      banner.parentElement!.insertBefore(wrap, banner.nextSibling);
+    }
   }
 
   function applyCampaign(c: Campaign) {
