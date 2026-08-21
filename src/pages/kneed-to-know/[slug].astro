@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { supabase } from '../../lib/supabase';
 import { micromark } from 'micromark';
+import { articleLd, videoObjectLd, breadcrumbLd } from '../../lib/structuredData';
 
 export const prerender = false;
 
@@ -50,6 +51,36 @@ const heroImage = data.hero_image_url || data.thumbnail || '';
 const hasVideo = !!data.videoId;
 const images = data.images || [];
 const contentHtml = row.content ? micromark(row.content) : '';
+
+// ── Structured data ──────────────────────────────────────────────────────
+const pagePath = `/kneed-to-know/${data.slug}`;
+const metaDescription = data.description || data.name + ' — ' + data.category + ' — (K)Need';
+const jsonLd: unknown[] = [
+  articleLd({
+    headline: data.name,
+    description: metaDescription,
+    url: pagePath,
+    image: data.thumbnail,
+    date: data.date || (row as any).updated_at,
+  }),
+  ...(hasVideo
+    ? [
+        videoObjectLd({
+          name: data.hero_title || data.name,
+          description: metaDescription,
+          videoId: data.videoId,
+          pageUrl: pagePath,
+          date: data.date,
+          duration: data.duration,
+        }),
+      ]
+    : []),
+  breadcrumbLd([
+    { name: 'Home', path: '/' },
+    { name: '(K)Need to Know', path: '/kneed-to-know' },
+    { name: data.name, path: pagePath },
+  ]),
+];
 ---
 
 <script is:inline>
@@ -59,10 +90,16 @@ const contentHtml = row.content ? micromark(row.content) : '';
     history.replaceState(null, '', window.location.pathname + window.location.search);
   }
 </script>
+{/* Title passed WITHOUT the site suffix: BaseLayout appends " | (K)NEED"
+    itself, so the old value here rendered a doubled suffix in the tab title,
+    search results and social cards. */}
 <BaseLayout
-  title={data.name + ' | (K)NEED'}
-  description={data.description || data.name + ' — ' + data.category + ' — (K)Need'}
+  title={data.name}
+  description={metaDescription}
   image={data.thumbnail}
+  ogType="article"
+  robots={isPreview ? 'noindex, nofollow' : 'index, follow'}
+  jsonLd={jsonLd}
 >
   <div id="preview-banner" style="display:none; position:fixed; top:0; left:0; right:0; z-index:9999; background:var(--amber); color:var(--ink); text-align:center; padding:0.5rem 1rem; font-size:0.75rem; font-family:var(--font-cond); letter-spacing:0.1em; text-transform:uppercase; font-weight:600;">
     Preview mode — not yet published &nbsp;·&nbsp;

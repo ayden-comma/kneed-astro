@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { supabase } from '../../lib/supabase';
 import { HIDE_MAP } from '../../config/features';
+import { bakeryLd, videoObjectLd, breadcrumbLd } from '../../lib/structuredData';
 
 export const prerender = false;
 
@@ -92,6 +93,51 @@ if (data.sound)    credits.push({ role: 'Sound',     name: data.sound });
 if (data.edit)     credits.push({ role: 'Edit',      name: data.edit });
 
 const bodyHtml = (row as any).body ?? '';
+
+// ── Structured data ──────────────────────────────────────────────────────
+// One Bakery block per location (falls back to the CMS row's own address
+// fields when no location rows exist), a VideoObject for the episode when
+// there is one (the click-to-load facade means crawlers never see a video
+// element without it), and a breadcrumb trail.
+const pagePath = `/bakeries/${data.slug}`;
+const bakeryBlocks = (mapPins.length ? mapPins : [null]).map((loc) =>
+  bakeryLd({
+    name: data.name,
+    url: pagePath,
+    address: loc?.address ?? data.address,
+    suburb: data.suburb,
+    lat: loc?.lat ?? data.lat,
+    lng: loc?.lng ?? data.lng,
+    hours: loc?.hours ?? data.hours,
+    website: data.website,
+    instagram: data.instagram,
+    mapLink: data.mapLink,
+    image: data.thumbnail,
+    locationLabel: mapPins.length > 1 ? loc?.label : null,
+  })
+);
+const metaDescription =
+  data.description || data.name + ' — ' + data.category + ' bakery in ' + data.suburb + ', Melbourne.';
+const jsonLd: unknown[] = [
+  ...bakeryBlocks,
+  ...(hasVideo
+    ? [
+        videoObjectLd({
+          name: data.hero_title ? `${data.hero_title} — ${data.name}` : `${data.name} — (K)Need`,
+          description: metaDescription,
+          videoId: data.videoId,
+          pageUrl: pagePath,
+          date: data.date,
+          duration: data.duration,
+        }),
+      ]
+    : []),
+  breadcrumbLd([
+    { name: 'Home', path: '/' },
+    { name: 'Bakeries', path: '/bakeries' },
+    { name: data.name, path: pagePath },
+  ]),
+];
 ---
 
 <script is:inline>
@@ -102,9 +148,12 @@ const bodyHtml = (row as any).body ?? '';
   }
 </script>
 <BaseLayout
-  title={data.name}
-  description={data.description || data.name + ' — ' + data.category + ' bakery in ' + data.suburb + ', Melbourne.'}
+  title={data.suburb ? `${data.name}, ${data.suburb}` : data.name}
+  description={metaDescription}
   image={data.thumbnail}
+  ogType={hasVideo ? 'video.other' : 'website'}
+  robots={isPreview ? 'noindex, nofollow' : 'index, follow'}
+  jsonLd={jsonLd}
 >
   <div id="preview-banner" style="display:none; position:fixed; top:0; left:0; right:0; z-index:9999; background:var(--amber); color:var(--ink); text-align:center; padding:0.5rem 1rem; font-size:0.75rem; font-family:var(--font-cond); letter-spacing:0.1em; text-transform:uppercase; font-weight:600;">
     Preview mode — not yet published &nbsp;·&nbsp;

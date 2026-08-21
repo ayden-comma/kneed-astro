@@ -3,7 +3,29 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import NewsletterPrompt from '../components/NewsletterPrompt.astro';
 import { ClientRouter } from 'astro:transitions';
-const { title, description, image, canonicalURL, hideSubmitBanner = false } = Astro.props;
+import { organizationLd, webSiteLd } from '../lib/structuredData';
+const {
+  title,
+  description,
+  image,
+  canonicalURL,
+  hideSubmitBanner = false,
+  // Per-page robots directive. Pages that should stay out of search
+  // (auth, profile, unsubscribe, previews) pass 'noindex, follow'.
+  robots = 'index, follow',
+  // Open Graph type: 'website' (default), 'article' for articles,
+  // 'video.other' for bakery episode pages.
+  ogType = 'website',
+  // Extra JSON-LD blocks for this page, on top of the site-wide
+  // Organization and WebSite blocks emitted below.
+  jsonLd = [],
+} = Astro.props;
+// Site-wide structured data plus whatever the page supplies. Serialised
+// individually so one malformed page block can never corrupt the rest.
+// "<" is escaped so CMS text (descriptions come from the database) can never
+// close the script tag and inject markup.
+const structuredData: unknown[] = [organizationLd(), webSiteLd(), ...jsonLd];
+const ldJson = structuredData.map((block) => JSON.stringify(block).replace(/</g, '\\u003c'));
 const isMapPage    = Astro.url.pathname.startsWith('/map');
 const isBakeryPage = /^\/bakeries\/.+/.test(Astro.url.pathname);
 const noClientRouter = isMapPage || isBakeryPage;
@@ -26,11 +48,16 @@ const ogImage = image || new URL('/images/og-default.jpg', siteOrigin).href;
 
     <!-- Primary SEO -->
     <meta name="description" content={description} />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content={robots} />
     <link rel="canonical" href={canonical} />
 
+    <!-- Structured data: site-wide Organization + WebSite, plus page blocks -->
+    {ldJson.map((json) => (
+      <script type="application/ld+json" set:html={json} />
+    ))}
+
     <!-- Open Graph -->
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType} />
     <meta property="og:url" content={pageURL} />
     <meta property="og:title" content={title + ' | (K)Need'} />
     <meta property="og:description" content={description} />

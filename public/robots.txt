@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Disallow: /auth/
+Disallow: /profile
+Disallow: /unsubscribe
+
+Sitemap: https://kneed.tv/sitemap.xml
