@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { createClient } from '@supabase/supabase-js';
 import { env } from 'cloudflare:workers';
 import { requireAdmin } from '../../lib/requireAdmin';
+import { SITE_URL } from '../../lib/structuredData';
 import {
   renderEpisodeEmail,
   EPISODE_FROM,
@@ -126,7 +127,8 @@ export const POST: APIRoute = async ({ request }) => {
     if (!bakery) return json(404, { error: 'Episode not found' });
     if (!bakery.published) return json(200, { ok: false, error: 'Episode is not published' });
 
-    const origin = new URL(request.url).origin;
+    // Canonical origin, never request origin — see admin-campaign-send.ts.
+    const origin = SITE_URL;
     const watchUrl = `${origin}/bakeries/${bakery.slug}`;
     const subject = `New episode: ${bakery.name}`;
     const baseData: Omit<EpisodeEmailData, 'unsubscribeUrl'> = {

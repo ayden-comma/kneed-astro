@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { createClient } from '@supabase/supabase-js';
 import { env } from 'cloudflare:workers';
 import { requireAdmin } from '../../lib/requireAdmin';
+import { SITE_URL } from '../../lib/structuredData';
 
 export const prerender = false;
 
@@ -35,9 +36,11 @@ export const POST: APIRoute = async ({ request }) => {
     const email = authData?.user?.email;
     if (!email) return json(400, { error: 'Member has no email address' });
 
-    // resetPasswordForEmail is a public method — use the anon client. Origin is derived from
-    // the incoming request so the reset link works on whatever domain served it.
-    const origin = new URL(request.url).origin;
+    // resetPasswordForEmail is a public method — use the anon client. The reset link is
+    // built on the canonical origin (not the request origin) so a reset triggered from the
+    // workers.dev admin never emails a member a workers.dev link. Requires kneed.tv in the
+    // Supabase redirect allow-list — part of the domain cutover checklist.
+    const origin = SITE_URL;
     const anon = createClient(supabaseUrl as string, anonKey as string);
     const { error: resetErr } = await anon.auth.resetPasswordForEmail(email, {
       redirectTo: `${origin}/auth/reset-password`,

@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { createClient } from '@supabase/supabase-js';
 import { env } from 'cloudflare:workers';
 import { requireAdmin } from '../../lib/requireAdmin';
+import { SITE_URL } from '../../lib/structuredData';
 import { renderCampaignEmail, markdownToEmailHtml, tiptapToEmailHtml } from '../../emails/campaign';
 // Reuse the episode broadcast's sender identity — no new email dependency.
 import { EPISODE_FROM, EPISODE_REPLY_TO } from '../../emails/episode-alert';
@@ -82,7 +83,10 @@ export const POST: APIRoute = async ({ request }) => {
       return json(404, { error: 'Campaign not found' });
     }
 
-    const origin = new URL(request.url).origin;
+    // Subscriber-facing links are ALWAYS built on the canonical origin, never the
+    // request origin — the workers.dev origin stays alive after the domain cutover,
+    // and a send triggered from it must not put workers.dev links in real inboxes.
+    const origin = SITE_URL;
     const subject = campaign.subject as string;
     // Serialize from the TipTap JSON document; fall back to the legacy markdown body
     // only when body_json is null (the one pre-existing draft).

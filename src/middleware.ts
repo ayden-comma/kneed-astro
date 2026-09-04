@@ -63,6 +63,15 @@ function holdingPage(wrong: boolean): string {
 export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname } = context.url;
 
+  // Canonical-host redirect — activates automatically when the gate flips off at
+  // launch. The workers.dev origin stays deployed after the domain cutover; this
+  // 301s it to kneed.tv so no duplicate public origin exists (SEO + shared links).
+  // /api/ is excluded: the Resend webhook stays registered at the workers.dev URL
+  // until it is swapped post-cutover, and a 301 on a webhook POST would drop events.
+  if (!GATE_ENABLED && context.url.hostname.endsWith('.workers.dev') && !pathname.startsWith('/api/')) {
+    return context.redirect(`https://kneed.tv${pathname}${context.url.search}`, 301);
+  }
+
   // Feature-flag redirects — apply whether the coming-soon gate is on or off.
   // Staff (holding the unlock cookie) still see hidden sections for review.
   const staff = context.cookies.get('kneed_unlocked')?.value === UNLOCK_TOKEN;

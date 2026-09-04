@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { env } from 'cloudflare:workers';
 import { renderWelcomeEmail, WELCOME_SUBJECT, WELCOME_FROM, WELCOME_REPLY_TO } from '../../emails/welcome';
+import { SITE_URL } from '../../lib/structuredData';
 
 export const prerender = false;
 
@@ -219,7 +220,10 @@ export const POST: APIRoute = async ({ request }) => {
     // user_id-only backfill. Fire-and-forget: mirrors submit-bakery — a failed or slow
     // send is logged and never fails or blocks this response.
     if ((result.status === 'inserted' || result.status === 'resurrected') && result.unsubscribeToken) {
-      const origin = new URL(request.url).origin;
+      // Canonical origin — matches the hardcoded kneed.tv CTAs inside welcome.ts,
+      // so the unsubscribe link no longer points at a different host than the rest
+      // of the email. See admin-campaign-send.ts for the cutover rationale.
+      const origin = SITE_URL;
       const unsubscribeUrl = `${origin}/unsubscribe?token=${result.unsubscribeToken}`;
       await sendWelcomeEmail(email, unsubscribeUrl);
     }
