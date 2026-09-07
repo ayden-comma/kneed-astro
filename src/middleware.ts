@@ -12,6 +12,8 @@ function holdingPage(wrong: boolean): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="robots" content="noindex"/>
   <title>(K)NEED</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@200;300;400&family=Archivo+Narrow:wght@400;500&display=swap" rel="stylesheet"/>
