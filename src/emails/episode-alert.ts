@@ -6,7 +6,7 @@ const LOGO_URL = 'https://res.cloudinary.com/dwffvgcj1/image/upload/v1786232421/
 const SENDER_ADDRESS = 'Comma Films Pty Ltd, Australia';
 
 export const EPISODE_FROM = '"(K)Need" <hello@mail.kneed.tv>';
-export const EPISODE_REPLY_TO = 'hello@commafilms.com.au';
+export const EPISODE_REPLY_TO = 'hello@kneed.tv';
 
 function esc(v: unknown): string {
   return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');

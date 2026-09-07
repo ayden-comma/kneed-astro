@@ -6,7 +6,7 @@ const SENDER_ADDRESS = 'Comma Films Pty Ltd, Australia';
 
 export const SUBMISSION_SUBJECT = 'Thanks for the tip';
 export const SUBMISSION_FROM = '"(K)Need" <hello@mail.kneed.tv>';
-export const SUBMISSION_REPLY_TO = 'hello@commafilms.com.au';
+export const SUBMISSION_REPLY_TO = 'hello@kneed.tv';
 
 function esc(v: string): string {
   return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
