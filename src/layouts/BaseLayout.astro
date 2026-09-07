@@ -261,7 +261,7 @@ const ogImage = cld(image, W.OG) || new URL('/images/og-default.jpg', siteOrigin
     {!hideSubmitBanner && (
     <section class="wf-container" style="padding-bottom: clamp(2rem,4vw,3rem);">
       <a href="/submit" class="submit-banner">
-        <img src="https://images.unsplash.com/photo-1599819055803-717bba43890f?q=80&w=2370&auto=format&fit=crop" alt="" aria-hidden="true" class="submit-banner-bg" loading="lazy" />
+        <img src={cld('https://res.cloudinary.com/dwffvgcj1/image/upload/kneed-site-submit-card_vp4qcb', W.BODY)} alt="" aria-hidden="true" class="submit-banner-bg" loading="lazy" />
         <div class="submit-banner-overlay"></div>
         <div class="submit-banner-content">
           <div class="submit-banner-eyebrow">Submit a Bakery</div>
