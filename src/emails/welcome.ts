@@ -129,6 +129,7 @@ export function renderWelcomeEmail(unsubscribeUrl: string): string {
         <a href="${YOUTUBE_URL}" style="color:#57504a;text-decoration:none;">YouTube</a> &nbsp;·&nbsp;
         <a href="${FACEBOOK_URL}" style="color:#57504a;text-decoration:none;">Facebook</a>
       </div>
+      <div style="font-family:'Archivo Narrow','Arial Narrow',Arial,sans-serif;font-size:11px;letter-spacing:0.24em;text-transform:uppercase;color:#8a8178;margin-bottom:12px;">A Comma Films Production</div>
       <div style="font-family:'Barlow',Helvetica,Arial,sans-serif;font-size:12.5px;line-height:1.6;color:#8a8178;">
         You're receiving this because you signed up at kneed.tv<br>
         <a href="${unsubscribeUrl}" style="color:#8a8178;text-decoration:underline;">Unsubscribe</a><br>

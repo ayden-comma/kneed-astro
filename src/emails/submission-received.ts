@@ -67,6 +67,7 @@ export function renderSubmissionEmail(bakeryName: string, bakerySuburb: string):
         <a href="https://www.youtube.com/@kneedtv" style="color:#57504a;text-decoration:none;">YouTube</a> &nbsp;·&nbsp;
         <a href="https://www.facebook.com/kneedtv" style="color:#57504a;text-decoration:none;">Facebook</a>
       </div>
+      <div style="font-family:'Archivo Narrow','Arial Narrow',Arial,sans-serif;font-size:11px;letter-spacing:0.24em;text-transform:uppercase;color:#8a8178;margin-bottom:12px;">A Comma Films Production</div>
       <div style="font-family:'Barlow',Helvetica,Arial,sans-serif;font-size:12.5px;line-height:1.6;color:#8a8178;">This is a one-off confirmation of your bakery submission at kneed.tv<br><span style="color:#a89f94;">${SENDER_ADDRESS}</span></div>
     </td></tr>
   </table>
