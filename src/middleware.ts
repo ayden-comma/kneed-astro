@@ -488,8 +488,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const wrong = context.url.searchParams.get('wrong') === '1';
   // 200, not 503: Google's brand-verification checker reads 503 as an unresponsive
   // homepage. noindex (header + the page's meta) keeps the holding page out of search.
-  const staff = context.url.searchParams.get('staff') === '1';
-  return new Response(holdingPage(wrong, staff), {
+  const staffQS = context.url.searchParams.get('staff') === '1';
+  return new Response(holdingPage(wrong, staffQS), {
     status: 200,
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
