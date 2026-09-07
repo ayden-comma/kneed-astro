@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { supabase } from '../lib/supabase';
 import { HIDE_ARTICLES, HIDE_MAP } from '../config/features';
+import { cld, W } from '../lib/cloudinary.js';
 
 export const prerender = false;
 
@@ -14,10 +15,10 @@ const [{ data: bakeryRows }, { data: articleRows }, { data: heroFeatureRows }] =
 const bakeries = (bakeryRows ?? []).map((b: any) => ({
   slug: b.slug, name: b.name, suburb: b.suburb, category: b.category,
   episode_number: b.episode_number ?? null,
-  thumbnail: b.thumbnail || (b.video_id ? `https://img.youtube.com/vi/${b.video_id}/maxresdefault.jpg` : '/images/og-default.jpg'),
+  thumbnail: cld(b.thumbnail, W.CARD) || (b.video_id ? `https://img.youtube.com/vi/${b.video_id}/maxresdefault.jpg` : '/images/og-default.jpg'),
 }));
 const kneedToKnow = (articleRows ?? []).map((a: any) => ({
-  slug: a.slug, name: a.title, category: a.category, thumbnail: a.thumbnail,
+  slug: a.slug, name: a.title, category: a.category, thumbnail: cld(a.thumbnail, W.CARD),
   suburb: null as string | null, duration: null as string | null,
 }));
 
@@ -57,7 +58,7 @@ if (heroFeatureRows && heroFeatureRows.length > 0) {
           // Placeholder guard: a subtitle that just repeats the title reads as a mistake.
           subtitle: (a.hero_subtitle && a.hero_subtitle.trim().toLowerCase() !== String(aTitle).trim().toLowerCase()) ? a.hero_subtitle : '',
           ep: null,
-          image: a.hero_image_url || a.thumbnail || '/images/og-default.jpg',
+          image: cld(a.hero_image_url || a.thumbnail, W.HERO) || '/images/og-default.jpg',
           bgWord: a.hero_bg_word || (a.title ? a.title.split(' ')[0].toUpperCase() : 'KNEED'),
           slug: `/kneed-to-know/${a.slug}`,
         } as HeroSlide;
@@ -73,7 +74,7 @@ if (heroFeatureRows && heroFeatureRows.length > 0) {
           bakery: (b.name && b.name.trim().toLowerCase() !== String(bTitle).trim().toLowerCase()) ? b.name : '',
           subtitle: (b.hero_subtitle && b.hero_subtitle.trim().toLowerCase() !== String(bTitle).trim().toLowerCase()) ? b.hero_subtitle : '',
           ep: b.episode_number ?? null,
-          image: b.hero_image_url || b.thumbnail || (b.video_id ? `https://img.youtube.com/vi/${b.video_id}/maxresdefault.jpg` : '/images/og-default.jpg'),
+          image: cld(b.hero_image_url || b.thumbnail, W.HERO) || (b.video_id ? `https://img.youtube.com/vi/${b.video_id}/maxresdefault.jpg` : '/images/og-default.jpg'),
           bgWord: b.hero_bg_word || b.name.split(' ')[0].toUpperCase(),
           slug: `/bakeries/${b.slug}`,
         } as HeroSlide;
@@ -89,7 +90,7 @@ if (heroSlides.length === 0) {
     title: b.name,
     bakery: '',
     subtitle: '',
-    image: b.thumbnail,
+    image: cld(b.thumbnail, W.HERO),
     bgWord: b.name.split(' ')[0].toUpperCase(),
     slug: `/bakeries/${b.slug}`,
     ep: b.episode_number ?? null,

@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { cld, W } from '../lib/cloudinary.js';
 import { supabase } from '../lib/supabase';
 
 export const prerender = false;
@@ -50,7 +51,7 @@ const allBakeries: BakeryEntry[] = (dbBakeries ?? [])
   .filter((b: any) => locationsBySlug.has(b.slug))
   .map((b: any) => ({
     name: b.name, slug: b.slug, suburb: b.suburb, category: b.category,
-    hours: b.hours ?? null, website: b.website ?? null, thumbnail: b.thumbnail,
+    hours: b.hours ?? null, website: b.website ?? null, thumbnail: cld(b.thumbnail, W.THUMB),
     locations: locationsBySlug.get(b.slug)!,
   }));
 

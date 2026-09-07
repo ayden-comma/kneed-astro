@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { cld, W } from '../../lib/cloudinary.js';
 import { supabase } from '../../lib/supabase';
 import { micromark } from 'micromark';
 import { articleLd, videoObjectLd, breadcrumbLd } from '../../lib/structuredData';
@@ -47,7 +48,7 @@ const data = {
   loop_video_url: (row as any).loop_video_url  ?? null,
 };
 
-const heroImage = data.hero_image_url || data.thumbnail || '';
+const heroImage = cld(data.hero_image_url || data.thumbnail, W.HERO) || '';
 const hasVideo = !!data.videoId;
 const images = data.images || [];
 const contentHtml = row.content ? micromark(row.content) : '';
@@ -271,7 +272,7 @@ const jsonLd: unknown[] = [
           <div class="bakery-inline-photos">
             {images.map((img: any) => (
               <figure class="story-inline-photo">
-                <img src={img.src} alt={img.caption || data.name} loading="lazy" />
+                <img src={cld(img.src, W.BODY)} alt={img.caption || data.name} loading="lazy" />
                 {img.caption && <figcaption>{img.caption}</figcaption>}
               </figure>
             ))}

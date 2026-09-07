@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { cld, W } from '../../lib/cloudinary.js';
 import { supabase } from '../../lib/supabase';
 
 export const prerender = false;
@@ -14,7 +15,7 @@ const stories = (articleRows ?? []).map((a: any) => ({
   slug:        a.slug,
   name:        a.title,
   category:    a.category,
-  thumbnail:   a.thumbnail,
+  thumbnail:   cld(a.thumbnail, W.CARD),
   suburb:      null as string | null,
   duration:    null as string | null,
 }));

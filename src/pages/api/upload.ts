@@ -55,7 +55,10 @@ export const POST: APIRoute = async ({ request }) => {
 
   try {
     const timestamp = String(Math.floor(Date.now() / 1000));
-    const signParams = { folder: 'kneed', timestamp };
+    // use_filename keeps the uploaded file's (sanitised) name in the public ID
+    // so naming conventions survive into delivery URLs; unique_filename appends
+    // a short random suffix to avoid collisions between re-exports.
+    const signParams = { folder: 'kneed', timestamp, unique_filename: 'true', use_filename: 'true' };
     const signature  = await cloudinarySign(signParams, apiSecret);
 
     const body = new FormData();
@@ -63,6 +66,8 @@ export const POST: APIRoute = async ({ request }) => {
     body.append('api_key', apiKey);
     body.append('timestamp', timestamp);
     body.append('folder', 'kneed');
+    body.append('use_filename', 'true');
+    body.append('unique_filename', 'true');
     body.append('signature', signature);
 
     const res = await fetch(
