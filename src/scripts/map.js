@@ -238,7 +238,7 @@ function _doInitMainMap() {
     touchZoom: true,
   });
 
-  L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smoke_dark/{z}/{x}/{y}{r}.png', {
+  L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', {
     maxZoom: 19,
     attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank" rel="noopener">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
   }).addTo(_map);
@@ -424,7 +424,7 @@ function _doBuildBakeryMap(mapEl, lat, lng, multiLocations, genToken, thumbnail)
           touchZoom: true,
         });
         _bakeryMap.fitBounds(bounds, { padding: [48, 48] });
-        L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smoke_dark/{z}/{x}/{y}{r}.png', { maxZoom: 19, attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank" rel="noopener">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>' }).addTo(_bakeryMap);
+        L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', { maxZoom: 19, attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank" rel="noopener">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>' }).addTo(_bakeryMap);
         multiLocations.forEach(function(loc, i) {
           var icon = makeDot(i === 0 ? 16 : 12, i === 0);
           var m = L.marker([loc.lat, loc.lng], { icon: icon });
@@ -446,7 +446,7 @@ function _doBuildBakeryMap(mapEl, lat, lng, multiLocations, genToken, thumbnail)
           zoomControl: true,
           attributionControl: true,
         });
-        L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smoke_dark/{z}/{x}/{y}{r}.png', { maxZoom: 19, attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank" rel="noopener">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>' }).addTo(_bakeryMap);
+        L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', { maxZoom: 19, attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank" rel="noopener">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>' }).addTo(_bakeryMap);
         var icon = makeDot(12, false);
         var m = L.marker([lat, lng], { icon: icon });
         m.bindPopup(_bakeryPopupHtml(bakeryName, thumbnail, mapEl.dataset.suburb || '', mapEl.dataset.addr || '', mapEl.dataset.hours || '', lat, lng), {
