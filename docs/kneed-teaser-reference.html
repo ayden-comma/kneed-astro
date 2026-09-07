@@ -1,17 +1,4 @@
-import { defineMiddleware } from 'astro:middleware';
-import { HIDE_ARTICLES, HIDE_MAP } from './config/features';
-
-const GATE_ENABLED = true; // set false at launch to disable the holding page
-const UNLOCK_TOKEN = 'ok-2026';
-
-// Ported verbatim from docs/kneed-teaser-reference.html (the design source of
-// truth). Only the TODO-marked wiring points differ: newsletter endpoint path,
-// real submit handler, favicon links, and the staff unlock block (rendered only
-// on ?staff=1 or after a wrong password, so the default page matches the
-// reference exactly). Remaining TODOs (YouTube id, loop MP4, poster, OG image)
-// swap in place when Ayden delivers the assets.
-function holdingPage(wrong: boolean, staff: boolean): string {
-  return `<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -43,9 +30,6 @@ function holdingPage(wrong: boolean, staff: boolean): string {
 <!-- TODO: replace with the teaser's best frame + wordmark, 1200x630 -->
 <meta property="og:image" content="https://kneed.tv/images/og-default.jpg">
 <meta name="twitter:card" content="summary_large_image">
-
-<link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -204,14 +188,6 @@ img,svg{max-width:100%;display:block}
 .socials a{color:rgba(242,237,230,.56);letter-spacing:.22em}
 .socials .handle{color:var(--faint);letter-spacing:.22em}
 
-.staff-gate{padding:28px 0 40px;display:flex;flex-direction:column;align-items:center;gap:10px}
-.staff-gate form{display:flex;gap:10px}
-.staff-gate input{background:transparent;border:1px solid var(--line);color:var(--cream);padding:10px 14px;font-family:var(--body);font-size:14px}
-.staff-gate input:focus{outline:none;border-color:var(--amber)}
-.staff-gate button{background:transparent;border:1px solid var(--line);color:var(--muted);font-family:var(--label);font-size:10px;letter-spacing:.3em;text-transform:uppercase;padding:10px 22px;cursor:pointer}
-.staff-gate button:hover{border-color:var(--amber);color:var(--amber)}
-.staff-error{color:#A5432F;font-family:var(--label);font-size:11px;letter-spacing:.2em;text-transform:uppercase;margin:0}
-
 @media (prefers-reduced-motion:reduce){
   *{animation:none!important;transition:none!important}
 }
@@ -234,6 +210,7 @@ img,svg{max-width:100%;display:block}
 
     <h1 class="hero-mark">
       <span class="sr-only">(K)Need</span>
+      <!-- TODO: point at the real cream-on-ink wordmark SVG -->
       <img src="/images/kneed-wordmark-cream.svg" alt="" width="620" height="120">
     </h1>
 
@@ -288,7 +265,7 @@ img,svg{max-width:100%;display:block}
     <p class="display band-head">Bread, and the people who get up for it</p>
     <p class="body-copy band-line">Be there for the premiere.</p>
 
-    <form class="signup" id="signup" method="post" action="/api/newsletter-signup">
+    <form class="signup" id="signup" method="post" action="/api/subscribe"><!-- TODO: confirm existing endpoint path -->
       <label class="sr-only" for="email">Email address</label>
       <input id="email" name="email" type="email" inputmode="email" autocomplete="email"
              placeholder="you@example.com" required>
@@ -331,15 +308,6 @@ img,svg{max-width:100%;display:block}
     </span>
     <span><a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a></span>
   </footer>
-
-  ${(staff || wrong) ? `
-  <div class="staff-gate">
-    ${wrong ? '<p class="staff-error">Incorrect password</p>' : ''}
-    <form method="POST" action="/api/unlock">
-      <input type="password" name="pw" placeholder="Password" autocomplete="current-password" autofocus>
-      <button type="submit">Enter</button>
-    </form>
-  </div>` : ''}
 </div>
 
 <script>
@@ -380,120 +348,14 @@ img,svg{max-width:100%;display:block}
 
   // Wire to the EXISTING newsletter endpoint. On success, swap the form for
   // the confirmation. This stub only shows the intended state change.
-  var signup = document.getElementById('signup');
-  var signupDone = document.getElementById('signupDone');
-  var signupError = document.getElementById('signupError');
-  var INVALID_MSG = signupError.textContent;
-  signup.addEventListener('submit', function (e) {
+  document.getElementById('signup').addEventListener('submit', function (e) {
     e.preventDefault();
-    signupError.hidden = true;
-    var email = (document.getElementById('email').value || '').trim();
-    if (!email || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
-      signupError.textContent = INVALID_MSG;
-      signupError.hidden = false;
-      return;
-    }
-    var sbtn = signup.querySelector('button');
-    sbtn.disabled = true;
-    fetch('/api/newsletter-signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email, consent_source: 'homepage_form' }),
-    }).then(function (res) {
-      return res.json().catch(function () { return {}; }).then(function (data) {
-        if (!res.ok) {
-          signupError.textContent = data.error || 'Something went wrong. Please try again.';
-          signupError.hidden = false;
-          sbtn.disabled = false;
-          return;
-        }
-        signup.hidden = true;
-        signupDone.hidden = false;
-      });
-    }).catch(function () {
-      signupError.textContent = 'Network error. Please try again.';
-      signupError.hidden = false;
-      sbtn.disabled = false;
-    });
+    // TODO: POST to the existing subscribe route, then:
+    e.target.hidden = true;
+    document.getElementById('signupDone').hidden = false;
   });
 })();
 </script>
 
 </body>
 </html>
-`;
-}
-
-export const onRequest = defineMiddleware(async (context, next) => {
-  const { pathname } = context.url;
-
-  // Canonical-host redirect — activates automatically when the gate flips off at
-  // launch. The workers.dev origin stays deployed after the domain cutover; this
-  // 301s it to kneed.tv so no duplicate public origin exists (SEO + shared links).
-  // /api/ is excluded: the Resend webhook stays registered at the workers.dev URL
-  // until it is swapped post-cutover, and a 301 on a webhook POST would drop events.
-  if (!GATE_ENABLED && context.url.hostname.endsWith('.workers.dev') && !pathname.startsWith('/api/')) {
-    return context.redirect(`https://kneed.tv${pathname}${context.url.search}`, 301);
-  }
-
-  // Feature-flag redirects — apply whether the coming-soon gate is on or off.
-  // Staff (holding the unlock cookie) still see hidden sections for review.
-  const staff = context.cookies.get('kneed_unlocked')?.value === UNLOCK_TOKEN;
-  if (!staff) {
-    if (HIDE_ARTICLES && (pathname === '/kneed-to-know' || pathname.startsWith('/kneed-to-know/'))) return context.redirect('/');
-    if (HIDE_MAP && pathname === '/map') return context.redirect('/');
-  }
-
-  if (!GATE_ENABLED) return next();
-
-  // /teaser — preview alias for the holding page while the gate is on. Serves the
-  // exact gate HTML even to unlocked (staff-cookie) browsers, so the page can be
-  // reviewed without clearing the cookie. Lives inside the GATE_ENABLED block, so
-  // flipping the gate off retires it together with the page itself.
-  if (pathname === '/teaser') {
-    const staffParam = context.url.searchParams.get('staff') === '1';
-    return new Response(holdingPage(false, staffParam), {
-      status: 200,
-      headers: {
-        'Content-Type': 'text/html; charset=utf-8',
-        'X-Robots-Tag': 'noindex',
-      },
-    });
-  }
-
-  // Always let through: auth flows, API calls, and static assets
-  // /auth/ must bypass so the OAuth callback is never intercepted by the gate
-  // /api/  must bypass so fetch-based calls don't receive holding-page HTML
-  if (
-    pathname.startsWith('/api/') ||
-    pathname.startsWith('/auth/') ||
-    pathname === '/unsubscribe' ||
-    pathname === '/privacy' ||
-    pathname === '/terms' ||
-    pathname.startsWith('/_astro/') ||
-    pathname.startsWith('/images/') ||
-    pathname.startsWith('/video/') ||
-    pathname.startsWith('/favicon') ||
-    pathname.startsWith('/fonts/')
-  ) {
-    return next();
-  }
-
-  // Unlocked — serve normally
-  const token = context.cookies.get('kneed_unlocked')?.value;
-  if (token === UNLOCK_TOKEN) return next();
-
-  // Gate: return holding page. 503 + noindex so crawlers (which never hold the
-  // cookie) are told "not yet" and never index the Coming Soon page as real content.
-  const wrong = context.url.searchParams.get('wrong') === '1';
-  // 200, not 503: Google's brand-verification checker reads 503 as an unresponsive
-  // homepage. noindex (header + the page's meta) keeps the holding page out of search.
-  const staff = context.url.searchParams.get('staff') === '1';
-  return new Response(holdingPage(wrong, staff), {
-    status: 200,
-    headers: {
-      'Content-Type': 'text/html; charset=utf-8',
-      'X-Robots-Tag': 'noindex',
-    },
-  });
-});
