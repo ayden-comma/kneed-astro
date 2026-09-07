@@ -300,6 +300,9 @@ const ogImage = image || new URL('/images/og-default.jpg', siteOrigin).href;
     } catch { /* storage unavailable — never block the page */ }
   }
   recoveryGate();
+  // ClientRouter (SPA mode) swaps pages without a full load — module scripts
+  // do NOT re-run, so the gate must also fire on every soft navigation.
+  document.addEventListener('astro:page-load', () => { recoveryGate(); });
 
   async function updateAuthUI() {
     const { data: { session } } = await supabase.auth.getSession();

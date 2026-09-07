@@ -95,6 +95,7 @@ const navLinks = [
       } catch { /* storage unavailable — never block the page */ }
     }
     recoveryGate();
+    document.addEventListener('astro:page-load', () => { recoveryGate(); });
 
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
