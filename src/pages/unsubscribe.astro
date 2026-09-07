@@ -1,12 +1,45 @@
 ---
 export const prerender = false;
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { createClient } from '@supabase/supabase-js';
+import { env } from 'cloudflare:workers';
 
 // A token no longer auto-unsubscribes: it lands on a confirmation form that POSTs to
 // /api/unsubscribe. The actual status change happens server-side on submit.
 const token = Astro.url.searchParams.get('token');
 const done = Astro.url.searchParams.has('done');
 const mode: 'confirm' | 'done' | 'form' = token ? 'confirm' : done ? 'done' : 'form';
+
+// Show the token holder WHICH address this link unsubscribes, masked
+// ("ay***@commafilms.com.au") — a person with multiple addresses otherwise can't
+// tell which subscription they're about to end. Look-up is display-only and
+// best-effort: any failure (bad token, missing grant, network) leaves
+// maskedEmail null and the page renders exactly as before. The full address is
+// never rendered; possession of the email itself is the only way to hold the
+// token, so the mask leaks nothing the holder doesn't already have.
+function maskEmail(addr: string): string {
+  const at = addr.indexOf('@');
+  if (at <= 0) return '***';
+  const local = addr.slice(0, at);
+  const keep = local.length > 3 ? 2 : 1;
+  return `${local.slice(0, keep)}***${addr.slice(at)}`;
+}
+
+let maskedEmail: string | null = null;
+if (mode === 'confirm' && token) {
+  try {
+    const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY;
+    if (serviceKey) {
+      const svc = createClient(import.meta.env.PUBLIC_SUPABASE_URL as string, serviceKey);
+      const { data } = await svc
+        .from('email_subscribers')
+        .select('email')
+        .eq('unsubscribe_token', token)
+        .maybeSingle();
+      if (data?.email) maskedEmail = maskEmail(String(data.email));
+    }
+  } catch { /* display-only — never block the page */ }
+}
 
 const REASONS = [
   { value: 'too_many',        label: 'Too many emails' },
@@ -24,7 +57,11 @@ const REASONS = [
       <div class="wf-page-head">
         <div class="wf-eyebrow">Newsletter</div>
         <h1 class="wf-page-h1">Before you go</h1>
-        <p class="wf-page-intro">Confirm you'd like to stop receiving emails from (K)Need. If you have a moment, telling us why helps — but it's optional.</p>
+        <p class="wf-page-intro">
+          {maskedEmail
+            ? <>Confirm you'd like to stop emails from (K)Need to <strong style="color:var(--parchment);">{maskedEmail}</strong>. If you have a moment, telling us why helps — but it's optional.</>
+            : <>Confirm you'd like to stop receiving emails from (K)Need. If you have a moment, telling us why helps — but it's optional.</>}
+        </p>
       </div>
     )}
 
