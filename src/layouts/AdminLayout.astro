@@ -75,6 +75,27 @@ const navLinks = [
     import '../scripts/adminCheck';
     import { supabase } from '../lib/supabase';
 
+    // ── Recovery-session gate ──────────────────────────────────────────────
+    // A password-reset link signs the visitor in (that's how Supabase recovery
+    // works). Until a new password is actually set, pin that session to the
+    // reset form: any other page bounces to /auth/reset-password. The flag is
+    // set by the reset page when a recovery session lands and cleared there on
+    // a successful update; here it self-heals (no session -> flag removed).
+    // Client-side guardrail, matching this site's client-side session model —
+    // it stops silent wandering, it is not a cryptographic boundary.
+    const PW_RESET_FLAG = 'kneed_pw_reset_pending';
+    async function recoveryGate() {
+      try {
+        if (!localStorage.getItem(PW_RESET_FLAG)) return;
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) { localStorage.removeItem(PW_RESET_FLAG); return; }
+        if (window.location.pathname !== '/auth/reset-password') {
+          window.location.replace('/auth/reset-password');
+        }
+      } catch { /* storage unavailable — never block the page */ }
+    }
+    recoveryGate();
+
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
