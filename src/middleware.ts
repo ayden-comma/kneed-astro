@@ -29,6 +29,10 @@ function holdingPage(wrong: boolean): string {
     .gate-input:focus { border-color: rgba(242,237,230,0.38); }
     .gate-btn { padding: 0.5rem 2.25rem; background: transparent; border: 1px solid rgba(242,237,230,0.25); color: rgba(242,237,230,0.6); font-family: 'Archivo Narrow', 'Arial Narrow', sans-serif; font-size: 0.6rem; font-weight: 500; letter-spacing: 0.38em; text-transform: uppercase; cursor: pointer; transition: border-color 0.2s, color 0.2s; }
     .gate-btn:hover { border-color: #c8833a; color: #c8833a; }
+    .gate-tagline { max-width: 420px; font-family: 'Josefin Sans', sans-serif; font-weight: 300; font-size: 0.85rem; line-height: 1.7; color: rgba(242,237,230,0.55); }
+    .gate-legal { display: flex; gap: 0.75rem; font-family: 'Archivo Narrow', 'Arial Narrow', sans-serif; font-size: 0.6rem; letter-spacing: 0.25em; text-transform: uppercase; color: rgba(242,237,230,0.3); }
+    .gate-legal a { color: rgba(242,237,230,0.45); text-decoration: none; }
+    .gate-legal a:hover { color: #c8833a; }
   </style>
 </head>
 <body>
@@ -50,11 +54,17 @@ function holdingPage(wrong: boolean): string {
       </g>
     </svg>
     <div class="gate-eyebrow">Coming Soon</div>
+    <p class="gate-tagline">(K)Need is a documentary series from Comma Films &mdash; short films about Melbourne's best bakeries and the bakers behind them. Watch free at kneed.tv when we launch.</p>
     <form class="gate-form" method="POST" action="/api/unlock">
       ${wrong ? '<div class="gate-error">Incorrect password</div>' : ''}
       <input class="gate-input" type="password" name="pw" placeholder="Password" autofocus autocomplete="current-password"/>
       <button class="gate-btn" type="submit">Enter</button>
     </form>
+    <div class="gate-legal">
+      <a href="/privacy">Privacy Policy</a>
+      <span>&middot;</span>
+      <a href="/terms">Terms of Use</a>
+    </div>
   </div>
 </body>
 </html>`;
@@ -89,6 +99,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
     pathname.startsWith('/api/') ||
     pathname.startsWith('/auth/') ||
     pathname === '/unsubscribe' ||
+    pathname === '/privacy' ||
+    pathname === '/terms' ||
     pathname.startsWith('/_astro/') ||
     pathname.startsWith('/images/') ||
     pathname.startsWith('/favicon') ||
@@ -104,11 +116,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // Gate: return holding page. 503 + noindex so crawlers (which never hold the
   // cookie) are told "not yet" and never index the Coming Soon page as real content.
   const wrong = context.url.searchParams.get('wrong') === '1';
+  // 200, not 503: Google's brand-verification checker reads 503 as an unresponsive
+  // homepage. noindex (header + the page's meta) keeps the holding page out of search.
   return new Response(holdingPage(wrong), {
-    status: 503,
+    status: 200,
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
-      'Retry-After': '86400',
       'X-Robots-Tag': 'noindex',
     },
   });
