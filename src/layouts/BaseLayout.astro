@@ -312,6 +312,24 @@ const ogImage = image || new URL('/images/og-default.jpg', siteOrigin).href;
     const menuIn  = document.getElementById('menu-member-loggedin') as HTMLElement | null;
 
     if (session) {
+      // The site's own identity is profiles.display_name (user-editable on
+      // /profile) — provider metadata (full_name, Google only) is a fallback,
+      // then the email's local part, so an email/password signup still gets a
+      // clickable name row in the drawer instead of an invisible empty link.
+      let displayName = '';
+      try {
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        displayName = ((prof as { display_name: string | null } | null)?.display_name) || '';
+      } catch { /* fall through to metadata */ }
+      const bestName = displayName
+        || (session.user.user_metadata?.full_name as string)
+        || (session.user.email || '').split('@')[0]
+        || 'My profile';
+
       if (signin)  signin.style.display  = 'none';
       if (userBtn) {
         const avatarUrl = (session.user.user_metadata?.picture as string | undefined)
@@ -323,8 +341,7 @@ const ogImage = image || new URL('/images/og-default.jpg', siteOrigin).href;
           img.style.cssText = 'width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;';
           userBtn.appendChild(img);
         } else {
-          const name = (session.user.user_metadata?.full_name as string) || session.user.email || '';
-          const initials = name.split(/\s+/).map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || '?';
+          const initials = bestName.split(/\s+/).map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || '?';
           userBtn.textContent = initials;
         }
         userBtn.style.display = 'flex';
@@ -336,7 +353,7 @@ const ogImage = image || new URL('/images/og-default.jpg', siteOrigin).href;
       if (menuIn)  menuIn.style.display  = '';
       const nameEl  = document.getElementById('menu-user-name');
       const emailEl = document.getElementById('menu-user-email');
-      if (nameEl)  nameEl.textContent  = (session.user.user_metadata?.full_name as string) || '';
+      if (nameEl)  nameEl.textContent  = bestName;
       if (emailEl) emailEl.textContent = session.user.email || '';
     } else {
       if (signin)  signin.style.display  = '';
