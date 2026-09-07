@@ -125,6 +125,16 @@
     const dismissKey = `kneed_nl_dismiss:${uid}`;
     if (localStorage.getItem(seenKey)) return; // terminal on this device — never query again
 
+    // Email/password signups choose on the signup form itself (opt-in checkbox) —
+    // the form stamps newsletter_choice_made into user_metadata. Never re-ask them;
+    // stamp the profile so other devices skip too. The prompt remains the opt-in
+    // surface for OAuth signups only.
+    if (session.user.user_metadata?.newsletter_choice_made) {
+      localStorage.setItem(seenKey, '1');
+      await supabase.from('profiles').update({ newsletter_prompted_at: new Date().toISOString() }).eq('id', uid);
+      return;
+    }
+
     // Source of truth: only accounts created after the migration have a NULL here
     // (pre-existing accounts were backfilled to now()), so this excludes them.
     const { data, error } = await supabase
