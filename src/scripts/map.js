@@ -27,6 +27,17 @@
  * ╚══════════════════════════════════════════════════════════════════════════╝
  */
 
+// Brand tint: Stadia's alidade_smooth_dark reads cooler/greener than the
+// site's ink palette. Desaturate + warm the tile pane to sit with the brand.
+// Injected here so every map surface gets it without per-page CSS.
+(function () {
+  if (typeof document === 'undefined' || document.getElementById('kneed-tile-filter')) return;
+  var s = document.createElement('style');
+  s.id = 'kneed-tile-filter';
+  s.textContent = '.leaflet-tile-pane { filter: saturate(0.2) sepia(0.15) brightness(0.85) contrast(1.1); }';
+  document.head.appendChild(s);
+})();
+
 // ──────────────────────────────────────────────────────────────────────────
 // SHARED: Leaflet loader
 // ──────────────────────────────────────────────────────────────────────────
