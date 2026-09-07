@@ -407,7 +407,8 @@ img,svg{max-width:100%;display:block}
           sbtn.disabled = false;
           return;
         }
-        signup.hidden = true;
+        // .signup{display:flex} outranks the hidden attribute's UA rule, so hide via style
+        signup.style.display = 'none';
         signupDone.hidden = false;
       });
     }).catch(function () {
