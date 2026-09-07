@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- ============================================================
+     (K)NEED — PRELAUNCH TEASER HOLDING PAGE
+     Reference implementation. Approved 2026-09-07.
+
+     This file is the DESIGN SOURCE OF TRUTH. Port it into the gate in
+     src/middleware.ts. Do not re-derive the layout from prose; match this.
+     Full spec + rationale: project doc claude/teaser-holding-page.md
+     Voice + colour + type rules: project doc claude/brand-book.md
+
+     Search for "TODO:" — those are the only things that should change.
+     Every string is approved copy. Do not reword.
+     ============================================================ -->
+
+<title>(K)Need — A documentary series from Comma Films</title>
+<meta name="description" content="(K)Need. A cultural and culinary exploration of bread and pastry, told through the bakers who live it. New series October 2026.">
+
+<!-- Gate stays noindex (decided). Does NOT block OG previews, so sharing still works. -->
+<meta name="robots" content="noindex">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="(K)Need — New series, October 2026">
+<meta property="og:description" content="A cultural and culinary exploration of bread and pastry, told through the bakers who live it.">
+<meta property="og:url" content="https://kneed.tv/">
+<!-- TODO: replace with the teaser's best frame + wordmark, 1200x630 -->
+<meta property="og:image" content="https://kneed.tv/images/og-default.jpg">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;500&family=Archivo+Narrow:wght@500;600&family=Barlow:wght@400;500&display=swap">
+
+<style>
+/* ---------- tokens (brand book) ---------- */
+:root{
+  --ink:#0E0C0A;
+  --ink-raised:#15120F;
+  --cream:#F2EDE6;
+  --amber:#C8833A;
+  --amber-light:#E0A862;
+  --line:rgba(242,237,230,.14);
+  --line-soft:rgba(242,237,230,.07);
+  --muted:rgba(242,237,230,.56);
+  --faint:rgba(242,237,230,.38);
+  --display:'Josefin Sans','Century Gothic',Futura,'Trebuchet MS',Arial,sans-serif;
+  --label:'Archivo Narrow','Arial Narrow',Arial,sans-serif;
+  --body:'Barlow',Helvetica,Arial,sans-serif;
+}
+/* Dark only. The site has no light mode; do not add one. */
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ink);
+  color:var(--cream);
+  font-family:var(--body);
+  font-size:17px;
+  line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--amber-light);text-decoration:none}
+a:hover{color:var(--amber)}
+:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+img,svg{max-width:100%;display:block}
+
+.sr-only{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;
+}
+
+.shell{max-width:1180px;margin:0 auto;padding:0 clamp(20px,5vw,64px)}
+
+/* ---------- shared type roles ---------- */
+.eyebrow{
+  font-family:var(--label);font-weight:500;
+  font-size:clamp(10px,.95vw,11px);letter-spacing:.3em;
+  text-transform:uppercase;color:var(--amber);margin:0;
+}
+.display{
+  font-family:var(--display);font-weight:300;text-transform:uppercase;
+  letter-spacing:.11em;line-height:1.06;margin:0;text-wrap:balance;
+}
+.body-copy{font-family:var(--body);color:var(--muted);line-height:1.75;font-size:clamp(14px,1.25vw,16px)}
+
+/* ---------- 1. HERO ---------- */
+.hero{text-align:center;padding-top:clamp(38px,6.6vw,104px)}
+.hero-brow{margin:0 0 clamp(18px,2.6vw,34px)}
+
+/* The wordmark is the headline. It MUST be the real SVG asset.
+   Brand book: never rebuild the wordmark in live text. */
+.hero-mark{margin:0}
+.hero-mark img{
+  width:clamp(220px,52vw,620px);
+  margin:0 auto;
+}
+.hero-rule{display:block;width:clamp(26px,3.6vw,50px);height:1px;background:var(--amber);margin:clamp(20px,3vw,38px) auto 0}
+.hero-line{font-weight:400;font-size:clamp(15px,2.1vw,25px);letter-spacing:.16em;margin-top:clamp(20px,3vw,38px)}
+.hero-dek{max-width:58ch;margin:clamp(16px,2.2vw,26px) auto 0}
+
+/* ---------- 2. PLAYER ---------- */
+.player-wrap{padding-top:clamp(26px,4vw,52px);padding-bottom:clamp(40px,6vw,86px)}
+.player{
+  position:relative;aspect-ratio:16/9;overflow:hidden;
+  background:#0A0908;display:grid;place-items:center;
+}
+.player video,
+.player img.poster,
+.player iframe{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;border:0;
+}
+.player img.poster{z-index:0}
+.player video{z-index:1}
+.player iframe{z-index:3}
+
+.play{
+  position:relative;z-index:2;
+  display:inline-flex;flex-direction:column;align-items:center;gap:clamp(10px,1.4vw,16px);
+  background:transparent;border:0;padding:0;cursor:pointer;color:var(--cream);
+  font-family:var(--label);font-size:clamp(10px,1vw,11px);letter-spacing:.3em;text-transform:uppercase;
+  transition:opacity .3s ease;
+}
+.play .ring{
+  width:clamp(46px,5.2vw,66px);aspect-ratio:1;border-radius:50%;
+  border:1px solid rgba(242,237,230,.55);display:grid;place-items:center;
+  transition:border-color .25s ease,background .25s ease;
+}
+.play .ring::after{
+  content:"";
+  border-left:clamp(9px,1.1vw,13px) solid var(--cream);
+  border-top:clamp(6px,.72vw,9px) solid transparent;
+  border-bottom:clamp(6px,.72vw,9px) solid transparent;
+  margin-left:3px;
+}
+.play:hover .ring{border-color:var(--amber);background:rgba(200,131,58,.14)}
+.player.is-playing .play{opacity:0;pointer-events:none}
+
+/* ---------- 3. THE SERIES BAND (centred stack, NOT two columns) ---------- */
+.band-outer{border-top:1px solid var(--line-soft);background:var(--ink-raised)}
+.band{text-align:center;padding-top:clamp(40px,6vw,86px);padding-bottom:clamp(40px,6vw,86px)}
+.band-brow{margin:0 0 clamp(12px,1.7vw,18px)}
+.band-head{font-size:clamp(22px,3.1vw,34px);font-weight:400;max-width:22ch;margin:0 auto}
+.band-line{color:var(--cream);font-size:clamp(16px,1.65vw,20px);margin:clamp(16px,2.3vw,28px) auto 0}
+
+.signup{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;max-width:520px;margin:20px auto 0}
+.signup input{
+  flex:1 1 220px;min-width:0;background:transparent;border:1px solid var(--line);
+  color:var(--cream);font-family:var(--body);font-size:15px;padding:13px 15px;
+}
+.signup input::placeholder{color:var(--faint)}
+.signup input:focus{outline:none;border-color:var(--amber)}
+.btn-amber{
+  background:var(--amber);color:var(--ink);border:0;cursor:pointer;
+  font-family:var(--label);font-weight:600;font-size:12px;letter-spacing:.24em;
+  text-transform:uppercase;padding:13px 26px;
+}
+.btn-amber:hover{background:var(--amber-light)}
+.fineprint{
+  font-family:var(--label);font-size:10px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--faint);margin-top:14px;
+}
+.signup-done{max-width:520px;margin:20px auto 0;text-align:left;border-left:1px solid var(--amber);padding-left:18px}
+.signup-done p{margin:0;color:var(--cream);font-size:clamp(14px,1.25vw,16px);line-height:1.75}
+/* Error copy is a voice bend: plain and clear. Red is errors ONLY. */
+.signup-error{max-width:520px;margin:16px auto 0;color:#A5432F;font-size:14px}
+
+/* ---------- 4. QUIET ROW ---------- */
+.quiet{
+  padding-top:clamp(26px,3.4vw,42px);
+  display:flex;flex-wrap:wrap;gap:10px 28px;justify-content:space-between;
+  font-family:var(--label);font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--faint);
+}
+
+/* ---------- 5. FOOTER ---------- */
+.foot{
+  border-top:1px solid var(--line-soft);margin-top:24px;padding:24px 0 40px;
+  display:flex;flex-wrap:wrap;gap:14px 28px;align-items:baseline;justify-content:space-between;
+  font-family:var(--label);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);
+}
+.foot a{color:var(--faint)}
+.foot a:hover{color:var(--amber-light)}
+.socials{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:baseline}
+.socials a{color:rgba(242,237,230,.56);letter-spacing:.22em}
+.socials .handle{color:var(--faint);letter-spacing:.22em}
+
+.staff-gate{padding:28px 0 40px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.staff-gate form{display:flex;gap:10px}
+.staff-gate input{background:transparent;border:1px solid var(--line);color:var(--cream);padding:10px 14px;font-family:var(--body);font-size:14px}
+.staff-gate input:focus{outline:none;border-color:var(--amber)}
+.staff-gate button{background:transparent;border:1px solid var(--line);color:var(--muted);font-family:var(--label);font-size:10px;letter-spacing:.3em;text-transform:uppercase;padding:10px 22px;cursor:pointer}
+.staff-gate button:hover{border-color:var(--amber);color:var(--amber)}
+.staff-error{color:#A5432F;font-family:var(--label);font-size:11px;letter-spacing:.2em;text-transform:uppercase;margin:0}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+
+<body>
+
+<main class="shell">
+
+  <!-- ===== 1. HERO ===================================================
+       Order is fixed: presents credit, wordmark, amber rule, release
+       line, dek. There is no top nav bar on this page.
+       The h1 carries the sr-only name so "(K)Need" exists as TEXT for
+       crawlers and for the Google brand-verification requirement, while
+       the visible mark is the real asset.
+  ================================================================== -->
+  <section class="hero">
+    <p class="eyebrow hero-brow">Comma Films Presents.</p>
+
+    <h1 class="hero-mark">
+      <span class="sr-only">(K)Need</span>
+      <img src="../public/images/kneed-wordmark-cream.svg" alt="" width="620" height="120">
+    </h1>
+
+    <span class="hero-rule" aria-hidden="true"></span>
+    <p class="display hero-line">New Series October 2026</p>
+    <p class="body-copy hero-dek">(K)Need. A cultural and culinary exploration of bread and pastry, told through the bakers who live it.</p>
+  </section>
+
+  <!-- ===== 2. PLAYER =================================================
+       TWO STATES.
+       At rest: a short self-hosted Cloudinary MP4 (6-10s, ONE clear
+       motion, no cuts), muted + looping over a poster frame. NOTHING
+       from YouTube has loaded and no third-party cookie has been set.
+       On press: the youtube-nocookie iframe is injected UNMUTED and the
+       loop pauses underneath. The press is the user gesture that makes
+       unmuted autoplay legal.
+
+       Do NOT make the resting loop a YouTube embed. It would pollute the
+       watch-time metric this page exists to feed.
+  ================================================================== -->
+  <section class="player-wrap">
+    <div class="player" id="player"
+         data-yt-id="TODO_YOUTUBE_ID"><!-- TODO: teaser video id -->
+
+      <!-- TODO: poster frame; same frame should feed the OG image -->
+      <img class="poster" src="/images/teaser-poster.jpg" alt="" width="1920" height="1080">
+
+      <video id="ambient" muted loop playsinline preload="metadata"
+             poster="/images/teaser-poster.jpg" aria-hidden="true">
+        <!-- TODO: 6-10s Cloudinary loop plate -->
+        <source src="/video/teaser-loop.mp4" type="video/mp4">
+      </video>
+
+      <button class="play" type="button" id="playBtn">
+        <span class="ring" aria-hidden="true"></span>
+        <span>Watch the teaser now &middot; 1:42</span><!-- TODO: confirm runtime -->
+      </button>
+    </div>
+  </section>
+</main>
+
+<!-- ===== 3. THE SERIES BAND ==========================================
+     CENTRED STACK. Do not lay this out as two columns: the ask line is
+     four words and it reads as stranded beside the headline.
+     The form posts to the EXISTING newsletter endpoint. Same
+     email_subscribers table, same welcome email, same tokenised
+     unsubscribe. Do not create a second list.
+================================================================== -->
+<div class="band-outer">
+  <section class="shell band">
+    <p class="eyebrow band-brow">The Series</p>
+    <p class="display band-head">Bread, and the people who get up for it</p>
+    <p class="body-copy band-line">Be there for the premiere.</p>
+
+    <form class="signup" id="signup" method="post" action="/api/newsletter-signup">
+      <label class="sr-only" for="email">Email address</label>
+      <input id="email" name="email" type="email" inputmode="email" autocomplete="email"
+             placeholder="you@example.com" required>
+      <button class="btn-amber" type="submit">Get each episode first</button>
+    </form>
+
+    <p class="fineprint">Unsubscribe any time</p>
+
+    <!-- Success replaces the form (matches the pattern already shipped on signup) -->
+    <div class="signup-done" id="signupDone" hidden>
+      <p>You're in. The first episode reaches you before it goes anywhere else.</p>
+    </div>
+
+    <p class="signup-error" id="signupError" hidden>That email doesn't look right. Check it and try again.</p>
+  </section>
+</div>
+
+<div class="shell">
+  <!-- ===== 4. QUIET ROW ===== -->
+  <div class="quiet">
+    <span>Know a bakery we should film? <a href="/submit">Suggest one</a></span>
+    <span>Press and enquiries &middot; <a href="mailto:hello@kneed.tv">hello@kneed.tv</a></span>
+  </div>
+
+  <!-- ===== 5. FOOTER =================================================
+       Socials live HERE ONLY. They are exits from a page whose single
+       job is the email field, so nothing above the fold links out.
+       Privacy and Terms links are REQUIRED by the Google brand
+       verification, along with the 200 response and the name + purpose
+       above. Do not remove them.
+  ================================================================== -->
+  <footer class="foot">
+    <span>&copy; <span id="year">2026</span> Comma Films Pty Ltd</span>
+    <span class="socials">
+      <a href="https://instagram.com/kneedtv" rel="noopener">Instagram</a>
+      <a href="https://tiktok.com/@kneedtv" rel="noopener">TikTok</a>
+      <a href="https://youtube.com/@kneedtv" rel="noopener">YouTube</a>
+      <a href="https://facebook.com/kneedtv" rel="noopener">Facebook</a>
+      <span class="handle">@kneedtv</span>
+    </span>
+    <span><a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a></span>
+  </footer>
+
+  
+</div>
+
+<script>
+(function () {
+  var player  = document.getElementById('player');
+  var ambient = document.getElementById('ambient');
+  var playBtn = document.getElementById('playBtn');
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Reduced motion: no ambient loop at all, the poster carries the frame.
+  if (reduced) {
+    ambient.removeAttribute('autoplay');
+    ambient.hidden = true;
+  } else {
+    // play() is attempted rather than relying on the autoplay attribute so a
+    // rejected promise (data saver, low power mode) fails quietly to the poster.
+    var p = ambient.play();
+    if (p && p.catch) { p.catch(function () { ambient.hidden = true; }); }
+  }
+
+  // FACADE LOAD. Nothing from youtube.com or youtube-nocookie.com is
+  // requested until this handler runs. Verify in the Network tab.
+  playBtn.addEventListener('click', function () {
+    var id = player.dataset.ytId;
+    var iframe = document.createElement('iframe');
+    iframe.src = 'https://www.youtube-nocookie.com/embed/' + id +
+                 '?autoplay=1&rel=0&modestbranding=1&playsinline=1';
+    iframe.title = '(K)Need teaser';
+    iframe.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+    iframe.setAttribute('allowfullscreen', '');
+    player.appendChild(iframe);
+    player.classList.add('is-playing');
+    ambient.pause();
+    // TODO (second pass, backlog F5): IFrame API play / 25 / 50 / 75 / complete -> GA4
+  });
+
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  // Wire to the EXISTING newsletter endpoint. On success, swap the form for
+  // the confirmation. This stub only shows the intended state change.
+  var signup = document.getElementById('signup');
+  var signupDone = document.getElementById('signupDone');
+  var signupError = document.getElementById('signupError');
+  var INVALID_MSG = signupError.textContent;
+  signup.addEventListener('submit', function (e) {
+    e.preventDefault();
+    signupError.hidden = true;
+    var email = (document.getElementById('email').value || '').trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      signupError.textContent = INVALID_MSG;
+      signupError.hidden = false;
+      return;
+    }
+    var sbtn = signup.querySelector('button');
+    sbtn.disabled = true;
+    fetch('/api/newsletter-signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, consent_source: 'homepage_form' }),
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (data) {
+        if (!res.ok) {
+          signupError.textContent = data.error || 'Something went wrong. Please try again.';
+          signupError.hidden = false;
+          sbtn.disabled = false;
+          return;
+        }
+        signup.hidden = true;
+        signupDone.hidden = false;
+      });
+    }).catch(function () {
+      signupError.textContent = 'Network error. Please try again.';
+      signupError.hidden = false;
+      sbtn.disabled = false;
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
