@@ -3,6 +3,8 @@ export const prerender = false;
 import BaseLayout from '../layouts/BaseLayout.astro';
 const h2s = "font-family:var(--font-display);font-weight:200;font-size:1.125rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--parchment);margin-bottom:0.75rem;";
 const st  = "color:var(--parchment);font-weight:500;";
+const ul  = "padding-left:1.5rem;display:flex;flex-direction:column;gap:0.5rem;";
+const lk  = "color:var(--amber);";
 ---
 
 <BaseLayout title="Privacy Policy" description="How (K)Need collects, uses and protects your personal information.">
@@ -10,7 +12,7 @@ const st  = "color:var(--parchment);font-weight:500;";
     <div class="wf-page-head">
       <div class="wf-eyebrow">Legal</div>
       <h1 class="wf-page-h1">Privacy Policy</h1>
-      <p class="wf-page-intro">Last updated 7 August 2026. This policy applies to kneed.tv and all related services.</p>
+      <p class="wf-page-intro">Last updated 1 September 2026. This policy applies to kneed.tv and all related services.</p>
     </div>
 
     <div class="simple-body">
@@ -18,80 +20,63 @@ const st  = "color:var(--parchment);font-weight:500;";
       <section>
         <h2 style={h2s}>Who We Are</h2>
         <p>(K)Need is a digital journal about Melbourne's neighbourhood bakeries, produced by Comma Films Pty Ltd, based in Melbourne, Victoria, Australia. We operate the website at kneed.tv ("the Site"). In this policy, "we", "us" and "our" refers to Comma Films Pty Ltd.</p>
-        <p>For any privacy enquiries, contact us at <a href="mailto:hello@kneed.tv" style="color:var(--amber);">hello@kneed.tv</a>.</p>
+        <p>For any privacy enquiries, contact us at <a href="mailto:hello@kneed.tv" style={lk}>hello@kneed.tv</a>.</p>
       </section>
 
       <section>
-        <h2 style={h2s}>What Data We Collect</h2>
+        <h2 style={h2s}>What We Collect</h2>
 
-        <p><strong style={st}>Account information.</strong> When you sign in with Google, we receive your email address, name, and profile photo from Google. If you sign in with email and password, we collect your email address. This is stored in our database via Supabase.</p>
+        <p><strong style={st}>Account and profile.</strong> Your email address, and if you sign in with Google, your name and profile photo. You may add a display name, username and bio. Your display name appears next to any comments you post; nothing else in your profile is shown publicly.</p>
 
-        <p><strong style={st}>Profile information.</strong> You may add a display name, username, and bio to your profile. Your display name is publicly visible alongside any comments you post on the Site. Username and bio are stored in your profile but are not currently displayed publicly on the Site.</p>
+        <p><strong style={st}>Optional demographic data.</strong> With your explicit consent only: your date of birth, gender, and suburb or location, used solely for anonymous, aggregate analytics. You can withdraw consent at any time via the Edit Profile page, which deletes the data immediately and records a timestamp of the change.</p>
 
-        <p><strong style={st}>Optional demographic data.</strong> With your explicit consent, we may collect your date of birth, gender, and suburb or location. You can withdraw consent at any time via the Edit Profile page. Withdrawing consent deletes this data immediately and records a timestamp of the change. This data is used only for anonymous, aggregate analytics.</p>
+        <p><strong style={st}>Activity.</strong> Comments, ratings and saved bakeries, linked to your account.</p>
 
-        <p><strong style={st}>Activity data.</strong> When you leave comments, rate bakeries, or save bakeries, we record those interactions linked to your account.</p>
+        <p><strong style={st}>Bakery submissions.</strong> What you enter in the form: bakery name, address, suburb, website, Instagram handle, notes and your name, with email address and phone number optional. We also record the IP address of the request for spam prevention. Submissions are visible to site admins only.</p>
 
-        <p><strong style={st}>Bakery submissions.</strong> If you submit or recommend a bakery via the form on the Site, we collect: bakery name, address, suburb, website, Instagram handle, notes, and your name. Email address and phone number are optional. If you are logged in, the submission is linked to your account. Submissions are visible to site admins only. We also record the IP address of each submission for spam prevention.</p>
+        <p><strong style={st}>Newsletter.</strong> Your email address, the source and timestamp of your consent, and the IP address of the request for spam prevention. Every email we send includes an unsubscribe link.</p>
 
-        <p><strong style={st}>Newsletter signups.</strong> If you sign up for updates — either via the form on the Site or by choosing "yes" on the prompt shown after you create an account — we store your email address, the source and timestamp of your consent, and the IP address of the request for spam prevention. Until an unsubscribe link ships you can ask to be removed at any time by emailing us.</p>
-
-        <p><strong style={st}>Analytics and advertising data (consent-gated).</strong> Google Analytics 4 and the Meta Pixel load only if you click Accept on the consent banner. Google Analytics collects pages visited, session duration, approximate geographic location, and device and browser information. The Meta Pixel collects page views and interaction data, including button clicks, form interactions, and page metadata.</p>
+        <p><strong style={st}>Usage and device data (consent-gated).</strong> If you click Accept on the consent banner, our analytics and advertising tools collect pages visited, session duration, approximate geographic location, device and browser information, and on-page interactions such as button clicks and form use. Nothing loads if you decline.</p>
       </section>
 
       <section>
         <h2 style={h2s}>How We Use Your Data</h2>
-        <p>We use the information we collect to:</p>
-        <ul style="padding-left:1.5rem;display:flex;flex-direction:column;gap:0.5rem;">
-          <li>Operate and maintain your account and the features associated with it</li>
-          <li>Display your comments and ratings on the Site</li>
-          <li>Review bakery submissions (visible to admins only)</li>
-          <li>Produce anonymous, aggregate analytics to improve our content and editorial focus</li>
-          <li>Comply with our legal obligations</li>
-        </ul>
-        <p>We do not use your data for automated decision-making or profiling that produces legal or similarly significant effects.</p>
+        <p>To operate your account and its features; to publish your comments and ratings; to review bakery submissions; to send the email you have asked for; to produce anonymous, aggregate analytics that shape our editorial focus; and to meet our legal obligations.</p>
+        <p>We do not sell your personal information, and we do not use it for automated decision-making or profiling that produces legal or similarly significant effects.</p>
+      </section>
+
+      <section>
+        <h2 style={h2s}>Google Sign-In Data</h2>
+        <p>If you sign in with Google, we receive your email address, name and profile photo from Google. We use them only to create and operate your account on the Site. We store them in our database, we do not disclose them to anyone other than the service providers described below, and we never use them for advertising.</p>
       </section>
 
       <section>
         <h2 style={h2s}>Who We Share Data With</h2>
-        <p>We do not sell your personal information. We share data with the following service providers:</p>
+        <p>We use third-party service providers to run the Site, and share personal information with them only as far as needed for that purpose. As at the date at the top of this page, they fall into these categories:</p>
         <ul style="padding-left:1.5rem;display:flex;flex-direction:column;gap:0.75rem;">
-          <li><strong style={st}>Supabase</strong> — our database and authentication provider. All account data, profile data, comments, ratings, and submissions are stored on Supabase infrastructure. <a href="https://supabase.com/privacy" target="_blank" rel="noopener" style="color:var(--amber);">supabase.com/privacy</a></li>
-          <li><strong style={st}>Google OAuth</strong> — if you sign in with Google, authentication is handled by Google. We receive your email address, name, and profile photo. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style="color:var(--amber);">Google's Privacy Policy</a></li>
-          <li><strong style={st}>Google Analytics</strong> — when you consent to tracking, usage data (pages visited, session data, approximate location, device information) is sent to Google. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style="color:var(--amber);">Google's Privacy Policy</a> · <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener" style="color:var(--amber);">opt-out tool</a></li>
-          <li><strong style={st}>Meta</strong> — when you consent to tracking, page views and interaction data (button clicks, form interactions, page metadata) are sent to Meta via the Meta Pixel. Meta may combine this with data it already holds about you. <a href="https://www.meta.com/en-gb/privacy/policy/" target="_blank" rel="noopener" style="color:var(--amber);">Meta's Privacy Policy</a> · <a href="https://accountscenter.facebook.com/ad_preferences" target="_blank" rel="noopener" style="color:var(--amber);">Meta ad settings</a></li>
-          <li><strong style={st}>Google Fonts</strong> — fonts are loaded from Google Fonts on every page of the Site. Your IP address is sent to Google as part of that request. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style="color:var(--amber);">Google's Privacy Policy</a></li>
-          <li><strong style={st}>Google Places</strong> — address and suburb fields on the bakery submission form and the profile edit page use Google's Places API for autocomplete. The text you type into those fields is sent to Google.</li>
-          <li><strong style={st}>CartoCDN</strong> — on pages that include a map, map tiles are loaded from CartoCDN. Your IP address and the map area you view are sent to CartoCDN.</li>
-          <li><strong style={st}>Cloudinary</strong> — some images on the Site are served via Cloudinary. Loading those images sends your IP address to Cloudinary. <a href="https://cloudinary.com/privacy" target="_blank" rel="noopener" style="color:var(--amber);">cloudinary.com/privacy</a></li>
-          <li><strong style={st}>YouTube</strong> — some pages include embedded YouTube videos. When you click play, your IP address and viewing data are sent to YouTube/Google.</li>
-          <li><strong style={st}>Google (profile photos)</strong> — profile photos for Google sign-in users are loaded directly from googleusercontent.com, sending your IP address to Google.</li>
+          <li><strong style={st}>Database, authentication and hosting.</strong> Your account, profile, comments, ratings and submissions are stored with our database and hosting providers, currently Supabase and Cloudflare.</li>
+          <li><strong style={st}>Email delivery.</strong> Your email address is passed to our email provider, currently Resend, to send the messages you have signed up for or requested.</li>
+          <li><strong style={st}>Analytics and advertising.</strong> Only if you consent, usage and device data is sent to Google via Google Analytics and to Meta via the Meta Pixel. Meta may combine it with data it already holds about you. See <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style={lk}>Google's Privacy Policy</a>, the <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener" style={lk}>Google Analytics opt-out tool</a>, <a href="https://www.meta.com/en-gb/privacy/policy/" target="_blank" rel="noopener" style={lk}>Meta's Privacy Policy</a> and <a href="https://accountscenter.facebook.com/ad_preferences" target="_blank" rel="noopener" style={lk}>Meta ad settings</a>.</li>
+          <li><strong style={st}>Content delivery and embedded media.</strong> Pages load fonts, images, map tiles and video embeds from third-party services, which receive your IP address as part of serving them. Playing an embedded video also sends viewing data to the video host.</li>
+          <li><strong style={st}>Address autocomplete.</strong> Text you type into the address and suburb fields on the submission form and the profile edit page is sent to Google's Places API.</li>
         </ul>
-        <p>We may also disclose personal information if required to do so by law, or to protect the rights, property or safety of (K)Need, our users or the public.</p>
+        <p>This list reflects our current providers and may change as we change tools. We may also disclose personal information if required to do so by law, or to protect the rights, property or safety of (K)Need, our users or the public.</p>
       </section>
 
       <section>
         <h2 style={h2s}>Overseas Storage</h2>
-        <p>Some of the service providers listed above store data on servers outside Australia, including in the United States. When you use the Site, or when you consent to analytics, your information may be stored or processed overseas by these providers.</p>
+        <p>Some of these providers store or process data on servers outside Australia, including in the United States.</p>
       </section>
 
       <section>
-        <h2 style={h2s}>How Your Data Is Stored Locally</h2>
-        <p>This site does not use cookies for authentication. Your login session is stored in your browser's <strong style={st}>localStorage</strong>, not in a cookie. This means your session exists only in the browser and device where you signed in.</p>
-        <p>The following items are stored in localStorage on your device:</p>
-        <ul style="padding-left:1.5rem;display:flex;flex-direction:column;gap:0.5rem;">
-          <li><code>kneed-consent</code> — your analytics and advertising consent choice (accepted or declined), with a timestamp. Persists until you clear browser storage or change your choice via the "Privacy choices" link in the footer.</li>
-          <li>Your Supabase session token, stored by the Supabase client library. This keeps you logged in between visits on the same device and browser.</li>
-        </ul>
-        <p>If you consent to tracking, the Meta Pixel sets a cookie named <code>_fbp</code> in your browser. This is a third-party cookie set by Meta, used to identify your browser for advertising purposes. No analytics or advertising cookies are set if you decline or have not yet responded to the consent banner.</p>
-        <p>No other cookies are set by this site.</p>
+        <h2 style={h2s}>Cookies and Local Storage</h2>
+        <p>We use your browser's local storage to keep you signed in and to remember your consent choice. If you consent to analytics and advertising, Meta sets a cookie in your browser to identify it for advertising purposes. No analytics or advertising cookies are set if you decline, or before you have made a choice. No other cookies are set by this site.</p>
       </section>
 
       <section>
         <h2 style={h2s}>Analytics and Consent</h2>
-        <p>Google Analytics 4 and the Meta Pixel do not load unless you explicitly click <strong style={st}>Accept</strong> on the consent banner shown on your first visit. If you click <strong style={st}>Decline</strong>, neither tracker loads and nothing is sent to Google or Meta from your visit. Your choice persists across future visits to the Site.</p>
-        <p>You can change your choice at any time using the <strong style={st}>Privacy choices</strong> link in the site footer. This clears your saved choice and re-displays the consent banner.</p>
-        <p>Neither tracker loads on the sign-in callback page, even with consent granted, to prevent your OAuth authentication code from being sent to any third-party service.</p>
+        <p>Google Analytics 4 and the Meta Pixel do not load unless you explicitly click <strong style={st}>Accept</strong> on the consent banner shown on your first visit. If you click <strong style={st}>Decline</strong>, neither tracker loads and nothing is sent to Google or Meta from your visit. Your choice persists across future visits.</p>
+        <p>You can change your choice at any time using the <strong style={st}>Privacy choices</strong> link in the site footer, which clears your saved choice and re-displays the banner. Neither tracker loads on the sign-in callback page, even with consent granted.</p>
       </section>
 
       <section>
@@ -101,13 +86,13 @@ const st  = "color:var(--parchment);font-weight:500;";
 
       <section>
         <h2 style={h2s}>Data Retention</h2>
-        <ul style="padding-left:1.5rem;display:flex;flex-direction:column;gap:0.5rem;">
-          <li><strong style={st}>Account and profile information:</strong> kept while your account is active. If you ask us to delete your account, we delete it within 30 days of your request.</li>
-          <li><strong style={st}>Comments, ratings and saved bakeries:</strong> removed or de-identified when your account is deleted.</li>
+        <ul style={ul}>
+          <li><strong style={st}>Account and profile:</strong> kept while your account is active. If you ask us to delete it, we do so within 30 days of your request.</li>
+          <li><strong style={st}>Comments, ratings and saved bakeries:</strong> deleted or de-identified when your account is deleted.</li>
+          <li><strong style={st}>Demographic data:</strong> deleted immediately when you withdraw consent via the Edit Profile page.</li>
           <li><strong style={st}>Bakery submissions:</strong> kept while they remain relevant to the Site. The IP address recorded for spam prevention is kept only as long as needed for that purpose.</li>
-          <li><strong style={st}>Newsletter:</strong> your email address and consent record are kept until you unsubscribe. After you unsubscribe, we keep a minimal suppression record so that we do not contact you again.</li>
-          <li><strong style={st}>Analytics:</strong> data collected by Google Analytics is retained for up to 14 months.</li>
-          <li><strong style={st}>Demographic data (date of birth, gender, location):</strong> deleted immediately when you withdraw consent via the Edit Profile page.</li>
+          <li><strong style={st}>Newsletter:</strong> kept until you unsubscribe. After you unsubscribe, we keep a minimal suppression record so that we do not contact you again.</li>
+          <li><strong style={st}>Analytics:</strong> retained for up to 14 months.</li>
         </ul>
       </section>
 
@@ -118,15 +103,8 @@ const st  = "color:var(--parchment);font-weight:500;";
 
       <section>
         <h2 style={h2s}>Your Rights</h2>
-        <p>You have the right to:</p>
-        <ul style="padding-left:1.5rem;display:flex;flex-direction:column;gap:0.5rem;">
-          <li><strong style={st}>Access</strong> your personal information that we hold</li>
-          <li><strong style={st}>Correct</strong> inaccurate or out-of-date personal information</li>
-          <li><strong style={st}>Delete</strong> your account and associated personal data</li>
-          <li><strong style={st}>Withdraw consent</strong> for demographic data collection at any time via your profile settings</li>
-          <li><strong style={st}>Complain</strong> to the Office of the Australian Information Commissioner (OAIC) if you believe your privacy rights have been breached</li>
-        </ul>
-        <p>To exercise any of these rights, email us at <a href="mailto:hello@kneed.tv" style="color:var(--amber);">hello@kneed.tv</a>. We will respond within 30 days.</p>
+        <p>You can ask us to access or correct the personal information we hold about you, delete your account and associated personal data, or withdraw consent for demographic data collection at any time via your profile settings. Email us at <a href="mailto:hello@kneed.tv" style={lk}>hello@kneed.tv</a> and we will respond within 30 days.</p>
+        <p>If you believe your privacy rights have been breached, you can complain to the Office of the Australian Information Commissioner (OAIC).</p>
       </section>
 
       <section>
@@ -136,7 +114,7 @@ const st  = "color:var(--parchment);font-weight:500;";
 
       <section>
         <h2 style={h2s}>Contact</h2>
-        <p>For any privacy questions or requests, please contact us at <a href="mailto:hello@kneed.tv" style="color:var(--amber);">hello@kneed.tv</a>.</p>
+        <p>For any privacy questions or requests, please contact us at <a href="mailto:hello@kneed.tv" style={lk}>hello@kneed.tv</a>.</p>
         <p>Comma Films Pty Ltd<br/>Melbourne, Victoria, Australia</p>
       </section>
 
