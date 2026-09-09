@@ -191,6 +191,8 @@ img,svg{max-width:100%;display:block}
   display:flex;flex-wrap:wrap;gap:10px 28px;justify-content:space-between;
   font-family:var(--label);font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--faint);
 }
+/* One item left in the row: centre it rather than let space-between strand it left. */
+.quiet--single{justify-content:center;text-align:center}
 
 /* ---------- 5. FOOTER ---------- */
 .foot{
@@ -306,8 +308,16 @@ img,svg{max-width:100%;display:block}
 
 <div class="shell">
   <!-- ===== 4. QUIET ROW ===== -->
-  <div class="quiet">
-    <span>Know a bakery we should film? <a href="/submit">Suggest one</a></span>
+  <div class="quiet quiet--single">
+    <!-- PARKED 2026-09-09: the suggest-a-bakery line was removed. /submit is not
+         in the gate allowlist below, so the link resolved to this same holding
+         page. Whitelisting it is a one-liner, but /submit renders BaseLayout
+         (full site nav, "Back home" to the gated homepage, pre-brand-book copy)
+         and is itself slated for rework in backlog F1, so it would leak the
+         unlaunched site. Restore once F1 lands and the page can stand alone:
+           <span>Know a bakery we should film? <a href="/submit">Suggest one</a></span>
+         ...and add `pathname === '/submit'` plus its POST endpoint to the
+         allowlist, and drop the quiet--single modifier. -->
     <span>Press and enquiries &middot; <a href="mailto:hello@kneed.tv">hello@kneed.tv</a></span>
   </div>
 
