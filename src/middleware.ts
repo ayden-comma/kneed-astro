@@ -316,8 +316,10 @@ img,svg{max-width:100%;display:block}
          and is itself slated for rework in backlog F1, so it would leak the
          unlaunched site. Restore once F1 lands and the page can stand alone:
            <span>Know a bakery we should film? <a href="/submit">Suggest one</a></span>
-         ...and add `pathname === '/submit'` plus its POST endpoint to the
-         allowlist, and drop the quiet--single modifier. -->
+         ...and add a pathname === '/submit' clause plus its POST endpoint to
+         the allowlist, and drop the quiet--single modifier.
+         NOTE: this whole page is a JS template literal. No backticks, and no
+         dollar-brace, anywhere in here, comments included. -->
     <span>Press and enquiries &middot; <a href="mailto:hello@kneed.tv">hello@kneed.tv</a></span>
   </div>
 
