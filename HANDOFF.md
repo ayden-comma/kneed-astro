@@ -1,6 +1,6 @@
 # Project Handoff Notes
 
-_Last updated: 2026-09-09 (preview bypass added)_
+_Last updated: 2026-09-09 (preview bypass added; revocation corrected — `wrangler secret put`, no redeploy)_
 
 ---
 
@@ -14,21 +14,34 @@ The redirect is not cosmetic: it means the tokenised URL is never rendered as a 
 
 **The cookie holds the token itself, not an "allowed" flag** — and it is re-compared against the live `PREVIEW_TOKEN` on **every** request. That live re-check is the kill switch, and it is the reason the cookie must not be simplified into a boolean.
 
-**Killing access.** Rotate `PREVIEW_TOKEN` in the Cloudflare dashboard and redeploy. Everyone holding the old cookie — including anyone mid-session — falls back to the teaser on their next page load, and their stale cookie is cleared. There is **deliberately no expiry**: the 365-day cookie never times access out on its own, so revocation is manual and rotation is the only way to do it.
+**Killing access.** Rotate `PREVIEW_TOKEN`:
 
-**Setting the secret.** Cloudflare dashboard secret (never `wrangler.jsonc` — that file is in git). Typed on `Cloudflare.Env` in `src/env.d.ts`; read at runtime via `import { env } from 'cloudflare:workers'`, never `import.meta.env` (see CLAUDE.md).
+```sh
+npx wrangler secret put PREVIEW_TOKEN --name kneed-astro-worker
+```
+
+**No `wrangler deploy` step is required** — verified 2026-09-09: an already-browsing preview session dropped to the teaser on its next page load immediately after the secret upload. Everyone holding the old cookie — including anyone mid-session — is cut off the same way, and their stale cookie is cleared. There is **deliberately no expiry**: the 365-day cookie never times access out on its own, so revocation is manual and rotation is the only way to do it.
+
+**Setting the secret.** A Cloudflare secret, set via `wrangler secret put` (above) or the dashboard — never `wrangler.jsonc`, that file is in git. Typed on `Cloudflare.Env` in `src/env.d.ts`; read at runtime via `import { env } from 'cloudflare:workers'`, never `import.meta.env` (see CLAUDE.md).
 
 **The token must be URL-safe: `[A-Za-z0-9_-]` only.** Generate with `openssl rand -hex 32`. A plain-base64 token containing `+` or `/` will silently never match, because `?preview=` arrives URL-decoded and `+` decodes to a space.
 
 Notes:
 
+- The `--name kneed-astro-worker` flag above is not optional — see **Wrangler CLI** below.
 - If `PREVIEW_TOKEN` is unset or empty the bypass is disabled entirely — an empty cookie or empty `?preview=` cannot match it.
 - A wrong or missing token is silent: same 200, same teaser HTML, no error page and no signalling header. There is no UI, banner or link anywhere indicating a preview session is active.
 - Inert when `GATE_ENABLED = false` — the whole block sits below that early return, so the launch-day gate flip retires it with no extra action.
 - **The share link must point at a gated path.** `/?preview=…` works. `/privacy?preview=…`, `/terms?preview=…`, `/api/…?preview=…` and the static prefixes return from the allowlist *above* the bypass — no cookie, no redirect, no error. Likewise `/teaser?preview=…`: the `/teaser` alias returns before the bypass so it always shows gate HTML. All intentional, but it reads as broken if you test with the wrong URL.
-- Post-deploy smoke test that can actually fail visibly: `curl -sI 'https://kneed.tv/?preview=<TOKEN>'` should return `302`, a `location:` header with the param stripped, **and** a `set-cookie: kneed_preview=…` line. A 302 with no `set-cookie` is a real failure; landing on the teaser alone cannot distinguish that from a wrong token.
+- Post-deploy / post-rotation smoke test that can actually fail visibly: `curl -sI 'https://kneed.tv/?preview=<TOKEN>'` should return `302`, a `location:` header with the param stripped, **and** a `set-cookie: kneed_preview=…` line. A 302 with no `set-cookie` is a real failure; landing on the teaser alone cannot distinguish that from a wrong token.
 - Preview sessions are *not* exempt from `HIDE_ARTICLES` / `HIDE_MAP`; those redirects run above the gate and only the staff `kneed_unlocked` cookie bypasses them.
 - Cloudflare invocation logs are on, so a `?preview=<token>` URL will appear in platform request logs. The app itself logs nothing.
+
+---
+
+## Wrangler CLI
+
+**`wrangler.jsonc` has no top-level `name`**, so wrangler cannot infer which Worker it is acting on. **Every** wrangler command must pass `--name kneed-astro-worker` explicitly — `secret put`, `secret list`, `tail`, `deploy`, all of them.
 
 ---
 
