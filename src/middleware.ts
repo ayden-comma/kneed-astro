@@ -8,8 +8,9 @@ const UNLOCK_TOKEN = 'ok-2026';
 // truth). Only the TODO-marked wiring points differ: newsletter endpoint path,
 // real submit handler, favicon links, and the staff unlock block (rendered only
 // on ?staff=1 or after a wrong password, so the default page matches the
-// reference exactly). Remaining TODOs (YouTube id, loop MP4, poster, OG image)
-// swap in place when Ayden delivers the assets.
+// reference exactly). Assets wired 2026-09-09: teaser sRKFnUrQ2Nc (0:24),
+// kneed-teaser-loop.mp4, kneed-teaser-poster.jpg, kneed-teaser-og.jpg.
+// GA4 watch events remain a second pass (backlog F5).
 function holdingPage(wrong: boolean, staff: boolean): string {
   return `<!doctype html>
 <html lang="en">
@@ -40,8 +41,7 @@ function holdingPage(wrong: boolean, staff: boolean): string {
 <meta property="og:title" content="(K)Need — New series, October 2026">
 <meta property="og:description" content="A cultural and culinary exploration of bread and pastry, told through the bakers who live it.">
 <meta property="og:url" content="https://kneed.tv/">
-<!-- TODO: replace with the teaser's best frame + wordmark, 1200x630 -->
-<meta property="og:image" content="https://kneed.tv/images/og-default.jpg">
+<meta property="og:image" content="https://kneed.tv/images/kneed-teaser-og.jpg">
 <meta name="twitter:card" content="summary_large_image">
 
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -256,20 +256,18 @@ img,svg{max-width:100%;display:block}
   ================================================================== -->
   <section class="player-wrap">
     <div class="player" id="player"
-         data-yt-id="TODO_YOUTUBE_ID"><!-- TODO: teaser video id -->
+         data-yt-id="sRKFnUrQ2Nc">
 
-      <!-- TODO: poster frame; same frame should feed the OG image -->
-      <img class="poster" src="/images/teaser-poster.jpg" alt="" width="1920" height="1080">
+      <img class="poster" src="/images/kneed-teaser-poster.jpg" alt="" width="1920" height="1080">
 
       <video id="ambient" muted loop playsinline preload="metadata"
-             poster="/images/teaser-poster.jpg" aria-hidden="true">
-        <!-- TODO: 6-10s Cloudinary loop plate -->
-        <source src="/video/teaser-loop.mp4" type="video/mp4">
+             poster="/images/kneed-teaser-poster.jpg" aria-hidden="true">
+        <source src="/video/kneed-teaser-loop.mp4" type="video/mp4">
       </video>
 
       <button class="play" type="button" id="playBtn">
         <span class="ring" aria-hidden="true"></span>
-        <span>Watch the teaser now &middot; 1:42</span><!-- TODO: confirm runtime -->
+        <span>Watch the teaser now &middot; 0:24</span>
       </button>
     </div>
   </section>
