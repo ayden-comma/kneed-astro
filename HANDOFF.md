@@ -1,6 +1,34 @@
 # Project Handoff Notes
 
-_Last updated: 2026-06-10 (open items updated)_
+_Last updated: 2026-09-09 (preview bypass added)_
+
+---
+
+## Preview bypass (coming-soon gate)
+
+Lets a specific person see the real pre-launch site while `GATE_ENABLED = true`, with one-secret revocation. Lives entirely in `src/middleware.ts`.
+
+**Sharing access.** Send `https://kneed.tv/?preview=<PREVIEW_TOKEN>`. That request sets an `HttpOnly; Secure; SameSite=Lax; Path=/` cookie named `kneed_preview` with a 365-day `Max-Age`, then **302s to the same URL with the `preview` param stripped** (origin, pathname and every other query param preserved). The redirected request carries the cookie, matches, and is served normally — as is every page after it.
+
+The redirect is not cosmetic: it means the tokenised URL is never rendered as a page, so the token never reaches the address bar, browser history, bookmarks, the `Referer` header on a first outbound click, or `BaseLayout`'s `canonical` / `og:url` tags. Do not "simplify" it back to serving the page on the same request. It is also loop-safe — the redirect target has no `preview` param, so if the cookie fails to set (e.g. `Secure` over plain http in local dev) the next request falls through to the teaser rather than bouncing.
+
+**The cookie holds the token itself, not an "allowed" flag** — and it is re-compared against the live `PREVIEW_TOKEN` on **every** request. That live re-check is the kill switch, and it is the reason the cookie must not be simplified into a boolean.
+
+**Killing access.** Rotate `PREVIEW_TOKEN` in the Cloudflare dashboard and redeploy. Everyone holding the old cookie — including anyone mid-session — falls back to the teaser on their next page load, and their stale cookie is cleared. There is **deliberately no expiry**: the 365-day cookie never times access out on its own, so revocation is manual and rotation is the only way to do it.
+
+**Setting the secret.** Cloudflare dashboard secret (never `wrangler.jsonc` — that file is in git). Typed on `Cloudflare.Env` in `src/env.d.ts`; read at runtime via `import { env } from 'cloudflare:workers'`, never `import.meta.env` (see CLAUDE.md).
+
+**The token must be URL-safe: `[A-Za-z0-9_-]` only.** Generate with `openssl rand -hex 32`. A plain-base64 token containing `+` or `/` will silently never match, because `?preview=` arrives URL-decoded and `+` decodes to a space.
+
+Notes:
+
+- If `PREVIEW_TOKEN` is unset or empty the bypass is disabled entirely — an empty cookie or empty `?preview=` cannot match it.
+- A wrong or missing token is silent: same 200, same teaser HTML, no error page and no signalling header. There is no UI, banner or link anywhere indicating a preview session is active.
+- Inert when `GATE_ENABLED = false` — the whole block sits below that early return, so the launch-day gate flip retires it with no extra action.
+- **The share link must point at a gated path.** `/?preview=…` works. `/privacy?preview=…`, `/terms?preview=…`, `/api/…?preview=…` and the static prefixes return from the allowlist *above* the bypass — no cookie, no redirect, no error. Likewise `/teaser?preview=…`: the `/teaser` alias returns before the bypass so it always shows gate HTML. All intentional, but it reads as broken if you test with the wrong URL.
+- Post-deploy smoke test that can actually fail visibly: `curl -sI 'https://kneed.tv/?preview=<TOKEN>'` should return `302`, a `location:` header with the param stripped, **and** a `set-cookie: kneed_preview=…` line. A 302 with no `set-cookie` is a real failure; landing on the teaser alone cannot distinguish that from a wrong token.
+- Preview sessions are *not* exempt from `HIDE_ARTICLES` / `HIDE_MAP`; those redirects run above the gate and only the staff `kneed_unlocked` cookie bypasses them.
+- Cloudflare invocation logs are on, so a `?preview=<token>` URL will appear in platform request logs. The app itself logs nothing.
 
 ---
 

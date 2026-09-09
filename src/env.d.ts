@@ -5,6 +5,7 @@ declare namespace Cloudflare {
     SUPABASE_SERVICE_ROLE_KEY: string;
     RESEND_API_KEY: string;
     RESEND_WEBHOOK_SECRET: string;
+    PREVIEW_TOKEN: string;
     CLOUDINARY_CLOUD_NAME: string;
     CLOUDINARY_API_KEY: string;
     CLOUDINARY_API_SECRET: string;

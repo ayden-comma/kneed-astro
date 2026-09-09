@@ -1,8 +1,28 @@
 import { defineMiddleware } from 'astro:middleware';
+// Runtime secret source. MUST be `cloudflare:workers`, never import.meta.env —
+// import.meta.env is Vite-inlined at build time and reads `undefined` for
+// secrets at Workers runtime (works locally, silent 500s in prod). See CLAUDE.md.
+import { env } from 'cloudflare:workers';
 import { HIDE_ARTICLES, HIDE_MAP } from './config/features';
 
 const GATE_ENABLED = true; // set false at launch to disable the holding page
 const UNLOCK_TOKEN = 'ok-2026';
+
+// Preview-bypass cookie. Holds the TOKEN ITSELF, never an "allowed" boolean —
+// see the re-verification block in onRequest for why that matters.
+const PREVIEW_COOKIE = 'kneed_preview';
+const PREVIEW_MAX_AGE = 60 * 60 * 24 * 365; // 365 days. No expiry logic by design.
+
+// Constant-time string compare. Mirrors the helper in
+// src/pages/api/resend-webhook.ts (which does not export it) — plain loop, no npm
+// dependency. The eager length check leaks token length only, never content, and
+// matches what the webhook already does.
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return mismatch === 0;
+}
 
 // Ported verbatim from docs/kneed-teaser-reference.html (the design source of
 // truth). Only the TODO-marked wiring points differ: newsletter endpoint path,
@@ -493,6 +513,61 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // Unlocked — serve normally
   const token = context.cookies.get('kneed_unlocked')?.value;
   if (token === UNLOCK_TOKEN) return next();
+
+  // ── Preview bypass ────────────────────────────────────────────────────────
+  // Share the pre-launch site with one link: https://kneed.tv/?preview=<PREVIEW_TOKEN>.
+  // That sets an HttpOnly cookie whose value IS the token, and every subsequent
+  // request re-compares that cookie against the LIVE secret.
+  //
+  // That live re-check is the kill switch: rotating PREVIEW_TOKEN in Cloudflare
+  // (and redeploying) drops every preview session — including people already
+  // browsing — back to the teaser on their next page load. Do NOT "optimise" the
+  // cookie into a boolean allowed-flag; that would make access unrevokable.
+  //
+  // Placement is deliberate: below the `!GATE_ENABLED` early return, so the whole
+  // bypass is inert once the gate is off (no cookie read, no token check); and
+  // below the /teaser alias and the allowlist, so neither changes behaviour.
+  //
+  // PREVIEW_TOKEN must be URL-safe — [A-Za-z0-9_-], e.g. `openssl rand -hex 32`.
+  // searchParams.get() returns the DECODED value, so a plain-base64 token
+  // containing '+' would arrive as a space and never match.
+  const previewToken = env.PREVIEW_TOKEN;
+  // Unset or empty secret disables the bypass outright. Without this guard an
+  // empty ?preview= or an empty cookie would compare equal to an empty secret
+  // (both length 0, zero mismatch) and let anyone straight through.
+  if (previewToken) {
+    const previewParam = context.url.searchParams.get('preview');
+    if (previewParam && timingSafeEqual(previewParam, previewToken)) {
+      context.cookies.set(PREVIEW_COOKIE, previewToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        path: '/',
+        maxAge: PREVIEW_MAX_AGE,
+      });
+      // Redirect rather than serve this request, so the token never reaches a
+      // rendered page. Same origin and pathname, every other query param kept,
+      // ?preview= dropped. That takes the token out of the address bar, history,
+      // bookmarks, the Referer on the first outbound click, and BaseLayout's
+      // canonical + og:url tags — all of which would otherwise carry it.
+      // Loop-safe: the target has no preview param, so if the cookie failed to
+      // set (e.g. Secure over plain http) the next request simply falls through
+      // to the teaser instead of bouncing back here.
+      const target = new URL(context.url);
+      target.searchParams.delete('preview');
+      return context.redirect(target.toString(), 302);
+    }
+
+    const previewCookie = context.cookies.get(PREVIEW_COOKIE)?.value;
+    if (previewCookie) {
+      if (timingSafeEqual(previewCookie, previewToken)) return next();
+      // Stale token (the secret was rotated) — bin the cookie and fall through to
+      // the teaser below. Silent by design: same 200, same HTML, no error page,
+      // no signalling header. A wrong or missing token is indistinguishable from
+      // there being no bypass at all.
+      context.cookies.delete(PREVIEW_COOKIE, { path: '/' });
+    }
+  }
 
   // Gate: return holding page. 503 + noindex so crawlers (which never hold the
   // cookie) are told "not yet" and never index the Coming Soon page as real content.
