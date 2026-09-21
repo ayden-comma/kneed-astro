@@ -6,7 +6,7 @@
 const SITE_URL = 'https://kneed.tv';
 const LOGO_URL = 'https://res.cloudinary.com/dwffvgcj1/image/upload/v1786232421/K_NEED_LOGO_-_LIGHT_LG_lstkle.png';
 const PREHEADER = 'Fresh bakery films and stories, straight to your inbox.';
-const INTRO = "Welcome to (K)Need, a cultural and culinary exploration of breads and pastries told through the eyes of passionate bakers. You're on the list, so you'll be first to see every new film and story.";
+const INTRO = "Welcome to (K)Need, a cultural and culinary exploration of bread and pastry, told through the bakers who live it. You're on the list, so you'll be first to see every new episode.";
 const PRIMARY_CTA_URL = 'https://kneed.tv/bakeries';
 const PRIMARY_CTA_LABEL = 'Explore the bakeries';
 const SECONDARY_CTA_URL = 'https://kneed.tv/submit';
