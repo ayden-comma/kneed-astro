@@ -48,6 +48,7 @@ ALTER TABLE public.cms_revisions ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.cms_revisions FROM anon, authenticated;
 
 -- 4. Baseline: one revision per currently published row, so there is always something to revert to.
+--    Skips rows that already have one, so running this file twice is harmless.
 INSERT INTO public.cms_revisions (table_name, record_id, slug, payload, published_by, note)
 SELECT 'bakeries_cms', b.id, b.slug,
   (to_jsonb(b) - 'id' - 'created_at' - 'updated_at' - 'published' - 'published_at'
@@ -56,7 +57,8 @@ SELECT 'bakeries_cms', b.id, b.slug,
        SELECT jsonb_agg(jsonb_build_object('label',l.label,'address',l.address,'lat',l.lat,'lng',l.lng,'hours',l.hours,'place_id',l.place_id) ORDER BY l.sort_order)
        FROM public.locations l WHERE l.bakery_slug = b.slug), '[]'::jsonb)),
   'system', 'Baseline at migration'
-FROM public.bakeries_cms b WHERE b.published;
+FROM public.bakeries_cms b WHERE b.published
+  AND NOT EXISTS (SELECT 1 FROM public.cms_revisions r WHERE r.record_id = b.id);
 
 INSERT INTO public.cms_revisions (table_name, record_id, slug, payload, published_by, note)
 SELECT 'articles_cms', a.id, a.slug,
@@ -66,7 +68,8 @@ SELECT 'articles_cms', a.id, a.slug,
        SELECT jsonb_agg(jsonb_build_object('label',l.label,'address',l.address,'lat',l.lat,'lng',l.lng,'hours',l.hours,'place_id',l.place_id) ORDER BY l.sort_order)
        FROM public.locations l WHERE l.article_slug = a.slug), '[]'::jsonb)),
   'system', 'Baseline at migration'
-FROM public.articles_cms a WHERE a.published;
+FROM public.articles_cms a WHERE a.published
+  AND NOT EXISTS (SELECT 1 FROM public.cms_revisions r WHERE r.record_id = a.id);
 
 COMMIT;
 
