@@ -8,7 +8,8 @@
 // written straight to the row.
 //
 // Every publish appends a full snapshot to `cms_revisions` (also service role
-// only), which is what "History → Restore" loads back into the draft.
+// only), which is what "History → Restore" loads back into the draft. Publish
+// runs as one database function (`cms_publish`), so it can't half-finish.
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -135,25 +136,14 @@ export async function publishCms({ db, table, userEmail }: Ctx, id: string, payl
     ?? (payload ? undefined : draft?._locations)
     ?? await readLocations(db, table, row.slug);
 
-  const update: Record<string, unknown> = { ...content, published: true };
-  if (!row.published_at) update.published_at = new Date().toISOString();
-
-  const { error } = await db.from(table).update(update).eq('id', id);
-  if (error) throw new HttpError(500, error.message);
-
-  const newSlug = String(content.slug ?? row.slug);
-  await writeLocations(db, table, newSlug, locs, row.slug);
-  await dropDraft(db, table, id);
-
-  // Snapshot what is now live. Full row content, so a restore needs nothing else.
-  const snapshot = { ...contentOnly({ ...row, ...content }), _locations: locs };
-  const { error: revErr } = await db.from('cms_revisions').insert({
-    table_name: table, record_id: id, slug: newSlug, payload: snapshot,
-    published_by: userEmail ?? null, note: note ?? null,
+  // One database call, one transaction: row, map pins, draft clear and history entry
+  // all land together or not at all (public.cms_publish in the drafts migration).
+  const { data: newSlug, error } = await db.rpc('cms_publish', {
+    p_table: table, p_id: id, p_content: content, p_locations: locs,
+    p_by: userEmail ?? null, p_note: note ?? null,
   });
-  if (revErr) console.error('[cmsDraft] revision insert failed:', revErr.message);
-
-  return { slug: newSlug };
+  if (error) throw new HttpError(500, error.message);
+  return { slug: String(newSlug ?? content.slug ?? row.slug) };
 }
 
 /** Take the page offline. Any pending draft is kept. */

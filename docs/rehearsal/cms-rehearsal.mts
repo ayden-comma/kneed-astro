@@ -13,7 +13,8 @@ const proxy = http.createServer((req, res) => {
     r => { res.writeHead(r.statusCode!, r.headers); r.pipe(res); });
   req.pipe(up);
 });
-await new Promise<void>(r => proxy.listen(3012, r));
+// Reuse a proxy already listening on 3012 (e.g. the one serving the local site).
+await new Promise<void>(r => { proxy.once('error', () => r()); proxy.listen(3012, r); });
 
 const secret = fs.readFileSync('/home/claude/rehearsal/jwt.secret', 'utf8').trim();
 const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url');
@@ -159,6 +160,28 @@ ok('tampered id rejected', (await verifyPreview(SK, forged, 'bakeries_cms')) ===
 ok('expired token rejected (25h later)', (await verifyPreview(SK, tok, 'bakeries_cms', Date.now() + 25 * 3600e3)) === null);
 ok('still valid 23h later', !!(await verifyPreview(SK, tok, 'bakeries_cms', Date.now() + 23 * 3600e3)));
 ok('garbage rejected without throwing', (await verifyPreview(SK, '%%%.***', 'bakeries_cms')) === null && (await verifyPreview(SK, body + '.', 'bakeries_cms')) === null);
+
+console.log('\n9. Publish is all or nothing');
+const b4 = await row('bakeries_cms', 'bakery-4');
+const pinsBefore = await locs('bakery_slug', 'bakery-4');
+const revsBefore = (await revs('bakeries_cms', b4.id)).length;
+await handleCmsAction(B, { action: 'save', id: b4.id, payload: editorPayload(b4, { hero_title: 'ATOMIC TEST' }), locations: [{ label: 'Bad pin', lat: 'not-a-number' }] });
+let threw = false;
+try { await handleCmsAction(B, { action: 'publish', id: b4.id }); } catch { threw = true; }
+const b4after = await rowById('bakeries_cms', b4.id);
+ok('a publish that fails part-way reports the error', threw);
+ok('...and the live page is unchanged', b4after.hero_title === b4.hero_title, b4after.hero_title);
+ok('...the map pins are unchanged', JSON.stringify(await locs('bakery_slug', 'bakery-4')) === JSON.stringify(pinsBefore));
+ok('...the draft is still there to fix', (await draftOf('bakeries_cms', b4.id))?.hero_title === 'ATOMIC TEST');
+ok('...and no history entry was written', (await revs('bakeries_cms', b4.id)).length === revsBefore);
+await handleCmsAction(B, { action: 'save', id: b4.id, payload: editorPayload(b4, { hero_title: 'ATOMIC TEST' }), locations: [{ label: 'Good pin', lat: -37.8, lng: 144.96 }, { label: 'Zero lng', lat: -37.8, lng: 0 }] });
+await handleCmsAction(B, { action: 'publish', id: b4.id });
+ok('fixed draft then publishes cleanly', (await rowById('bakeries_cms', b4.id)).hero_title === 'ATOMIC TEST' && JSON.stringify(await locs('bakery_slug', 'bakery-4')) === '["Good pin","Zero lng"]');
+const zero = (await db.from('locations').select('lng').eq('bakery_slug', 'bakery-4').eq('label', 'Zero lng').single()).data;
+ok('a coordinate of exactly 0 survives (the old code turned it into empty)', Number(zero?.lng) === 0, zero);
+let rpcBlocked = false;
+try { const r = await member.rpc('cms_publish', { p_table: 'bakeries_cms', p_id: b4.id, p_content: {}, p_locations: [] }); rpcBlocked = !!r.error; } catch { rpcBlocked = true; }
+ok('members cannot call the publish function', rpcBlocked);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 proxy.close();
