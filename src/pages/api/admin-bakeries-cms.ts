@@ -2,14 +2,12 @@ import type { APIRoute } from 'astro';
 import { createClient } from '@supabase/supabase-js';
 import { env } from 'cloudflare:workers';
 import { requireAdmin } from '../../lib/requireAdmin';
+import { handleCmsAction, HttpError } from '../../lib/cmsDraft';
 
 export const prerender = false;
 
-type Body =
-  | { action: 'delete'; id: string }
-  | { action: 'update'; id: string; payload: Record<string, unknown> }
-  | { action: 'insert'; payload: Record<string, unknown> };
-
+// Actions: insert | save | publish | unpublish | discard | revisions | revert | delete
+// See src/lib/cmsDraft.ts for the draft/publish rules.
 export const POST: APIRoute = async ({ request }) => {
   const auth = await requireAdmin(request);
   if (!auth.ok) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: auth.status });
@@ -19,32 +17,13 @@ export const POST: APIRoute = async ({ request }) => {
     const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
     if (!serviceKey) return new Response(JSON.stringify({ error: 'Service key not configured' }), { status: 500 });
 
-    const adminSupabase = createClient(supabaseUrl, serviceKey);
-    const body = await request.json() as Body;
-
-    if (body.action === 'delete') {
-      if (!body.id) return new Response(JSON.stringify({ error: 'Missing id' }), { status: 400 });
-      const { error } = await adminSupabase.from('bakeries_cms').delete().eq('id', body.id);
-      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
-      return new Response(JSON.stringify({ ok: true }), { status: 200 });
-    }
-
-    if (body.action === 'update') {
-      if (!body.id) return new Response(JSON.stringify({ error: 'Missing id' }), { status: 400 });
-      const { error } = await adminSupabase.from('bakeries_cms').update(body.payload).eq('id', body.id);
-      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
-      return new Response(JSON.stringify({ ok: true }), { status: 200 });
-    }
-
-    if (body.action === 'insert') {
-      const { error } = await adminSupabase.from('bakeries_cms').insert(body.payload);
-      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
-      return new Response(JSON.stringify({ ok: true }), { status: 200 });
-    }
-
-    return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400 });
+    const db = createClient(supabaseUrl, serviceKey);
+    const body = await request.json();
+    const result = await handleCmsAction({ db, table: 'bakeries_cms', userEmail: auth.user.email }, body);
+    return new Response(JSON.stringify({ ok: true, ...result }), { status: 200 });
   } catch (err) {
+    if (err instanceof HttpError) return new Response(JSON.stringify({ error: err.message }), { status: err.status });
     console.error('[admin-bakeries-cms] threw:', err instanceof Error ? err.message : String(err), err instanceof Error ? err.stack : '');
-    return new Response(JSON.stringify({ error: 'internal' }), { status: 500 });
+    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : 'internal' }), { status: 500 });
   }
 };

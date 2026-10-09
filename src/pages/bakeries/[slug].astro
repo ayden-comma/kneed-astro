@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { cld, W } from '../../lib/cloudinary.js';
 import { supabase } from '../../lib/supabase';
+import { withDraft } from '../../lib/cmsDraft';
 import { HIDE_MAP } from '../../config/features';
 import { bakeryLd, videoObjectLd, breadcrumbLd } from '../../lib/structuredData';
 
@@ -13,15 +14,18 @@ const isPreview = Astro.url.searchParams.get('preview') === 'true';
 let q = supabase.from('bakeries_cms').select('*').eq('slug', slug);
 if (!isPreview) q = q.eq('published', true);
 const { data: rows } = await q.limit(1);
-const row = rows?.[0];
-if (!row) return new Response(null, { status: 404 });
+const liveRow = rows?.[0];
+if (!liveRow) return new Response(null, { status: 404 });
+// Preview shows pending edits; the public page only ever reads the live columns.
+const row = isPreview ? withDraft(liveRow) : liveRow;
 
 const { data: bakeryLocations } = await supabase
   .from('locations')
   .select('label, address, lat, lng, hours, place_id')
   .eq('bakery_slug', slug)
   .order('sort_order');
-const locationRows = (bakeryLocations ?? []) as { label: string | null; address: string | null; lat: number | null; lng: number | null; hours: string | null; place_id: string | null }[];
+const draftLocations = isPreview ? (liveRow.draft_payload as any)?._locations : null;
+const locationRows = (draftLocations ?? bakeryLocations ?? []) as { label: string | null; address: string | null; lat: number | null; lng: number | null; hours: string | null; place_id: string | null }[];
 
 // Prev/next by name order
 const { data: allRows } = await supabase

@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { createClient } from '@supabase/supabase-js';
 import { env } from 'cloudflare:workers';
 import { requireAdmin } from '../../lib/requireAdmin';
+import { publishCms, unpublishCms, type CmsTable } from '../../lib/cmsDraft';
 
 export const prerender = false;
 
@@ -34,35 +35,18 @@ export const POST: APIRoute = async ({ request }) => {
       return new Response(JSON.stringify({ error: 'Invalid table' }), { status: 400 });
     }
 
-    // Read current row to check published_at
+    // Look up the id, then go through the same publish path as the editor so a
+    // pending draft is applied and a revision is recorded.
     const { data: current, error: readError } = await adminSupabase
-      .from(table)
-      .select('published_at')
-      .eq('slug', slug)
-      .single();
-
+      .from(table).select('id').eq('slug', slug).single();
     if (readError || !current) {
       return new Response(JSON.stringify({ error: readError?.message ?? 'Row not found' }), { status: 404 });
     }
+    const ctx = { db: adminSupabase, table: table as CmsTable, userEmail: auth.user.email };
+    if (published) await publishCms(ctx, (current as any).id);
+    else await unpublishCms(ctx, (current as any).id);
 
-    const updatePayload: Record<string, unknown> = { published };
-
-    // Only set published_at on first publish
-    if (published === true && !current.published_at) {
-      updatePayload.published_at = new Date().toISOString();
-    }
-
-    const { data: updated, error: updateError } = await adminSupabase
-      .from(table)
-      .update(updatePayload)
-      .eq('slug', slug)
-      .select()
-      .single();
-
-    if (updateError) {
-      return new Response(JSON.stringify({ error: updateError.message }), { status: 500 });
-    }
-
+    const { data: updated } = await adminSupabase.from(table).select('*').eq('id', (current as any).id).single();
     return new Response(JSON.stringify({ data: updated }), { status: 200 });
   } catch (err) {
     console.error('[admin-toggle-publish] threw:', err instanceof Error ? err.message : String(err), err instanceof Error ? err.stack : '');

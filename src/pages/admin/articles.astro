@@ -42,6 +42,21 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     </div>
     <div id="modal-msg" class="admin-msg bk-modal-msg"></div>
 
+    <!-- Pending-changes banner: only shown on a published item with a saved draft -->
+    <div id="cms-draft-banner" class="cms-draft-banner" hidden>
+      <span id="cms-draft-banner-text">Unpublished changes.</span>
+      <button type="button" class="cms-draft-discard" id="cms-discard-btn">Discard changes</button>
+    </div>
+
+    <!-- Version history: every Publish saves a snapshot here -->
+    <div id="cms-history" class="cms-history" hidden>
+      <div class="cms-history-head">
+        <span>Published versions</span>
+        <button type="button" class="admin-modal-close" id="cms-history-close" aria-label="Close history">×</button>
+      </div>
+      <div id="cms-history-list"></div>
+    </div>
+
     <!-- Tab bar -->
     <div class="bk-tab-bar">
       <button type="button" class="bk-tab is-active" data-tab="article">Article</button>
@@ -277,6 +292,8 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
         <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
       </button>
       <button type="button" class="wf-pill pill-amber" id="form-publish-btn">Publish</button>
+        <button type="button" class="admin-btn admin-btn-ghost" id="form-history-btn" style="display:none;">History</button>
+        <button type="button" class="admin-btn admin-btn-ghost" id="form-unpublish-btn" style="display:none;">Unpublish</button>
       <button type="button" class="admin-btn admin-btn-ghost" id="form-cancel-btn">Cancel</button>
     </div>
     </form>
@@ -285,6 +302,8 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 
 <script>
   import { supabase } from '../../lib/supabase';
+  import { withDraft } from '../../lib/cmsDraft';
+  import { initDraftUi } from '../../scripts/cms-draft-ui';
 
   async function authHeaders(): Promise<HeadersInit> {
     const { data: { session } } = await supabase.auth.getSession();
@@ -303,7 +322,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   // ── Types ─────────────────────────────────────────────────────
   type ArticleRow = {
     id: string; title: string; slug: string; category: string | null; published: boolean;
-    updated_at: string | null; published_at: string | null;
+    updated_at: string | null; published_at: string | null; draft_updated_at?: string | null;
   };
   type BakeryOption = { slug: string; name: string };
   type ImgRow = { src: string; caption: string };
@@ -778,7 +797,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     return `<tr data-id="${a.id}" data-name="${a.title.toLowerCase()}" data-modified="${a.updated_at ?? ''}" data-status="${a.published ? 'published' : 'draft'}" data-published-at="${a.published_at ?? ''}">
       <td><strong>${a.title}</strong><br/><span style="font-size:0.75rem;color:var(--p-35);">${a.slug}</span></td>
       <td>${a.category ?? '—'}</td>
-      <td><span class="admin-badge admin-badge-${a.published ? 'published' : 'draft'} toggle-publish" data-slug="${a.slug}" data-published="${a.published}" data-published-at="${a.published_at ?? ''}" title="Click to change status">${a.published ? 'Published' : 'Draft'}</span></td>
+      <td><span class="admin-badge admin-badge-${a.published ? 'published' : 'draft'} toggle-publish" data-slug="${a.slug}" data-published="${a.published}" data-published-at="${a.published_at ?? ''}" title="Click to change status">${a.published ? 'Published' : 'Draft'}</span>${a.published && a.draft_updated_at ? '<span class="admin-badge-pending" title="Edits saved but not yet published">Changes pending</span>' : ''}</td>
       <td>${fmtDate(a.updated_at)}</td>
       <td>${fmtDate(a.published_at)}</td>
       <td><div class="admin-actions">
@@ -791,7 +810,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   async function loadList() {
     const { data, error } = await supabase
       .from('articles_cms')
-      .select('id, title, slug, category, published, updated_at, published_at')
+      .select('id, title, slug, category, published, updated_at, published_at, draft_updated_at')
       .order('updated_at', { ascending: false });
     if (error) { tbody.innerHTML = `<tr><td colspan="6"><div class="admin-empty">Error: ${error.message}</div></td></tr>`; return; }
     const rows = (data ?? []) as ArticleRow[];
@@ -804,58 +823,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 
   function bindRowButtons() {
     tbody.querySelectorAll('.btn-edit-article').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id = (btn as HTMLElement).dataset.id!;
-        const { data } = await supabase.from('articles_cms').select('*').eq('id', id).single();
-        if (!data) return;
-        openModal(id);
-        titleEl.textContent = 'Edit Article';
-        (field('f-id') as HTMLInputElement).value             = data.id;
-        (field('f-title') as HTMLInputElement).value          = data.title ?? '';
-        (field('f-slug') as HTMLInputElement).value           = data.slug ?? '';
-        (field('f-category') as HTMLInputElement).value       = data.category ?? '';
-        (field('f-description') as HTMLTextAreaElement).value = data.description ?? '';
-        (field('f-thumbnail') as HTMLInputElement).value      = data.thumbnail ?? '';
-
-        const sel = document.getElementById('f-bakery-slug') as unknown as HTMLSelectElement;
-        sel.value = data.bakery_slug ?? '';
-
-        const { data: locRows } = await supabase.from('locations').select('label, address, lat, lng, hours, place_id').eq('article_slug', data.slug).order('sort_order');
-        populateLocations(locRows as any);
-
-        (field('f-date') as HTMLInputElement).value             = data.date ?? '';
-        (field('f-episode-number') as HTMLInputElement).value   = data.episode_number ?? '';
-        (field('f-duration') as HTMLInputElement).value         = data.duration ?? '';
-        (field('f-video-id') as HTMLInputElement).value         = data.video_id ?? '';
-        (field('f-quote') as HTMLTextAreaElement).value         = data.quote ?? '';
-        populateCredits(data.credits as { title: string; name: string }[] | null);
-
-        (field('f-hero-tag') as HTMLInputElement).value         = data.hero_tag ?? '';
-        (field('f-hero-title') as HTMLInputElement).value       = data.hero_title ?? '';
-        (field('f-hero-subtitle') as HTMLTextAreaElement).value = data.hero_subtitle ?? '';
-        (field('f-hero-bg-word') as HTMLInputElement).value     = data.hero_bg_word ?? '';
-        (field('f-hero-image-url') as HTMLInputElement).value   = data.hero_image_url ?? '';
-
-        const heroPreview = document.getElementById('f-hero-img-preview') as HTMLImageElement;
-        if (data.hero_image_url) { heroPreview.src = data.hero_image_url; heroPreview.style.display = 'block'; }
-        else heroPreview.style.display = 'none';
-        updateHeroPreview();
-
-        imgListEl.innerHTML = '';
-        const imgs = data.images as ImgRow[] | null;
-        (imgs ?? []).forEach(img => imgListEl.appendChild(createImgRow(img.src, img.caption)));
-
-        if (bodyEditor) bodyEditor.commands.setContent(data.body ?? '');
-        else _pendingContent = data.body ?? '';
-
-        setPublishBtn(!!data.published);
-        const preview = document.getElementById('f-thumb-preview') as HTMLImageElement;
-        if (data.thumbnail) { preview.src = data.thumbnail; preview.style.display = 'block'; }
-        else preview.style.display = 'none';
-
-        const heroTabDot = document.getElementById('hero-tab-dot') as HTMLElement;
-        heroTabDot.style.display = (data.hero_title || data.hero_image_url) ? '' : 'none';
-      });
+      btn.addEventListener('click', () => openEditor((btn as HTMLElement).dataset.id!));
     });
 
     tbody.querySelectorAll('.btn-del-article').forEach(btn => {
@@ -886,6 +854,75 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     });
   }
 
+
+  // ── Load a row into the editor. A published row with pending edits opens on
+  //    the draft, not the live content, so you keep working where you left off.
+  async function openEditor(id: string) {
+    const { data: liveRow } = await supabase.from('articles_cms').select('*').eq('id', id).single();
+    if (!liveRow) return;
+    const data = withDraft(liveRow as Record<string, any>) as any;
+    openModal(id);
+    titleEl.textContent = 'Edit Article';
+    (field('f-id') as HTMLInputElement).value             = data.id;
+    (field('f-title') as HTMLInputElement).value          = data.title ?? '';
+    (field('f-slug') as HTMLInputElement).value           = data.slug ?? '';
+    (field('f-category') as HTMLInputElement).value       = data.category ?? '';
+    (field('f-description') as HTMLTextAreaElement).value = data.description ?? '';
+    (field('f-thumbnail') as HTMLInputElement).value      = data.thumbnail ?? '';
+
+    const sel = document.getElementById('f-bakery-slug') as unknown as HTMLSelectElement;
+    sel.value = data.bakery_slug ?? '';
+
+    const draftLocs = (liveRow.draft_payload as any)?._locations;
+    if (draftLocs) populateLocations(draftLocs);
+    else {
+      const { data: locRows } = await supabase.from('locations').select('label, address, lat, lng, hours, place_id').eq('article_slug', liveRow.slug).order('sort_order');
+      populateLocations(locRows as any);
+    }
+
+    (field('f-date') as HTMLInputElement).value             = data.date ?? '';
+    (field('f-episode-number') as HTMLInputElement).value   = data.episode_number ?? '';
+    (field('f-duration') as HTMLInputElement).value         = data.duration ?? '';
+    (field('f-video-id') as HTMLInputElement).value         = data.video_id ?? '';
+    (field('f-quote') as HTMLTextAreaElement).value         = data.quote ?? '';
+    populateCredits(data.credits as { title: string; name: string }[] | null);
+
+    (field('f-hero-tag') as HTMLInputElement).value         = data.hero_tag ?? '';
+    (field('f-hero-title') as HTMLInputElement).value       = data.hero_title ?? '';
+    (field('f-hero-subtitle') as HTMLTextAreaElement).value = data.hero_subtitle ?? '';
+    (field('f-hero-bg-word') as HTMLInputElement).value     = data.hero_bg_word ?? '';
+    (field('f-hero-image-url') as HTMLInputElement).value   = data.hero_image_url ?? '';
+
+    const heroPreview = document.getElementById('f-hero-img-preview') as HTMLImageElement;
+    if (data.hero_image_url) { heroPreview.src = data.hero_image_url; heroPreview.style.display = 'block'; }
+    else heroPreview.style.display = 'none';
+    updateHeroPreview();
+
+    imgListEl.innerHTML = '';
+    const imgs = data.images as ImgRow[] | null;
+    (imgs ?? []).forEach(img => imgListEl.appendChild(createImgRow(img.src, img.caption)));
+
+    if (bodyEditor) bodyEditor.commands.setContent(data.body ?? '');
+    else _pendingContent = data.body ?? '';
+
+    setPublishBtn(!!data.published);
+    const preview = document.getElementById('f-thumb-preview') as HTMLImageElement;
+    if (data.thumbnail) { preview.src = data.thumbnail; preview.style.display = 'block'; }
+    else preview.style.display = 'none';
+
+    const heroTabDot = document.getElementById('hero-tab-dot') as HTMLElement;
+    heroTabDot.style.display = (data.hero_title || data.hero_image_url) ? '' : 'none';
+    draftUi.setRow(liveRow as any);
+  }
+
+  const draftUi = initDraftUi({
+    endpoint: '/api/admin-articles-cms',
+    authHeaders,
+    reload: openEditor,
+    onMessage: (text, kind) => showMsg(modalMsg, text, kind),
+    onChanged: () => loadList(),
+  });
+
   // ── Status popup ──────────────────────────────────────────────
   let statusPopup: HTMLElement | null = null;
   let activePopupBadge: HTMLElement | null = null;
@@ -910,6 +947,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     badge.style.opacity = '';
     badge.style.pointerEvents = '';
     if (json.error) { showMsg(msgEl, `Error: ${json.error}`, 'error'); return; }
+    loadList();
     badge.dataset.published = String(newPublished);
     badge.className = `admin-badge admin-badge-${newPublished ? 'published' : 'draft'} toggle-publish`;
     badge.textContent = newPublished ? 'Published' : 'Draft';
@@ -962,15 +1000,9 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   function setPublishBtn(published: boolean) {
     currentPublished = published;
     const btn = document.getElementById('form-publish-btn') as HTMLButtonElement;
-    if (published) {
-      btn.textContent = 'Unpublish';
-      btn.className = 'wf-pill pill-light';
-      btn.style.color = 'var(--p-50)';
-    } else {
-      btn.textContent = 'Publish';
-      btn.className = 'wf-pill pill-amber';
-      btn.style.color = '';
-    }
+    // Publish is always the primary action now; Unpublish has its own button.
+    btn.className = 'wf-pill pill-amber';
+    btn.style.color = '';
   }
 
   // ── Modal open / close ────────────────────────────────────────
@@ -996,6 +1028,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       if (bodyEditor) bodyEditor.commands.setContent('');
       else _pendingContent = '';
       setPublishBtn(false);
+      draftUi.setRow(null);
       const sel = document.getElementById('f-bakery-slug') as unknown as HTMLSelectElement;
       sel.value = '';
     }
@@ -1097,7 +1130,9 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   });
 
   // ── Save ──────────────────────────────────────────────────────
-  async function saveArticle(published: boolean, openPreview = false) {
+  async function saveArticle(mode: 'draft' | 'publish', openPreview = false) {
+    if (mode === 'publish' && draftUi.isPublished()
+        && !confirm('Publish these changes? They replace what is live now. The current live version stays in History.')) return;
     const draftBtn   = document.getElementById('form-draft-btn') as HTMLButtonElement;
     const previewBtn = document.getElementById('form-preview-btn') as HTMLButtonElement;
     const publishBtn = document.getElementById('form-publish-btn') as HTMLButtonElement;
@@ -1142,44 +1177,53 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       hero_subtitle:  (field('f-hero-subtitle') as HTMLTextAreaElement).value.trim() || null,
       hero_bg_word:   (field('f-hero-bg-word') as HTMLInputElement).value.trim() || null,
       hero_image_url: (field('f-hero-image-url') as HTMLInputElement).value.trim() || null,
-      published,
-      updated_at:     new Date().toISOString(),
     };
 
-    const cmsRes = await fetch('/api/admin-articles-cms', {
-      method: 'POST',
-      headers: await authHeaders(),
-      body: JSON.stringify(id ? { action: 'update', id, payload } : { action: 'insert', payload }),
-    });
+    const locations = getLocationsData();
+    const req = !id
+      ? { action: 'insert', payload, locations }
+      : { action: mode === 'publish' ? 'publish' : 'save', id, payload, locations };
+
+    const post = async (b: unknown) => fetch('/api/admin-articles-cms', { method: 'POST', headers: await authHeaders(), body: JSON.stringify(b) });
+    let cmsRes = await post(req);
+    let json = await cmsRes.json().catch(() => ({ error: 'Save failed' })) as { error?: string; id?: string; mode?: string };
+    const savedId = id || json.id || '';
+
+    // A brand-new item published straight away: insert, then publish it.
+    if (cmsRes.ok && !id && mode === 'publish' && savedId) {
+      cmsRes = await post({ action: 'publish', id: savedId });
+      json = await cmsRes.json().catch(() => ({ error: 'Publish failed' })) as typeof json;
+    }
 
     [draftBtn, previewBtn, publishBtn].forEach(b => { b.disabled = false; });
 
     if (!cmsRes.ok) {
-      const json = await cmsRes.json().catch(() => ({ error: 'Save failed' }));
       if (cmsRes.status === 401) { window.location.href = '/auth/login'; return; }
-      showMsg(modalMsg, (json as { error?: string }).error ?? 'Save failed', 'error'); return;
+      showMsg(modalMsg, json.error ?? 'Save failed', 'error'); return;
     }
 
-    await fetch('/api/admin-locations', {
-      method: 'POST',
-      headers: await authHeaders(),
-      body: JSON.stringify({ article_slug: slug, locations: getLocationsData() }),
-    });
-
     if (openPreview) {
-      setPublishBtn(published);
-      window.open(`/kneed-to-know/${slug}?preview=true`, '_blank');
+      (field('f-id') as HTMLInputElement).value = savedId;
+      const { data: fresh } = await supabase.from('articles_cms').select('id, slug, published, draft_payload, draft_updated_at').eq('id', savedId).single();
+      if (fresh) draftUi.setRow(fresh as any);
+      // Preview is addressed by the live slug; a slug edit only takes effect on publish.
+      window.open(`/kneed-to-know/${(fresh as any)?.slug ?? slug}?preview=true`, '_blank');
       return;
     }
 
     closeModal();
-    showMsg(msgEl, `Article ${id ? 'updated' : 'added'} successfully.`, 'success');
+    const done = mode === 'publish'
+      ? 'Article published.'
+      : json.mode === 'draft'
+        ? 'Draft saved. The live page has not changed; click Publish changes when ready.'
+        : `Article ${id ? 'saved' : 'added'} as a draft.`;
+    showMsg(msgEl, done, 'success');
     loadList();
   }
 
-  document.getElementById('form-draft-btn')!.addEventListener('click', () => saveArticle(false));
-  document.getElementById('form-preview-btn')!.addEventListener('click', () => saveArticle(false, true));
-  document.getElementById('form-publish-btn')!.addEventListener('click', () => saveArticle(!currentPublished));
+  document.getElementById('form-draft-btn')!.addEventListener('click', () => saveArticle('draft'));
+  document.getElementById('form-preview-btn')!.addEventListener('click', () => saveArticle('draft', true));
+  document.getElementById('form-publish-btn')!.addEventListener('click', () => saveArticle('publish'));
 
   // ── Sorting ───────────────────────────────────────────────────
   let sortCol = 'modified';

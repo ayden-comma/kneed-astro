@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { cld, W } from '../../lib/cloudinary.js';
 import { supabase } from '../../lib/supabase';
+import { withDraft } from '../../lib/cmsDraft';
 import { micromark } from 'micromark';
 import { articleLd, videoObjectLd, breadcrumbLd } from '../../lib/structuredData';
 
@@ -13,8 +14,10 @@ const isPreview = Astro.url.searchParams.get('preview') === 'true';
 let q = supabase.from('articles_cms').select('*').eq('slug', slug);
 if (!isPreview) q = q.eq('published', true);
 const { data: rows } = await q.limit(1);
-const row = rows?.[0];
-if (!row) return new Response(null, { status: 404 });
+const liveRow = rows?.[0];
+if (!liveRow) return new Response(null, { status: 404 });
+// Preview shows pending edits; the public page only ever reads the live columns.
+const row = isPreview ? withDraft(liveRow) : liveRow;
 
 // Prev/next by updated_at order
 const { data: allRows } = await supabase
