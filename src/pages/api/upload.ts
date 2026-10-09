@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
-import { createClient } from '@supabase/supabase-js';
 import { env } from 'cloudflare:workers';
+import { requireAdmin } from '../../lib/requireAdmin';
 
 export const prerender = false;
 
@@ -22,16 +22,11 @@ export const POST: APIRoute = async ({ request }) => {
     });
 
   // ── Auth ─────────────────────────────────────────────────────
-  const authHeader = request.headers.get('Authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!token) return json({ error: 'Unauthorized' }, 401);
-
-  const supabase = createClient(
-    import.meta.env.PUBLIC_SUPABASE_URL as string,
-    import.meta.env.PUBLIC_SUPABASE_ANON_KEY as string,
-  );
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-  if (authError || !user) return json({ error: 'Unauthorized' }, 401);
+  // Admins only. Every caller is an admin screen (bakeries, articles, campaigns);
+  // this used to accept any signed-in member, which let anyone with an account
+  // upload unlimited images into the kneed Cloudinary folder.
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return json({ error: auth.status === 401 ? 'Unauthorized' : 'Forbidden' }, auth.status);
 
   // ── Parse form ───────────────────────────────────────────────
   let formData: FormData;

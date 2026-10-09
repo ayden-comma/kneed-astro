@@ -50,6 +50,15 @@ export function reportWriteError(err: WriteError, message: string): boolean {
   if (!err) return false;
   console.error('[gated] write failed:', err);
   if (isAuthError(err)) { goToLogin(); return true; }
+  // Limits enforced by the database (docs/migrations/2026-10-09-security-fixes.sql).
+  if (/rate_limited/.test(err.message ?? '')) {
+    flash("You've posted a lot in the last hour. Give it a little while, then try again.");
+    return true;
+  }
+  if (err.code === '23514' && /comments_content_length/.test(err.message ?? '')) {
+    flash('Comments can be up to 2,000 characters. Trim it a little and try again.');
+    return true;
+  }
   flash(message);
   return true;
 }

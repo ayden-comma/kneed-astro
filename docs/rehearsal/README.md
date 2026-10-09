@@ -23,3 +23,13 @@ the top of the script).
 the page after sign-in; a failed save puts the button back and says so; a stale
 session sends you to sign in; /auth/logout asks instead of signing out on load;
 menu Sign out works on click; the admin can't be framed by another site.
+
+## Security fixes (profiles role, comments, TRUNCATE)
+
+`replica-audit.sql` layers production's profiles and comments setup (policies and
+grants exactly as read on 2026-10-09) onto `replica.sql`. `security-rehearsal.mts
+before` reproduces the problems against it: a member promotes themselves to admin,
+a 200,000-character comment, unlimited comments. Apply
+`docs/migrations/2026-10-09-security-fixes.sql`, then `security-rehearsal.mts after`:
+13 checks, all pass (exploit blocked, real profile edits and admin tools still work,
+2,000-character cap, 10 comments per hour, no TRUNCATE for public roles).

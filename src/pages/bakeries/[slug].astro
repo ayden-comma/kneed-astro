@@ -386,7 +386,7 @@ const jsonLd: unknown[] = [
       </div>
 
       <div id="comment-form-wrap">
-        <textarea id="comment-input" class="comment-input" placeholder="Share your thoughts about this bakery..." rows="3"></textarea>
+        <textarea id="comment-input" class="comment-input" maxlength="2000" placeholder="Share your thoughts about this bakery..." rows="3"></textarea>
         <button id="comment-submit" class="wf-pill pill-amber" type="button">Post comment</button>
       </div>
 
@@ -1377,7 +1377,7 @@ main {
           </div>
           ${!isReply ? `<div class="comment-replies" data-parent="${esc(c.id)}"></div>
           <div class="reply-form-wrap" data-parent="${esc(c.id)}" style="display:none">
-            <textarea class="reply-input comment-input" rows="2" placeholder="Write a reply…"></textarea>
+            <textarea class="reply-input comment-input" rows="2" maxlength="2000" placeholder="Write a reply…"></textarea>
             <button class="reply-submit wf-pill pill-amber" style="margin-top:0.5rem; font-size:0.75rem; padding:0.35rem 0.85rem;">Post reply</button>
           </div>` : ''}
         </div>
