@@ -19,12 +19,14 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   <div class="admin-section">
     <div id="admin-msg" class="admin-msg"></div>
     <div class="admin-filters">
+      <input type="search" class="admin-filter-select" id="sub-search" placeholder="Search bakery, suburb, person, notes…" style="flex:1; min-width:12rem;" autocomplete="off" />
       <select class="admin-filter-select" id="status-filter">
-        <option value="">All statuses</option>
         <option value="pending">Pending</option>
         <option value="shortlisted">Shortlisted</option>
         <option value="rejected">Rejected</option>
+        <option value="">All statuses</option>
       </select>
+      <span id="sub-count" style="font-size:0.75rem; color:var(--p-35); align-self:center;"></span>
     </div>
     <div id="sub-list">
       <div class="admin-empty">Loading…</div>
@@ -35,20 +37,26 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 <script>
   import { supabase } from '../../lib/supabase';
 
+  type Status = 'pending' | 'shortlisted' | 'rejected';
   type SubRow = {
     id: string; bakery_name: string; submitted_name: string | null;
-    user_id: string | null;
+    submitted_by: string | null;          // user id when the submitter was signed in
     email: string | null; phone: string | null;
     suburb: string | null; address: string | null;
     website: string | null; instagram: string | null; notes: string | null;
-    status: string; created_at: string;
-    profiles: { display_name: string | null } | null;
+    status: Status; created_at: string;
+    contacted_at?: string | null;         // set when Contact is clicked (2026-10-09 migration)
+    display_name?: string | null;         // filled from public_profiles
   };
 
-  const msgEl  = document.getElementById('admin-msg')!;
-  const listEl = document.getElementById('sub-list')!;
+  const msgEl    = document.getElementById('admin-msg')!;
+  const listEl   = document.getElementById('sub-list')!;
+  const searchEl = document.getElementById('sub-search') as HTMLInputElement;
+  const statusEl = document.getElementById('status-filter') as unknown as HTMLSelectElement;
+  const countEl  = document.getElementById('sub-count')!;
 
   let _allRows: SubRow[] = [];
+  const checked = new Set<string>();
 
   function showMsg(text: string, type: 'error' | 'success') {
     msgEl.textContent = text;
@@ -65,47 +73,85 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  const submitterOf = (s: SubRow) => s.submitted_name || s.display_name || s.email || 'Anonymous';
+
+  const STATUS_LABEL: Record<Status, string> = { pending: 'Pending', shortlisted: 'Shortlisted', rejected: 'Rejected' };
+
+  function actionsFor(s: SubRow): string {
+    const b = (cls: string, act: string, label: string) =>
+      `<button class="sub-btn ${cls}" data-act="${act}" data-id="${s.id}">${label}</button>`;
+    if (s.status === 'pending')     return b('sub-btn-approve', 'shortlisted', 'Shortlist') + b('sub-btn-reject', 'rejected', 'Reject');
+    if (s.status === 'shortlisted') return b('sub-btn-reject', 'pending', 'Back to pending') + b('sub-btn-reject', 'rejected', 'Reject');
+    return b('sub-btn-reject', 'pending', 'Back to pending');
+  }
+
   function cardHTML(s: SubRow) {
-    const submitter = s.submitted_name || s.profiles?.display_name || s.email || 'Anonymous';
     const location  = [s.suburb, s.address].filter(Boolean).join(' · ');
     const links = [
       s.website   ? `<a class="sub-card-link" href="${esc(s.website.startsWith('http') ? s.website : 'https://' + s.website)}" target="_blank" rel="noopener noreferrer">${esc(s.website)}</a>` : '',
       s.instagram ? `<a class="sub-card-link" href="https://instagram.com/${esc(s.instagram.replace('@', ''))}" target="_blank" rel="noopener noreferrer">${esc(s.instagram)}</a>` : '',
     ].filter(Boolean).join('');
-    const shortlistReject = s.status === 'pending'
-      ? `<button class="sub-btn sub-btn-approve btn-shortlist" data-id="${s.id}" data-name="${esc(s.bakery_name)}">Shortlist</button>
-         <button class="sub-btn sub-btn-reject btn-reject" data-id="${s.id}">Reject</button>`
-      : '';
     const contactBtn = s.email
       ? (() => {
           const subject = encodeURIComponent('(K)Need — ' + s.bakery_name);
           const body    = encodeURIComponent(
             'Hi,\n\nThank you for submitting ' + s.bakery_name + ' to (K)Need.\n\nWe\'d love to learn more about your bakery and discuss filming a story with you.\n\nCould we arrange a time to chat?\n\nBest,\nThe (K)Need Team'
           );
-          return `<a class="sub-btn sub-btn-contact" href="mailto:${esc(s.email)}?subject=${subject}&body=${body}">Contact →</a>`;
+          return `<a class="sub-btn sub-btn-contact" data-contact="${s.id}" href="mailto:${esc(s.email)}?subject=${subject}&body=${body}">Contact →</a>`;
         })()
       : `<span class="sub-no-email">No email</span>`;
+    const contacted = s.contacted_at ? ` · Contacted ${fmtDate(s.contacted_at)}` : '';
     return `<div class="sub-card" data-id="${s.id}" data-status="${s.status}">
       <div class="sub-card-top">
         <div style="display:flex; align-items:center; gap:0.6rem;">
-          <input type="checkbox" class="sub-select-cb" data-id="${s.id}" style="cursor:pointer; flex-shrink:0;" />
+          <input type="checkbox" class="sub-select-cb" data-id="${s.id}" ${checked.has(s.id) ? 'checked' : ''} style="cursor:pointer; flex-shrink:0;" />
           <div class="sub-card-name">${esc(s.bakery_name)}</div>
         </div>
-        <span class="sub-status-badge sub-status-${s.status}">${s.status}</span>
+        <span class="sub-status-badge sub-status-${s.status}">${STATUS_LABEL[s.status] ?? esc(s.status)}</span>
       </div>
       ${location ? `<div class="sub-card-meta">${esc(location)}</div>` : ''}
       ${(s.email || s.phone) ? `<div class="sub-card-meta">${esc([s.email, s.phone].filter(Boolean).join(' · '))}</div>` : ''}
       ${links    ? `<div class="sub-card-links">${links}</div>`   : ''}
       ${s.notes  ? `<div class="sub-card-notes">${esc(s.notes)}</div>` : ''}
       <div class="sub-card-footer">
-        <div class="sub-card-by">${esc(submitter)} · ${fmtDate(s.created_at)}</div>
+        <div class="sub-card-by">${esc(submitterOf(s))} · ${fmtDate(s.created_at)}${contacted}</div>
         <div class="sub-card-actions">
           ${contactBtn}
-          ${shortlistReject}
-          <button class="sub-btn sub-btn-delete btn-del" data-id="${s.id}">Delete</button>
+          ${actionsFor(s)}
+          <button class="sub-btn sub-btn-delete" data-act="delete" data-id="${s.id}">Delete</button>
         </div>
       </div>
     </div>`;
+  }
+
+  function visibleRows(): SubRow[] {
+    const q = searchEl.value.trim().toLowerCase();
+    const st = statusEl.value;
+    return _allRows.filter(s =>
+      (!st || s.status === st) &&
+      (!q || [s.bakery_name, s.suburb, s.address, submitterOf(s), s.email, s.notes, s.instagram, s.website]
+               .some(v => (v ?? '').toLowerCase().includes(q))));
+  }
+
+  function emptyText(): string {
+    if (_allRows.length === 0) return "No suggestions yet. They'll land here when people use the Suggest a bakery form.";
+    if (searchEl.value.trim()) return 'Nothing matches that search.';
+    if (statusEl.value === 'pending') return 'Nothing waiting. New suggestions land here.';
+    if (statusEl.value === 'shortlisted') return 'Nothing shortlisted yet.';
+    if (statusEl.value === 'rejected') return 'Nothing rejected.';
+    return 'No suggestions yet.';
+  }
+
+  function render() {
+    const n = (st: Status) => _allRows.filter(s => s.status === st).length;
+    // Counts live in the dropdown so the default Pending view never hides work elsewhere.
+    for (const opt of Array.from(statusEl.options)) {
+      const st = opt.value as Status | '';
+      opt.textContent = st ? `${STATUS_LABEL[st]} (${n(st)})` : `All statuses (${_allRows.length})`;
+    }
+    const rows = visibleRows();
+    countEl.textContent = _allRows.length ? `${rows.length} shown` : '';
+    listEl.innerHTML = rows.length ? rows.map(cardHTML).join('') : `<div class="admin-empty">${esc(emptyText())}</div>`;
   }
 
   async function loadList() {
@@ -113,110 +159,95 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       .from('submissions')
       .select('*')
       .order('created_at', { ascending: false });
-    if (error) { listEl.innerHTML = `<div class="admin-empty">Error: ${error.message}</div>`; return; }
+    if (error) { listEl.innerHTML = `<div class="admin-empty">Error: ${esc(error.message)}</div>`; return; }
     _allRows = (data ?? []) as unknown as SubRow[];
 
-    const userIds = [...new Set(_allRows.map(s => s.user_id).filter((id): id is string => !!id))];
+    // Signed-in submitters: show their display name. (This used to look up a
+    // non-existent user_id column, so names never appeared.)
+    const userIds = [...new Set(_allRows.map(s => s.submitted_by).filter((id): id is string => !!id))];
     if (userIds.length) {
-      const { data: profiles } = await supabase
-        .from('public_profiles')
-        .select('id, display_name')
-        .in('id', userIds);
-      const nameMap = Object.fromEntries(
-        (profiles ?? []).map((p: { id: string; display_name: string | null }) => [p.id, p.display_name])
-      );
-      _allRows.forEach(s => { s.profiles = s.user_id ? { display_name: nameMap[s.user_id] ?? null } : null; });
+      const { data: profiles } = await supabase.from('public_profiles').select('id, display_name').in('id', userIds);
+      const nameMap = new Map((profiles ?? []).map((p: { id: string; display_name: string | null }) => [p.id, p.display_name]));
+      _allRows.forEach(s => { s.display_name = s.submitted_by ? nameMap.get(s.submitted_by) ?? null : null; });
     }
-
-    listEl.innerHTML = _allRows.length === 0
-      ? '<div class="admin-empty">No submissions yet.</div>'
-      : _allRows.map(cardHTML).join('');
-    bindActions();
+    render();
   }
 
-  function bindActions() {
-    // Status filter
-    document.getElementById('status-filter')!.onchange = (e) => {
-      const val = (e.target as HTMLSelectElement).value;
-      listEl.querySelectorAll<HTMLElement>('.sub-card').forEach(card => {
-        card.style.display = (!val || card.dataset.status === val) ? '' : 'none';
-      });
-    };
-
-    // Shortlist
-    listEl.querySelectorAll('.btn-shortlist').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id   = (btn as HTMLElement).dataset.id!;
-        const name = (btn as HTMLElement).dataset.name!;
-        if (!confirm(`Shortlist "${name}"?`)) return;
-        const { error } = await supabase.from('submissions').update({ status: 'shortlisted' }).eq('id', id);
-        if (error) { showMsg(error.message, 'error'); return; }
-        const card = listEl.querySelector<HTMLElement>(`.sub-card[data-id="${id}"]`);
-        if (card) {
-          card.dataset.status = 'shortlisted';
-          const badge = card.querySelector('.sub-status-badge');
-          if (badge) { badge.className = 'sub-status-badge sub-status-shortlisted'; badge.textContent = 'shortlisted'; }
-          card.querySelectorAll('.btn-shortlist, .btn-reject').forEach(b => b.remove());
-        }
-        showMsg(`"${name}" shortlisted.`, 'success');
-      });
-    });
-
-    // Reject
-    listEl.querySelectorAll('.btn-reject').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id = (btn as HTMLElement).dataset.id!;
-        if (!confirm('Reject this submission?')) return;
-        const { error } = await supabase.from('submissions').update({ status: 'rejected' }).eq('id', id);
-        if (error) { showMsg(error.message, 'error'); return; }
-        const card = listEl.querySelector<HTMLElement>(`.sub-card[data-id="${id}"]`);
-        if (card) {
-          card.dataset.status = 'rejected';
-          const badge = card.querySelector('.sub-status-badge');
-          if (badge) { badge.className = 'sub-status-badge sub-status-rejected'; badge.textContent = 'rejected'; }
-          card.querySelectorAll('.btn-shortlist, .btn-reject').forEach(b => b.remove());
-        }
-        showMsg('Submission rejected.', 'success');
-      });
-    });
-
-    // Delete
-    listEl.querySelectorAll('.btn-del').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id = (btn as HTMLElement).dataset.id!;
-        if (!confirm('Delete this submission permanently?')) return;
-        const { error } = await supabase.from('submissions').delete().eq('id', id);
-        if (error) { showMsg(error.message, 'error'); return; }
-        listEl.querySelector(`.sub-card[data-id="${id}"]`)?.remove();
-        showMsg('Submission deleted.', 'success');
-      });
-    });
+  async function setStatus(id: string, next: Status) {
+    const row = _allRows.find(s => s.id === id);
+    if (!row) return;
+    const verbs: Record<Status, string> = { pending: 'Move back to pending', shortlisted: 'Shortlist', rejected: 'Reject' };
+    if (!confirm(`${verbs[next]} "${row.bakery_name}"?`)) return;
+    const { error } = await supabase.from('submissions').update({ status: next }).eq('id', id);
+    if (error) { showMsg(error.message, 'error'); return; }
+    row.status = next;
+    render();
+    showMsg(`"${row.bakery_name}" is now ${STATUS_LABEL[next].toLowerCase()}.`, 'success');
   }
 
-  // Select all checkbox
+  async function del(id: string) {
+    const row = _allRows.find(s => s.id === id);
+    if (!row || !confirm(`Delete "${row.bakery_name}" permanently?`)) return;
+    const { error } = await supabase.from('submissions').delete().eq('id', id);
+    if (error) { showMsg(error.message, 'error'); return; }
+    _allRows = _allRows.filter(s => s.id !== id);
+    checked.delete(id);
+    render();
+    showMsg('Submission deleted.', 'success');
+  }
+
+  async function markContacted(id: string) {
+    const row = _allRows.find(s => s.id === id);
+    if (!row) return;
+    const now = new Date().toISOString();
+    // Best effort: the mail app opens regardless. Before the contacted_at column
+    // exists this update fails quietly and nothing is shown.
+    const { error } = await supabase.from('submissions').update({ contacted_at: now }).eq('id', id);
+    if (!error) { row.contacted_at = now; render(); }
+  }
+
+  // One delegated listener; cards are re-rendered from state after every change.
+  listEl.addEventListener('click', (e) => {
+    const t = e.target as HTMLElement;
+    const contact = t.closest<HTMLElement>('[data-contact]');
+    if (contact) { void markContacted(contact.dataset.contact!); return; }   // link still opens mail
+    const btn = t.closest<HTMLElement>('button[data-act]');
+    if (!btn) return;
+    const act = btn.dataset.act!;
+    if (act === 'delete') void del(btn.dataset.id!);
+    else void setStatus(btn.dataset.id!, act as Status);
+  });
+  listEl.addEventListener('change', (e) => {
+    const cb = e.target as HTMLInputElement;
+    if (!cb.classList.contains('sub-select-cb')) return;
+    if (cb.checked) checked.add(cb.dataset.id!); else checked.delete(cb.dataset.id!);
+  });
+  searchEl.addEventListener('input', render);
+  statusEl.addEventListener('change', render);
+
+  // Select all: the rows currently shown.
   document.getElementById('select-all')!.addEventListener('change', (e) => {
-    const checked = (e.target as HTMLInputElement).checked;
-    listEl.querySelectorAll<HTMLInputElement>('.sub-select-cb').forEach(cb => {
-      const card = cb.closest<HTMLElement>('.sub-card');
-      if (!card || card.style.display === 'none') return;
-      cb.checked = checked;
-    });
+    const on = (e.target as HTMLInputElement).checked;
+    visibleRows().forEach(s => { if (on) checked.add(s.id); else checked.delete(s.id); });
+    render();
   });
 
-  // CSV download (selected only)
+  // CSV download (selected only).
+  // Values come from a public form, so anything starting with = + - @ (or a tab/CR)
+  // is prefixed with ' to stop spreadsheet apps running it as a formula.
+  const csvCell = (v: string | null) => {
+    let t = v ?? '';
+    if (/^[=+\-@\t\r]/.test(t)) t = "'" + t;
+    return `"${t.replace(/"/g, '""')}"`;
+  };
   document.getElementById('btn-csv')!.addEventListener('click', () => {
-    const checkedIds = new Set(
-      Array.from(listEl.querySelectorAll<HTMLInputElement>('.sub-select-cb:checked')).map(cb => cb.dataset.id!)
-    );
-    if (checkedIds.size === 0) { alert('Please select at least one submission.'); return; }
-    const selected = _allRows.filter(s => checkedIds.has(s.id));
-    const headers  = ['Name', 'Email', 'Phone', 'Bakery Name', 'Suburb', 'Address', 'Website', 'Instagram', 'Notes', 'Status', 'Date'];
-    const escape   = (v: string | null) => `"${(v ?? '').replace(/"/g, '""')}"`;
-    const csvRows  = selected.map(s => {
-      const name = s.submitted_name || s.profiles?.display_name || s.email || 'Anonymous';
-      return [name, s.email, s.phone, s.bakery_name, s.suburb, s.address, s.website, s.instagram, s.notes, s.status, fmtDate(s.created_at)]
-        .map(escape).join(',');
-    });
+    const selected = _allRows.filter(s => checked.has(s.id));
+    if (selected.length === 0) { alert('Please select at least one submission.'); return; }
+    const headers  = ['Name', 'Email', 'Phone', 'Bakery Name', 'Suburb', 'Address', 'Website', 'Instagram', 'Notes', 'Status', 'Date', 'Contacted'];
+    const csvRows  = selected.map(s =>
+      [submitterOf(s), s.email, s.phone, s.bakery_name, s.suburb, s.address, s.website, s.instagram, s.notes,
+       s.status, fmtDate(s.created_at), s.contacted_at ? fmtDate(s.contacted_at) : '']
+        .map(csvCell).join(','));
     const csv  = [headers.join(','), ...csvRows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url  = URL.createObjectURL(blob);

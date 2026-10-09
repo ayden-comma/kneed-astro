@@ -33,3 +33,17 @@ a 200,000-character comment, unlimited comments. Apply
 `docs/migrations/2026-10-09-security-fixes.sql`, then `security-rehearsal.mts after`:
 13 checks, all pass (exploit blocked, real profile edits and admin tools still work,
 2,000-character cap, 10 comments per hour, no TRUNCATE for public roles).
+
+## IP retention job
+
+`docs/migrations/2026-10-09-ip-retention.sql` rehearsed with pg_cron loaded
+(`shared_preload_libraries = 'pg_cron'`): IPs older than 30 days cleared, newer kept,
+re-running replaces the job instead of duplicating it, the public roles can't call the
+function, and a 5-second test schedule confirmed the scheduler fires it on its own.
+
+## Submissions screen
+
+`browser-submissions.mjs`, as a signed-in admin against production-shaped submissions
+(same RLS policies and grants): 15 checks covering the Pending default, counts, search,
+shortlist / back to pending, Contact stamping `contacted_at`, the CSV formula guard,
+delete, and persistence after reload.
