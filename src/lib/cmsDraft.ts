@@ -1,12 +1,14 @@
 // Draft / publish / revision logic shared by the bakeries and articles CMS routes.
 //
-// The rule: once a row is published, the live columns only change on Publish.
-// Edits in between are stored whole in `draft_payload` (including the locations
-// list as `_locations`). Rows that have never been published have no live page
-// to protect, so their edits are written straight to the row.
+// The rule: once a row is published, its live columns only change on Publish.
+// Edits in between are stored whole in the private `cms_drafts` table
+// (including the locations list as `_locations`), which only the service role
+// can read, so pending edits never leak through the public API. Rows that have
+// never been published have no live page to protect, so their edits are
+// written straight to the row.
 //
-// Every publish appends a full snapshot to `cms_revisions`, which is what
-// "History → Restore" loads back into the draft.
+// Every publish appends a full snapshot to `cms_revisions` (also service role
+// only), which is what "History → Restore" loads back into the draft.
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -17,10 +19,13 @@ export type LocationInput = {
   hours?: string | null; place_id?: string | null;
 };
 
+type Draft = { payload: Record<string, any>; updated_at: string; updated_by: string | null };
+
 // Columns that are never content: system, status and draft bookkeeping.
 const NON_CONTENT = new Set([
-  'id', 'created_at', 'updated_at', 'published', 'published_at', 'announced_at',
-  'draft_payload', 'draft_updated_at', '_locations',
+  'id', 'created_at', 'updated_at', 'published', 'published_at', 'announced_at', '_locations',
+  // Legacy names from the first version of this feature; ignored if a client still sends them.
+  'draft_payload', 'draft_updated_at',
 ]);
 
 function contentOnly(obj: Record<string, unknown> | null | undefined): Record<string, unknown> {
@@ -33,7 +38,7 @@ function slugKey(table: CmsTable) {
   return table === 'bakeries_cms' ? 'bakery_slug' : 'article_slug';
 }
 
-async function readLocations(db: SupabaseClient, table: CmsTable, slug: string) {
+export async function readLocations(db: SupabaseClient, table: CmsTable, slug: string) {
   const { data } = await db.from('locations')
     .select('label, address, lat, lng, hours, place_id')
     .eq(slugKey(table), slug).order('sort_order');
@@ -44,7 +49,7 @@ async function writeLocations(db: SupabaseClient, table: CmsTable, slug: string,
   const key = slugKey(table);
   const slugs = oldSlug && oldSlug !== slug ? [slug, oldSlug] : [slug];
   const { error: delErr } = await db.from('locations').delete().in(key, slugs);
-  if (delErr) throw new Error(delErr.message);
+  if (delErr) throw new HttpError(500, delErr.message);
   if (!locations.length) return;
   const rows = locations.map((l, i) => ({
     [key]: slug, label: l.label || null, address: l.address || null,
@@ -52,13 +57,34 @@ async function writeLocations(db: SupabaseClient, table: CmsTable, slug: string,
     place_id: l.place_id || null, sort_order: i,
   }));
   const { error } = await db.from('locations').insert(rows);
-  if (error) throw new Error(error.message);
+  if (error) throw new HttpError(500, error.message);
 }
 
 async function getRow(db: SupabaseClient, table: CmsTable, id: string) {
   const { data, error } = await db.from(table).select('*').eq('id', id).single();
   if (error || !data) throw new HttpError(404, error?.message ?? 'Not found');
   return data as Record<string, any>;
+}
+
+export async function getDraft(db: SupabaseClient, table: CmsTable, id: string): Promise<Draft | null> {
+  const { data, error } = await db.from('cms_drafts')
+    .select('payload, updated_at, updated_by')
+    .eq('table_name', table).eq('record_id', id).maybeSingle();
+  if (error) throw new HttpError(500, error.message);
+  return (data as Draft | null) ?? null;
+}
+
+async function putDraft(db: SupabaseClient, table: CmsTable, id: string, payload: Record<string, unknown>, by?: string) {
+  const { error } = await db.from('cms_drafts').upsert({
+    table_name: table, record_id: id, payload,
+    updated_at: new Date().toISOString(), updated_by: by ?? null,
+  }, { onConflict: 'table_name,record_id' });
+  if (error) throw new HttpError(500, error.message);
+}
+
+async function dropDraft(db: SupabaseClient, table: CmsTable, id: string) {
+  const { error } = await db.from('cms_drafts').delete().eq('table_name', table).eq('record_id', id);
+  if (error) throw new HttpError(500, error.message);
 }
 
 export class HttpError extends Error {
@@ -68,22 +94,21 @@ export class HttpError extends Error {
 type Ctx = { db: SupabaseClient; table: CmsTable; userEmail?: string };
 
 /** Save from the editor. Published rows → draft only. Unpublished rows → written directly. */
-export async function saveCms({ db, table }: Ctx, id: string, payload: Record<string, unknown>, locations?: LocationInput[]) {
+export async function saveCms({ db, table, userEmail }: Ctx, id: string, payload: Record<string, unknown>, locations?: LocationInput[]) {
   const row = await getRow(db, table, id);
   const content = contentOnly(payload);
 
   if (row.published) {
-    const draft = { ...content, _locations: locations ?? (row.draft_payload?._locations ?? await readLocations(db, table, row.slug)) };
-    const { error } = await db.from(table)
-      .update({ draft_payload: draft, draft_updated_at: new Date().toISOString() })
-      .eq('id', id);
-    if (error) throw new HttpError(500, error.message);
+    const existing = locations ? null : await getDraft(db, table, id);
+    const locs = locations ?? existing?.payload?._locations ?? await readLocations(db, table, row.slug);
+    await putDraft(db, table, id, { ...content, _locations: locs }, userEmail);
     return { mode: 'draft' as const };
   }
 
-  // Clear any draft left over from when the row was live, so it can't shadow this save.
-  const { error } = await db.from(table).update({ ...content, draft_payload: null, draft_updated_at: null }).eq('id', id);
+  const { error } = await db.from(table).update(content).eq('id', id);
   if (error) throw new HttpError(500, error.message);
+  // Clear any draft left over from when the row was live, so it can't shadow this save.
+  await dropDraft(db, table, id);
   if (locations) await writeLocations(db, table, String(content.slug ?? row.slug), locations, row.slug);
   return { mode: 'direct' as const };
 }
@@ -103,27 +128,22 @@ export async function insertCms({ db, table }: Ctx, payload: Record<string, unkn
  */
 export async function publishCms({ db, table, userEmail }: Ctx, id: string, payload?: Record<string, unknown>, locations?: LocationInput[], note?: string) {
   const row = await getRow(db, table, id);
-  const draft = row.draft_payload as Record<string, any> | null;
+  const draft = (await getDraft(db, table, id))?.payload ?? null;
 
   const content = payload ? contentOnly(payload) : draft ? contentOnly(draft) : contentOnly(row);
   const locs: LocationInput[] = locations
     ?? (payload ? undefined : draft?._locations)
     ?? await readLocations(db, table, row.slug);
 
-  const now = new Date().toISOString();
-  const update: Record<string, unknown> = {
-    ...content,
-    published: true,
-    draft_payload: null,
-    draft_updated_at: null,
-  };
-  if (!row.published_at) update.published_at = now;
+  const update: Record<string, unknown> = { ...content, published: true };
+  if (!row.published_at) update.published_at = new Date().toISOString();
 
   const { error } = await db.from(table).update(update).eq('id', id);
   if (error) throw new HttpError(500, error.message);
 
   const newSlug = String(content.slug ?? row.slug);
   await writeLocations(db, table, newSlug, locs, row.slug);
+  await dropDraft(db, table, id);
 
   // Snapshot what is now live. Full row content, so a restore needs nothing else.
   const snapshot = { ...contentOnly({ ...row, ...content }), _locations: locs };
@@ -143,8 +163,7 @@ export async function unpublishCms({ db, table }: Ctx, id: string) {
 }
 
 export async function discardDraftCms({ db, table }: Ctx, id: string) {
-  const { error } = await db.from(table).update({ draft_payload: null, draft_updated_at: null }).eq('id', id);
-  if (error) throw new HttpError(500, error.message);
+  await dropDraft(db, table, id);
 }
 
 export async function listRevisionsCms({ db, table }: Ctx, id: string) {
@@ -170,6 +189,25 @@ export async function revertCms(ctx: Ctx, id: string, revisionId: string) {
   return saveCms(ctx, id, payload, (payload._locations ?? []) as LocationInput[]);
 }
 
+/** Everything the editor needs to open one item: live row, its draft (if any), and the locations to show. */
+export async function getForEditor({ db, table }: Ctx, id: string) {
+  const row = await getRow(db, table, id);
+  const draft = await getDraft(db, table, id);
+  const locations = (draft?.payload?._locations as LocationInput[] | undefined) ?? await readLocations(db, table, row.slug);
+  return {
+    row,
+    draft: draft ? { payload: draft.payload, updated_at: draft.updated_at, updated_by: draft.updated_by } : null,
+    locations,
+  };
+}
+
+/** Ids of rows with a pending draft, for the "Changes pending" tag in the list. */
+export async function pendingIds({ db, table }: Ctx) {
+  const { data, error } = await db.from('cms_drafts').select('record_id, updated_at').eq('table_name', table);
+  if (error) throw new HttpError(500, error.message);
+  return (data ?? []) as { record_id: string; updated_at: string }[];
+}
+
 /** Shared POST dispatcher for both CMS routes. */
 export async function handleCmsAction(ctx: Ctx, body: any) {
   const { db, table } = ctx;
@@ -181,9 +219,13 @@ export async function handleCmsAction(ctx: Ctx, body: any) {
     case 'discard':   await discardDraftCms(ctx, req(body.id)); return { ok: true };
     case 'revisions': return { revisions: await listRevisionsCms(ctx, req(body.id)) };
     case 'revert':    return revertCms(ctx, req(body.id), req(body.revision_id));
+    case 'get':       return getForEditor(ctx, req(body.id));
+    case 'pending':   return { pending: await pendingIds(ctx) };
     case 'delete': {
-      const { error } = await db.from(table).delete().eq('id', req(body.id));
+      const id = req(body.id);
+      const { error } = await db.from(table).delete().eq('id', id);
       if (error) throw new HttpError(500, error.message);
+      await dropDraft(db, table, id);   // revisions are kept: they're the audit trail
       return { ok: true };
     }
     default: throw new HttpError(400, 'Invalid action');
@@ -195,9 +237,9 @@ function req(v: unknown): string {
   return v;
 }
 
-/** Overlay a row's draft on its live content. Used by ?preview=true and the editor. */
-export function withDraft<T extends Record<string, any>>(row: T): T {
-  if (!row?.draft_payload) return row;
-  const { _locations, ...rest } = row.draft_payload as Record<string, any>;
+/** Overlay a draft payload on a row's live content. Used by preview and the editor. */
+export function withDraft<T extends Record<string, any>>(row: T, draftPayload?: Record<string, any> | null): T {
+  if (!draftPayload) return row;
+  const { _locations, ...rest } = draftPayload;
   return { ...row, ...rest };
 }

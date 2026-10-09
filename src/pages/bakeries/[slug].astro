@@ -2,30 +2,49 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { cld, W } from '../../lib/cloudinary.js';
 import { supabase } from '../../lib/supabase';
-import { withDraft } from '../../lib/cmsDraft';
+import { withDraft, getDraft, readLocations } from '../../lib/cmsDraft';
+import { verifyPreview } from '../../lib/previewToken';
+import { createClient } from '@supabase/supabase-js';
+import { env } from 'cloudflare:workers';
 import { HIDE_MAP } from '../../config/features';
 import { bakeryLd, videoObjectLd, breadcrumbLd } from '../../lib/structuredData';
 
 export const prerender = false;
 
 const { slug } = Astro.params;
-const isPreview = Astro.url.searchParams.get('preview') === 'true';
 
-let q = supabase.from('bakeries_cms').select('*').eq('slug', slug);
-if (!isPreview) q = q.eq('published', true);
-const { data: rows } = await q.limit(1);
-const liveRow = rows?.[0];
+// Preview: only with a signed link minted by the admin (see src/lib/previewToken.ts).
+// A valid token reads the row and its draft with the service role, so unpublished
+// pages and pending edits render. Anything else falls through to the public read.
+const previewClaims = await verifyPreview(env.SUPABASE_SERVICE_ROLE_KEY, Astro.url.searchParams.get('preview'), 'bakeries_cms');
+const isPreview = !!previewClaims;
+const previewDb = previewClaims
+  ? createClient(import.meta.env.PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+  : null;
+
+let liveRow: any = null;
+let draftPayload: Record<string, any> | null = null;
+if (previewDb && previewClaims) {
+  liveRow = (await previewDb.from('bakeries_cms').select('*').eq('id', previewClaims.id).maybeSingle()).data;
+  if (liveRow) draftPayload = (await getDraft(previewDb, 'bakeries_cms', previewClaims.id))?.payload ?? null;
+} else {
+  const { data: rows } = await supabase.from('bakeries_cms').select('*').eq('slug', slug).eq('published', true).limit(1);
+  liveRow = rows?.[0] ?? null;
+}
 if (!liveRow) return new Response(null, { status: 404 });
 // Preview shows pending edits; the public page only ever reads the live columns.
-const row = isPreview ? withDraft(liveRow) : liveRow;
+const row = isPreview ? withDraft(liveRow, draftPayload) : liveRow;
 
-const { data: bakeryLocations } = await supabase
-  .from('locations')
-  .select('label, address, lat, lng, hours, place_id')
-  .eq('bakery_slug', slug)
-  .order('sort_order');
-const draftLocations = isPreview ? (liveRow.draft_payload as any)?._locations : null;
-const locationRows = (draftLocations ?? bakeryLocations ?? []) as { label: string | null; address: string | null; lat: number | null; lng: number | null; hours: string | null; place_id: string | null }[];
+// Preview uses the draft's locations, or the row's own (read with the service
+// role, since an unpublished bakery's locations aren't public).
+const bakeryLocations = previewDb
+  ? ((draftPayload?._locations as any[] | undefined) ?? await readLocations(previewDb, 'bakeries_cms', liveRow.slug))
+  : (await supabase
+      .from('locations')
+      .select('label, address, lat, lng, hours, place_id')
+      .eq('bakery_slug', slug)
+      .order('sort_order')).data;
+const locationRows = (bakeryLocations ?? []) as { label: string | null; address: string | null; lat: number | null; lng: number | null; hours: string | null; place_id: string | null }[];
 
 // Prev/next by name order
 const { data: allRows } = await supabase
@@ -160,7 +179,7 @@ const jsonLd: unknown[] = [
   robots={isPreview ? 'noindex, nofollow' : 'index, follow'}
   jsonLd={jsonLd}
 >
-  <div id="preview-banner" style="display:none; position:fixed; top:0; left:0; right:0; z-index:9999; background:var(--amber); color:var(--ink); text-align:center; padding:0.5rem 1rem; font-size:0.75rem; font-family:var(--font-cond); letter-spacing:0.1em; text-transform:uppercase; font-weight:600;">
+  <div id="preview-banner" data-preview={isPreview ? '1' : '0'} style={`display:${isPreview ? 'block' : 'none'}; position:fixed; top:0; left:0; right:0; z-index:9999; background:var(--amber); color:var(--ink); text-align:center; padding:0.5rem 1rem; font-size:0.75rem; font-family:var(--font-cond); letter-spacing:0.1em; text-transform:uppercase; font-weight:600;`}>
     Preview mode — not yet published &nbsp;·&nbsp;
     <a href="/admin/bakeries" style="color:var(--ink); text-decoration:underline;">← Back to admin</a>
   </div>
@@ -1701,18 +1720,11 @@ main {
 </script>
 
 <script>
-  import { supabase } from '../../lib/supabase';
-
-  async function initPreviewBanner() {
+  function initPreviewBanner() {
     const banner = document.getElementById('preview-banner');
     if (!banner) return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('preview') !== 'true') { banner.style.display = 'none'; return; }
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { banner.style.display = 'none'; return; }
-    const { data: profile } = await supabase
-      .from('profiles').select('role').eq('id', session.user.id).single();
-    banner.style.display = profile?.role === 'admin' ? '' : 'none';
+    // The server only renders the banner visible for a valid signed preview link.
+    banner.style.display = banner.dataset.preview === '1' ? '' : 'none';
   }
 
   document.addEventListener('astro:page-load', initPreviewBanner);

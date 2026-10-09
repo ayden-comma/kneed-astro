@@ -358,6 +358,21 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   import { withDraft } from '../../lib/cmsDraft';
   import { initDraftUi } from '../../scripts/cms-draft-ui';
 
+  // Admin CMS API (service role on the server). Drafts live in a private table,
+  // so the editor reads through here rather than straight from Supabase.
+  async function cmsApi(body: Record<string, unknown>): Promise<any> {
+    const res = await fetch('/api/admin-bakeries-cms', { method: 'POST', headers: await authHeaders(), body: JSON.stringify(body) });
+    if (res.status === 401) { window.location.href = '/auth/login'; throw new Error('Session expired'); }
+    const json = await res.json().catch(() => ({ error: 'Request failed' })) as any;
+    if (!res.ok) throw new Error(json.error ?? 'Request failed');
+    return json;
+  }
+
+  /** Shape draftUi expects: the live row plus its draft bookkeeping. */
+  function rowState(r: { row: any; draft: { payload: any; updated_at: string } | null }) {
+    return { ...r.row, draft_payload: r.draft?.payload ?? null, draft_updated_at: r.draft?.updated_at ?? null };
+  }
+
   async function authHeaders(): Promise<HeadersInit> {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { window.location.href = '/auth/login'; throw new Error('Session expired'); }
@@ -902,10 +917,16 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   async function loadList() {
     const { data, error } = await supabase
       .from('bakeries_cms')
-      .select('id, name, slug, category, suburb, published, episode_number, updated_at, published_at, thumbnail, draft_updated_at')
+      .select('id, name, slug, category, suburb, published, episode_number, updated_at, published_at, thumbnail')
       .order('updated_at', { ascending: false });
     if (error) { tbody.innerHTML = `<tr><td colspan="6"><div class="admin-empty">Error: ${error.message}</div></td></tr>`; return; }
     const rows = (data ?? []) as BakeryRow[];
+    // "Changes pending" comes from the private drafts table, via the API.
+    try {
+      const { pending } = await cmsApi({ action: 'pending' }) as { pending: { record_id: string; updated_at: string }[] };
+      const byId = new Map(pending.map(d => [d.record_id, d.updated_at]));
+      rows.forEach(r => { r.draft_updated_at = byId.get(r.id) ?? null; });
+    } catch { /* list still renders without the tag */ }
     tbody.innerHTML = rows.length === 0
       ? '<tr><td colspan="6"><div class="admin-empty">No bakeries yet. Add your first one.</div></td></tr>'
       : rows.map(rowHTML).join('');
@@ -974,9 +995,11 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   // ── Load a row into the editor. A published row with pending edits opens on
   //    the draft, not the live content, so you keep working where you left off.
   async function openEditor(id: string) {
-    const { data: liveRow } = await supabase.from('bakeries_cms').select('*').eq('id', id).single();
-    if (!liveRow) return;
-    const data = withDraft(liveRow as Record<string, any>) as any;
+    let loaded: { row: any; draft: { payload: any; updated_at: string } | null; locations: any[] };
+    try { loaded = await cmsApi({ action: 'get', id }); }
+    catch (e) { showMsg(msgEl, (e as Error).message, 'error'); return; }
+    const liveRow = rowState(loaded);
+    const data = withDraft(loaded.row, loaded.draft?.payload) as any;
     openModal(id);
     titleEl.textContent = 'Edit Bakery';
     (field('f-id') as HTMLInputElement).value         = data.id;
@@ -984,12 +1007,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     (field('f-slug') as HTMLInputElement).value       = data.slug ?? '';
     (field('f-category') as HTMLInputElement).value   = data.category ?? '';
     (field('f-website') as HTMLInputElement).value    = data.website ?? '';
-    const draftLocs = (liveRow.draft_payload as any)?._locations;
-    if (draftLocs) populateLocations(draftLocs);
-    else {
-      const { data: locRows } = await supabase.from('locations').select('label, address, lat, lng, hours, place_id').eq('bakery_slug', liveRow.slug).order('sort_order');
-      populateLocations(locRows as any);
-    }
+    populateLocations(loaded.locations as any);
     (field('f-instagram') as HTMLInputElement).value  = data.instagram ?? '';
     (field('f-hours') as HTMLInputElement).value      = data.hours ?? '';
     (field('f-date') as HTMLInputElement).value           = data.date ?? '';
@@ -1273,6 +1291,8 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   async function saveBakery(mode: 'draft' | 'publish', openPreview = false) {
     if (mode === 'publish' && draftUi.isPublished()
         && !confirm('Publish these changes? They replace what is live now. The current live version stays in History.')) return;
+    // Opened synchronously so the browser treats it as a user action; filled in once saved.
+    const previewWin = openPreview ? window.open('about:blank', '_blank') : null;
     const draftBtn   = document.getElementById('form-draft-btn') as HTMLButtonElement;
     const previewBtn = document.getElementById('form-preview-btn') as HTMLButtonElement;
     const publishBtn = document.getElementById('form-publish-btn') as HTMLButtonElement;
@@ -1289,6 +1309,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       switchTab('bakery');
       showMsg(modalMsg, 'Name and slug are required.', 'error');
       [draftBtn, previewBtn, publishBtn].forEach(b => { b.disabled = false; });
+      previewWin?.close();
       return;
     }
 
@@ -1342,15 +1363,23 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 
     if (!cmsRes.ok) {
       if (cmsRes.status === 401) { window.location.href = '/auth/login'; return; }
+      previewWin?.close();
       showMsg(modalMsg, json.error ?? 'Save failed', 'error'); return;
     }
 
     if (openPreview) {
       (field('f-id') as HTMLInputElement).value = savedId;
-      const { data: fresh } = await supabase.from('bakeries_cms').select('id, slug, published, draft_payload, draft_updated_at').eq('id', savedId).single();
-      if (fresh) draftUi.setRow(fresh as any);
-      // Preview is addressed by the live slug; a slug edit only takes effect on publish.
-      window.open(`/bakeries/${(fresh as any)?.slug ?? slug}?preview=true`, '_blank');
+      try {
+        const fresh = await cmsApi({ action: 'get', id: savedId });
+        draftUi.setRow(rowState(fresh));
+        const { token } = await cmsApi({ action: 'preview_link', id: savedId });
+        // Preview is addressed by the live slug; a slug edit only takes effect on publish.
+        const url = `/bakeries/${fresh.row.slug}?preview=${encodeURIComponent(token)}`;
+        if (previewWin) previewWin.location.href = url; else window.open(url, '_blank');
+      } catch (e) {
+        previewWin?.close();
+        showMsg(modalMsg, (e as Error).message, 'error');
+      }
       return;
     }
 

@@ -1,37 +1,24 @@
+-- (K)Need: CMS drafts + publish history.             Run BEFORE deploying the draft/publish code.
+-- Safe to run twice. Additive only: no existing column, policy or trigger is changed.
+
 BEGIN;
 
--- 1. Draft columns. Edits to a published page land here; the live columns stay untouched until Publish.
-ALTER TABLE public.bakeries_cms
-  ADD COLUMN IF NOT EXISTS draft_payload jsonb,
-  ADD COLUMN IF NOT EXISTS draft_updated_at timestamptz;
-ALTER TABLE public.articles_cms
-  ADD COLUMN IF NOT EXISTS draft_payload jsonb,
-  ADD COLUMN IF NOT EXISTS draft_updated_at timestamptz;
+-- 1. Drafts. Edits to a published page are stored here until Publish; the live row is untouched.
+--    Private: RLS on with no policies and no grants for anon/authenticated, so only the
+--    service role (the admin API) can read or write it. Pending edits never reach the public API.
+CREATE TABLE IF NOT EXISTS public.cms_drafts (
+  table_name  text NOT NULL CHECK (table_name IN ('bakeries_cms','articles_cms')),
+  record_id   uuid NOT NULL,
+  payload     jsonb NOT NULL,
+  updated_at  timestamptz NOT NULL DEFAULT now(),
+  updated_by  text,
+  PRIMARY KEY (table_name, record_id)
+);
+ALTER TABLE public.cms_drafts ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.cms_drafts FROM anon, authenticated;
+GRANT ALL ON public.cms_drafts TO service_role;
 
--- 2. updated_at only moves when live content changes, so saving a draft does not reorder
---    the public article list (kneed-to-know orders by updated_at).
-CREATE OR REPLACE FUNCTION public.cms_set_updated_at() RETURNS trigger
-LANGUAGE plpgsql AS $fn$
-BEGIN
-  IF (to_jsonb(NEW) - 'draft_payload' - 'draft_updated_at' - 'updated_at')
-     IS DISTINCT FROM
-     (to_jsonb(OLD) - 'draft_payload' - 'draft_updated_at' - 'updated_at') THEN
-    NEW.updated_at := now();
-  ELSE
-    NEW.updated_at := OLD.updated_at;
-  END IF;
-  RETURN NEW;
-END
-$fn$;
-
-DROP TRIGGER IF EXISTS trg_bakeries_updated_at ON public.bakeries_cms;
-CREATE TRIGGER trg_bakeries_updated_at BEFORE UPDATE ON public.bakeries_cms
-  FOR EACH ROW EXECUTE FUNCTION public.cms_set_updated_at();
-DROP TRIGGER IF EXISTS trg_articles_updated_at ON public.articles_cms;
-CREATE TRIGGER trg_articles_updated_at BEFORE UPDATE ON public.articles_cms
-  FOR EACH ROW EXECUTE FUNCTION public.cms_set_updated_at();
-
--- 3. Append-only publish history. Service role only (RLS on, no policies, no grants).
+-- 2. Publish history. Append-only snapshot per publish; History → Restore reads from here.
 CREATE TABLE IF NOT EXISTS public.cms_revisions (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   table_name   text NOT NULL CHECK (table_name IN ('bakeries_cms','articles_cms')),
@@ -46,13 +33,13 @@ CREATE INDEX IF NOT EXISTS cms_revisions_record_idx
   ON public.cms_revisions (table_name, record_id, published_at DESC);
 ALTER TABLE public.cms_revisions ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.cms_revisions FROM anon, authenticated;
+GRANT ALL ON public.cms_revisions TO service_role;
 
--- 4. Baseline: one revision per currently published row, so there is always something to revert to.
+-- 3. Baseline: one revision per currently published row, so there is always something to restore.
 --    Skips rows that already have one, so running this file twice is harmless.
 INSERT INTO public.cms_revisions (table_name, record_id, slug, payload, published_by, note)
 SELECT 'bakeries_cms', b.id, b.slug,
-  (to_jsonb(b) - 'id' - 'created_at' - 'updated_at' - 'published' - 'published_at'
-               - 'announced_at' - 'draft_payload' - 'draft_updated_at')
+  (to_jsonb(b) - 'id' - 'created_at' - 'updated_at' - 'published' - 'published_at' - 'announced_at')
   || jsonb_build_object('_locations', COALESCE((
        SELECT jsonb_agg(jsonb_build_object('label',l.label,'address',l.address,'lat',l.lat,'lng',l.lng,'hours',l.hours,'place_id',l.place_id) ORDER BY l.sort_order)
        FROM public.locations l WHERE l.bakery_slug = b.slug), '[]'::jsonb)),
@@ -62,8 +49,7 @@ FROM public.bakeries_cms b WHERE b.published
 
 INSERT INTO public.cms_revisions (table_name, record_id, slug, payload, published_by, note)
 SELECT 'articles_cms', a.id, a.slug,
-  (to_jsonb(a) - 'id' - 'created_at' - 'updated_at' - 'published' - 'published_at'
-               - 'draft_payload' - 'draft_updated_at')
+  (to_jsonb(a) - 'id' - 'created_at' - 'updated_at' - 'published' - 'published_at')
   || jsonb_build_object('_locations', COALESCE((
        SELECT jsonb_agg(jsonb_build_object('label',l.label,'address',l.address,'lat',l.lat,'lng',l.lng,'hours',l.hours,'place_id',l.place_id) ORDER BY l.sort_order)
        FROM public.locations l WHERE l.article_slug = a.slug), '[]'::jsonb)),
@@ -74,3 +60,7 @@ FROM public.articles_cms a WHERE a.published
 COMMIT;
 
 NOTIFY pgrst, 'reload schema';
+
+-- Check afterwards (read-only):
+--   select table_name, count(*) from public.cms_revisions group by 1;   -- expect bakeries_cms 4, articles_cms 1
+--   select count(*) from public.cms_drafts;                              -- expect 0
