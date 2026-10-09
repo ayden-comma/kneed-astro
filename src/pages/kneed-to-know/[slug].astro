@@ -16,7 +16,7 @@ const { slug } = Astro.params;
 // Preview: only with a signed link minted by the admin (see src/lib/previewToken.ts).
 // A valid token reads the row and its draft with the service role, so unpublished
 // pages and pending edits render. Anything else falls through to the public read.
-const previewClaims = await verifyPreview(env.SUPABASE_SERVICE_ROLE_KEY, Astro.url.searchParams.get('preview'), 'articles_cms');
+const previewClaims = await verifyPreview(env.SUPABASE_SERVICE_ROLE_KEY, Astro.url.searchParams.get('draft'), 'articles_cms');
 const isPreview = !!previewClaims;
 const previewDb = previewClaims
   ? createClient(import.meta.env.PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
@@ -831,6 +831,7 @@ main {
 </script>
 
 <script>
+  import { liveUserId, goToLogin, reportWriteError, oncePerPage } from '../../lib/gated';
   import { supabase } from '../../lib/supabase';
 
   function esc(s: string): string {
@@ -979,10 +980,12 @@ main {
           const target = e.currentTarget as HTMLButtonElement;
           const commentId = target.dataset.id!;
           if (target.textContent === 'Confirm?') {
+            const uid = await liveUserId();
+            if (!uid) { goToLogin(); return; }
             const { error } = await supabase.from('comments').delete()
               .eq('id', commentId)
-              .eq('user_id', session!.user.id);
-            if (!error) {
+              .eq('user_id', uid);
+            if (!reportWriteError(error, "Couldn't delete that comment. Try again in a moment.")) {
               const item = listEl!.querySelector(`[data-comment-id="${commentId}"]`);
               item?.remove();
               if (!listEl!.querySelector('.comment-item')) {
@@ -1010,7 +1013,8 @@ main {
     function bindVoteBtns(container: HTMLElement) {
       container.querySelectorAll('.vote-btn').forEach((btn) => {
         btn.addEventListener('click', async () => {
-          if (!session) return;
+          const uid = await liveUserId();
+          if (!uid) { goToLogin(); return; }
           const target = btn as HTMLButtonElement;
           const commentId = target.dataset.id!;
           const voteVal = parseInt(target.dataset.vote!) as 1 | -1;
@@ -1023,26 +1027,26 @@ main {
           const newUserVote: 1 | -1 | 0 = hasVote ? 0 : voteVal;
           if (!hasVote && voteVal === 1) newUp++;
           if (!hasVote && voteVal === -1) newDown++;
-          voteMap[commentId] = { up: newUp, down: newDown, userVote: newUserVote };
-
           const itemEl = listEl!.querySelector(`[data-comment-id="${commentId}"]`);
-          if (itemEl) {
-            const scoreEl = itemEl.querySelector('.vote-score');
-            if (scoreEl) scoreEl.textContent = String(newUp - newDown);
-            itemEl.querySelector('.up-btn')?.classList.toggle('is-voted', newUserVote === 1);
-            itemEl.querySelector('.down-btn')?.classList.toggle('is-voted', newUserVote === -1);
-          }
+          const show = (vd: VoteData) => {
+            voteMap[commentId] = vd;
+            if (itemEl) {
+              const scoreEl = itemEl.querySelector('.vote-score');
+              if (scoreEl) scoreEl.textContent = String(vd.up - vd.down);
+              itemEl.querySelector('.up-btn')?.classList.toggle('is-voted', vd.userVote === 1);
+              itemEl.querySelector('.down-btn')?.classList.toggle('is-voted', vd.userVote === -1);
+            }
+            if (itemEl?.parentElement === listEl) resortComments();
+          };
+          show({ up: newUp, down: newDown, userVote: newUserVote });
 
-          if (itemEl?.parentElement === listEl) resortComments();
-
-          if (hasVote) {
-            await supabase.from('comment_votes').delete()
-              .eq('comment_id', commentId).eq('user_id', session.user.id);
-          } else {
-            await supabase.from('comment_votes').insert(
-              { comment_id: commentId, user_id: session.user.id, vote: voteVal }
-            );
-          }
+          const { error } = hasVote
+            ? await supabase.from('comment_votes').delete()
+                .eq('comment_id', commentId).eq('user_id', uid)
+            : await supabase.from('comment_votes').insert(
+                { comment_id: commentId, user_id: uid, vote: voteVal }
+              );
+          if (reportWriteError(error, "Your vote didn't count. Try again in a moment.")) show(current);
         });
       });
     }
@@ -1102,15 +1106,17 @@ main {
           const replyTextarea = formWrapEl.querySelector('.reply-input') as HTMLTextAreaElement | null;
           const replyText = replyTextarea?.value.trim();
           if (!replyText) return;
+          const uid = await liveUserId();
+          if (!uid) { goToLogin(); return; }
           submitEl.disabled = true;
           submitEl.textContent = 'Posting…';
           const { error } = await supabase.from('comments').insert({
-            user_id: session!.user.id,
+            user_id: uid,
             bakery_slug: slug,
             content: replyText,
             parent_comment_id: parentId,
           });
-          if (!error) {
+          if (!reportWriteError(error, "Your reply didn't post. Try again in a moment.")) {
             if (replyTextarea) replyTextarea.value = '';
             formWrapEl.style.display = 'none';
             const repliesEl = listEl!.querySelector(`.comment-replies[data-parent="${parentId}"]`) as HTMLElement | null;
@@ -1122,20 +1128,21 @@ main {
       });
     }
 
-    await loadComments();
-
+    // Bound before the comments load so an early click isn't lost.
     if (session && submitBtn && textarea) {
       submitBtn.onclick = async () => {
         const commentText = textarea.value.trim();
         if (!commentText) return;
+        const uid = await liveUserId();
+        if (!uid) { goToLogin(); return; }
         submitBtn.disabled = true;
         submitBtn.textContent = 'Posting…';
         const { error } = await supabase.from('comments').insert({
-          user_id: session.user.id,
+          user_id: uid,
           bakery_slug: slug,
           content: commentText,
         });
-        if (!error) {
+        if (!reportWriteError(error, "Your comment didn't post. It's still in the box; try again in a moment.")) {
           textarea.value = '';
           await loadComments();
         }
@@ -1143,26 +1150,33 @@ main {
         submitBtn.textContent = 'Post comment';
       };
     }
+
+    await loadComments();
   }
 
-  document.addEventListener('astro:page-load', initComments);
-  initComments();
+  const runComments = () => oncePerPage('comments', document.querySelector('.comments-section[data-slug]'), initComments);
+  document.addEventListener('astro:page-load', runComments);
+  runComments();
 </script>
 
 <script>
+  import { liveUserId, goToLogin, reportWriteError, oncePerPage } from '../../lib/gated';
   import { supabase } from '../../lib/supabase';
 
   const SAVE_ICON_EMPTY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>';
   const SAVE_ICON_FULL  = '<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>';
 
-  async function initSaveAndRating() {
+  // Handlers are bound straight away so the first click always lands; the
+  // signed-in state is filled in afterwards. Every click re-checks the session
+  // (see src/lib/gated.ts) instead of trusting the one read at page load.
+  function initSaveAndRating() {
     const asideStarsEl = document.getElementById('v2-aside-stars') as HTMLElement | null;
     const asideCountEl = document.getElementById('v2-aside-rating-count') as HTMLElement | null;
     const saveBtn      = document.getElementById('save-btn') as HTMLButtonElement | null;
     if (!asideStarsEl && !saveBtn) return;
 
     const slug = (asideStarsEl?.dataset.slug || saveBtn?.dataset.slug)!;
-    const { data: { session } } = await supabase.auth.getSession();
+    let userId: string | null = null;
 
     async function loadAverage() {
       const { data } = await supabase
@@ -1178,90 +1192,102 @@ main {
       }
     }
 
-    await loadAverage();
+    // ── Stars ──
+    const stars = asideStarsEl ? Array.from(asideStarsEl.querySelectorAll('.v2-aside-star')) as HTMLElement[] : [];
+    let userRating = 0;
+    function renderStars(value: number) {
+      stars.forEach(s => s.classList.toggle('active', parseInt(s.dataset.value || '0') <= value));
+    }
+    stars.forEach(star => {
+      const value = parseInt(star.dataset.value || '0');
+      star.addEventListener('mouseenter', () => { if (userId) renderStars(value); });
+      star.addEventListener('mouseleave', () => renderStars(userRating));
+      star.addEventListener('click', async () => {
+        const uid = await liveUserId();
+        if (!uid) { goToLogin(); return; }
+        userId = uid;
+        const previous = userRating;
+        userRating = value;
+        renderStars(value);
+        const { error } = await supabase.from('ratings').upsert(
+          { user_id: uid, bakery_slug: slug, rating: value },
+          { onConflict: 'user_id,bakery_slug' }
+        );
+        if (reportWriteError(error, "Your rating didn't save. Try again in a moment.")) {
+          userRating = previous;
+          renderStars(previous);
+          return;
+        }
+        await loadAverage();
+      });
+    });
 
-    if (asideStarsEl) {
-      const stars = Array.from(asideStarsEl.querySelectorAll('.v2-aside-star')) as HTMLElement[];
-      let userRating = 0;
+    // ── Save to Recipe Book ──
+    function setSaved(saved: boolean) {
+      if (!saveBtn) return;
+      saveBtn.classList.toggle('is-saved', saved);
+      saveBtn.innerHTML = saved
+        ? SAVE_ICON_FULL  + ' Saved'
+        : SAVE_ICON_EMPTY + ' Save';
+    }
+    let saving = false;
+    if (saveBtn) {
+      saveBtn.onclick = async () => {
+        if (saving) return;
+        const uid = await liveUserId();
+        if (!uid) { goToLogin(); return; }
+        userId = uid;
+        saving = true;
+        const wasSaved = saveBtn.classList.contains('is-saved');
+        setSaved(!wasSaved);
+        const { error } = wasSaved
+          ? await supabase.from('saves').delete()
+              .eq('user_id', uid).eq('content_type', 'article').eq('content_slug', slug)
+          : await supabase.from('saves').insert({ user_id: uid, content_type: 'article', content_slug: slug });
+        // Already saved (e.g. from another tab) counts as saved, not as a failure.
+        const alreadySaved = !wasSaved && error?.code === '23505';
+        if (!alreadySaved && reportWriteError(error, wasSaved
+            ? "Couldn't take that out of your Recipe Book. Try again in a moment."
+            : "Couldn't save that to your Recipe Book. Try again in a moment.")) {
+          setSaved(wasSaved);
+        }
+        saving = false;
+      };
+    }
 
-      function renderStars(value: number) {
-        stars.forEach(s => s.classList.toggle('active', parseInt(s.dataset.value || '0') <= value));
-      }
-
-      if (session) {
+    // ── Fill in the signed-in state ──
+    void (async () => {
+      userId = await liveUserId();
+      await loadAverage();
+      if (!userId) { renderStars(0); return; }
+      if (stars.length) {
         const { data: existing } = await supabase
           .from('ratings')
           .select('rating')
           .eq('bakery_slug', slug)
-          .eq('user_id', session.user.id)
+          .eq('user_id', userId)
           .maybeSingle();
         userRating = existing?.rating || 0;
         renderStars(userRating);
-
-        stars.forEach(star => {
-          const value = parseInt(star.dataset.value || '0');
-          star.addEventListener('mouseenter', () => renderStars(value));
-          star.addEventListener('mouseleave', () => renderStars(userRating));
-          star.addEventListener('click', async () => {
-            userRating = value;
-            renderStars(value);
-            await supabase.from('ratings').upsert(
-              { user_id: session.user.id, bakery_slug: slug, rating: value },
-              { onConflict: 'user_id,bakery_slug' }
-            );
-            await loadAverage();
-          });
-        });
-      } else {
-        renderStars(0);
-        stars.forEach(s => { (s as HTMLButtonElement).onclick = () => { window.location.href = '/auth/login'; }; });
       }
-    }
-
-    if (saveBtn) {
-      function setSaved(saved: boolean) {
-        saveBtn!.classList.toggle('is-saved', saved);
-        saveBtn!.innerHTML = saved
-          ? SAVE_ICON_FULL  + ' Saved'
-          : SAVE_ICON_EMPTY + ' Save';
-      }
-
-      if (session) {
+      if (saveBtn && !saving) {
         const { data: existing, error: checkError } = await supabase
           .from('saves')
           .select('id')
-          .eq('user_id', session.user.id)
+          .eq('user_id', userId)
           .eq('content_type', 'article')
           .eq('content_slug', slug)
           .maybeSingle();
         if (checkError) console.error('Save check error:', checkError);
-        setSaved(!!existing);
-
-        saveBtn.onclick = async () => {
-          if (saveBtn.classList.contains('is-saved')) {
-            const { error } = await supabase.from('saves')
-              .delete()
-              .eq('user_id', session.user.id)
-              .eq('content_type', 'article')
-              .eq('content_slug', slug);
-            if (!error) setSaved(false);
-          } else {
-            const { error } = await supabase.from('saves').insert({
-              user_id: session.user.id,
-              content_type: 'article',
-              content_slug: slug,
-            });
-            if (!error) setSaved(true);
-          }
-        };
-      } else {
-        saveBtn.onclick = () => { window.location.href = '/auth/login'; };
+        if (!saving) setSaved(!!existing);
       }
-    }
+    })();
   }
 
-  document.addEventListener('astro:page-load', initSaveAndRating);
-  initSaveAndRating();
+  const runSaveAndRating = () => oncePerPage('save-rating',
+    document.getElementById('save-btn') ?? document.getElementById('v2-aside-stars'), initSaveAndRating);
+  document.addEventListener('astro:page-load', runSaveAndRating);
+  runSaveAndRating();
 </script>
 
 <script>

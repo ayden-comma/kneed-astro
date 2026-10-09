@@ -1,15 +1,36 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+// Loading this page no longer signs you out (see src/lib/signout.ts). The
+// Sign out links in the menu and admin sidebar sign out on click; this page is
+// only reached directly (old bookmark, typed URL, links from elsewhere) and asks first.
 ---
-<BaseLayout title="Signing out" description="Signing out of (K)Need." robots="noindex, follow">
+<BaseLayout title="Sign out" description="Sign out of (K)Need." robots="noindex, follow" hideSubmitBanner={true}>
   <main class="auth-page">
     <div class="auth-card" style="text-align:center;">
-      <p style="font-size:0.875rem; color:var(--p-50); font-weight:300;">Signing you out…</p>
+      <p id="logout-msg" style="font-size:0.95rem; color:var(--parchment); font-weight:300; margin:0 0 1.25rem;">Sign out of (K)Need?</p>
+      <button id="logout-btn" class="auth-submit" type="button">Sign out</button>
+      <div class="auth-footer"><a href="/">Stay signed in</a></div>
     </div>
   </main>
 </BaseLayout>
 
 <script>
   import { supabase } from '../../lib/supabase';
-  supabase.auth.signOut().finally(() => { window.location.href = '/'; });
+  import { signOutAndLeave } from '../../lib/signout';
+
+  function initLogout() {
+    const btn = document.getElementById('logout-btn') as HTMLButtonElement | null;
+    const msg = document.getElementById('logout-msg');
+    if (!btn) return;
+    btn.onclick = () => { btn.disabled = true; btn.textContent = 'Signing out…'; void signOutAndLeave('/'); };
+    // Already signed out: say so rather than offering a button that does nothing.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session || !msg) return;
+      msg.textContent = "You're already signed out.";
+      btn.textContent = 'Back to (K)Need';
+      btn.onclick = () => { window.location.href = '/'; };
+    });
+  }
+  document.addEventListener('astro:page-load', initLogout);
+  initLogout();
 </script>

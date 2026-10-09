@@ -62,7 +62,7 @@ const navLinks = [
 
         <div class="admin-sidebar-footer">
           <strong id="admin-user-name">—</strong>
-          <a href="/auth/logout" class="admin-signout">Sign out →</a>
+          <a href="/auth/logout" class="admin-signout" data-signout>Sign out →</a>
         </div>
       </aside>
 
@@ -75,6 +75,8 @@ const navLinks = [
   <script>
     import '../scripts/adminCheck';
     import { supabase } from '../lib/supabase';
+    import { bindSignOutLinks } from '../lib/signout';
+    bindSignOutLinks();
 
     // ── Recovery-session gate ──────────────────────────────────────────────
     // A password-reset link signs the visitor in (that's how Supabase recovery

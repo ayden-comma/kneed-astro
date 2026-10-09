@@ -2,10 +2,13 @@
 //
 // A preview URL used to be `?preview=true`, which anyone could type to see
 // unpublished pages. Now an admin asks the CMS API for a link, and the API
-// returns `?preview=<token>`: the record id plus an expiry, HMAC-signed on the
+// returns `?draft=<token>`: the record id plus an expiry, HMAC-signed on the
 // server. The page renders the draft only if the signature checks out, then
 // reads with the service role. Without a valid token the page behaves exactly
 // like the public page (404 for anything unpublished).
+//
+// The parameter is `draft`, not `preview`: `?preview=` belongs to the pre-launch
+// gate's share links (src/middleware.ts), and the two must not be confused.
 //
 // The signing key is derived from SUPABASE_SERVICE_ROLE_KEY with a fixed
 // label, so no new secret has to be configured. Rotating the service key

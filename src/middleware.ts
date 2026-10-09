@@ -1,4 +1,5 @@
 import { defineMiddleware } from 'astro:middleware';
+import type { APIContext, MiddlewareNext } from 'astro';
 // Runtime secret source. MUST be `cloudflare:workers`, never import.meta.env —
 // import.meta.env is Vite-inlined at build time and reads `undefined` for
 // secrets at Workers runtime (works locally, silent 500s in prod). See CLAUDE.md.
@@ -455,7 +456,28 @@ img,svg{max-width:100%;display:block}
 `;
 }
 
-export const onRequest = defineMiddleware(async (context, next) => {
+// Every response says "never show me inside someone else's frame". Stops a
+// hostile page loading kneed.tv (above all /admin) in an invisible iframe and
+// tricking a click. Nothing on the site frames itself (the email previews use
+// srcdoc, which this doesn't touch). Both headers: X-Frame-Options for older
+// browsers, frame-ancestors for current ones.
+function withFrameGuard(res: Response): Response {
+  try {
+    res.headers.set('X-Frame-Options', 'DENY');
+    res.headers.set('Content-Security-Policy', "frame-ancestors 'none'");
+    return res;
+  } catch {
+    // Some responses (e.g. Response.redirect) have immutable headers; copy and retry.
+    const copy = new Response(res.body, res);
+    copy.headers.set('X-Frame-Options', 'DENY');
+    copy.headers.set('Content-Security-Policy', "frame-ancestors 'none'");
+    return copy;
+  }
+}
+
+export const onRequest = defineMiddleware(async (context, next) => withFrameGuard(await route(context, next)));
+
+async function route(context: APIContext, next: MiddlewareNext): Promise<Response> {
   const { pathname } = context.url;
 
   // Canonical-host redirect — activates automatically when the gate flips off at
@@ -582,4 +604,4 @@ export const onRequest = defineMiddleware(async (context, next) => {
       'X-Robots-Tag': 'noindex',
     },
   });
-});
+}

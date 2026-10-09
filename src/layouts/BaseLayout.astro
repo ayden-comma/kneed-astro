@@ -279,6 +279,8 @@ const ogImage = cld(image, W.OG) || new URL('/images/og-default.jpg', siteOrigin
 
 <script>
   import { supabase } from '../lib/supabase';
+  import { bindSignOutLinks } from '../lib/signout';
+  bindSignOutLinks();
   import { initConsent, reopenConsent } from '../lib/consent';
 
   // ── Recovery-session gate ──────────────────────────────────────────────

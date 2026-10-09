@@ -1374,7 +1374,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
         draftUi.setRow(rowState(fresh));
         const { token } = await cmsApi({ action: 'preview_link', id: savedId });
         // Preview is addressed by the live slug; a slug edit only takes effect on publish.
-        const url = `/bakeries/${fresh.row.slug}?preview=${encodeURIComponent(token)}`;
+        const url = `/bakeries/${fresh.row.slug}?draft=${encodeURIComponent(token)}`;
         if (previewWin) previewWin.location.href = url; else window.open(url, '_blank');
       } catch (e) {
         previewWin?.close();

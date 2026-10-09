@@ -1,3 +1,4 @@
+// @ts-nocheck: standalone rehearsal script, run with tsx; not part of the site build.
 // End-to-end rehearsal: the real src/lib/cmsDraft.ts + previewToken.ts + real supabase-js
 // against a replica of the live schema with both migrations applied.
 import http from 'node:http';
