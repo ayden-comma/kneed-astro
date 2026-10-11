@@ -47,3 +47,11 @@ function, and a 5-second test schedule confirmed the scheduler fires it on its o
 (same RLS policies and grants): 15 checks covering the Pending default, counts, search,
 shortlist / back to pending, Contact stamping `contacted_at`, the CSV formula guard,
 delete, and persistence after reload.
+
+## Watch analytics
+
+`browser-film.mjs` swaps YouTube's player API for a stand-in that plays a 100-second
+film at 20x, and records what would go to GA4. 15 checks: play / 25 / 50 / 75 /
+complete in order and once each; closing part-way records how far they got; no events
+at all without analytics consent; the film still plays if the YouTube API is blocked.
+The real YouTube + GA4 hook-up can only be confirmed live (GA4 Realtime after deploy).

@@ -199,7 +199,7 @@ const jsonLd: unknown[] = [
 
         <div class="v2-hero-actions">
           {hasVideo && (
-            <button id="v2-watch-btn" class="v2-btn-watch" data-video-id={data.videoId}>
+            <button id="v2-watch-btn" class="v2-btn-watch" data-video-id={data.videoId} data-film-title={data.name} data-episode={(row as any).episode_number ?? ''} data-slug={slug}>
               <span class="v2-btn-watch-icon"></span>
               Watch Now
             </button>
@@ -779,15 +779,28 @@ main {
     var closeBtn = document.getElementById('v2-modal-close');
     if (!watchBtn || !overlay || !iframe) return;
 
+    // The overlay sits inside a section with its own stacking context, which capped
+    // its z-index below the sticky site header: the header covered the close button.
+    // Moving it to <body> lets its z-index (1000) beat the header's (100).
+    if (overlay.parentElement !== document.body) document.body.appendChild(overlay);
+
     var videoId = watchBtn.dataset.videoId;
 
     function openModal() {
-      iframe.src = 'https://www.youtube.com/embed/' + videoId + '?autoplay=1&rel=0&modestbranding=1';
+      // enablejsapi + origin let the watch tracker (src/scripts/filmAnalytics.ts) read
+      // play progress. Playback doesn't depend on the tracker.
+      iframe.src = 'https://www.youtube.com/embed/' + videoId + '?autoplay=1&rel=0&modestbranding=1&enablejsapi=1&origin=' + encodeURIComponent(window.location.origin);
       overlay.classList.add('active');
       document.body.style.overflow = 'hidden';
+      document.dispatchEvent(new CustomEvent('kneed:film-open', { detail: {
+        iframe: iframe, videoId: videoId, kind: 'article',
+        title: watchBtn.dataset.filmTitle || '', slug: watchBtn.dataset.slug || '',
+        episode: watchBtn.dataset.episode ? Number(watchBtn.dataset.episode) : null
+      } }));
     }
 
     function closeModal() {
+      document.dispatchEvent(new CustomEvent('kneed:film-close'));
       overlay.classList.remove('active');
       iframe.src = '';
       document.body.style.overflow = '';
@@ -1300,4 +1313,9 @@ main {
 
   document.addEventListener('astro:page-load', initPreviewBanner);
   initPreviewBanner();
+</script>
+
+<script>
+  import { bindFilmAnalytics } from '../../scripts/filmAnalytics';
+  bindFilmAnalytics();
 </script>
