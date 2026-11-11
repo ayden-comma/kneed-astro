@@ -1,0 +1,172 @@
+---
+// SECURITY: Keep this page a client-fetched shell. Do NOT fetch or render data server-side here — there is no server-side auth gate (session lives in localStorage, not cookies). Data is loaded client-side after adminCheck verifies admin role, and the API route enforces auth via requireAdmin. Server-rendering data here would leak it to unauthenticated visitors.
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Subscribers" activePage="subscribers">
+  <div class="admin-page-header" style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
+    <h1 class="admin-page-title">Subscribers</h1>
+    <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+      <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.82rem; color:var(--p-70); cursor:pointer;">
+        <input type="checkbox" id="csv-include-unsub" />
+        Include unsubscribed in CSV
+      </label>
+      <button class="admin-btn admin-btn-primary" id="btn-csv" disabled>Export CSV</button>
+    </div>
+  </div>
+
+  <div class="admin-stats">
+    <div class="admin-stat-card">
+      <div class="admin-stat-num" id="stat-subscribed">—</div>
+      <div class="admin-stat-label">Subscribed</div>
+    </div>
+    <div class="admin-stat-card">
+      <div class="admin-stat-num" id="stat-unsubscribed">—</div>
+      <div class="admin-stat-label">Unsubscribed</div>
+    </div>
+    <div class="admin-stat-card">
+      <div class="admin-stat-num" id="stat-total">—</div>
+      <div class="admin-stat-label">Total sign-ups</div>
+    </div>
+  </div>
+
+  <div class="admin-section">
+    <div id="admin-msg" class="admin-msg"></div>
+    <div class="admin-filters" style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
+      <select class="admin-filter-select" id="status-filter">
+        <option value="subscribed">Subscribed</option>
+        <option value="unsubscribed">Unsubscribed</option>
+        <option value="all">All</option>
+      </select>
+    </div>
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Source</th>
+            <th>Signed up</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="sub-tbody">
+          <tr><td colspan="4"><div class="admin-empty">Loading…</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  import { supabase } from '../../lib/supabase';
+
+  type Sub = {
+    email: string;
+    status: string | null;
+    consent_source: string | null;
+    created_at: string | null;
+    unsubscribed_at: string | null;
+  };
+
+  const SOURCE_LABELS: Record<string, string> = {
+    homepage_form: 'Holding page',
+    signup_prompt: 'Site prompt',
+    signup_form: 'Account signup',
+  };
+
+  let all: Sub[] = [];
+  const tbody = document.getElementById('sub-tbody')!;
+  const filter = document.getElementById('status-filter') as unknown as HTMLSelectElement;
+  const csvBtn = document.getElementById('btn-csv') as HTMLButtonElement;
+  const csvUnsub = document.getElementById('csv-include-unsub') as HTMLInputElement;
+
+  async function authHeaders(): Promise<HeadersInit> {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { window.location.href = '/auth/login'; throw new Error('Session expired'); }
+    return { 'Authorization': `Bearer ${session.access_token}` };
+  }
+
+  function esc(v: unknown): string {
+    return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function fmtDate(s: string | null | undefined): string {
+    if (!s) return '';
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  function sourceLabel(s: string | null): string {
+    return s ? (SOURCE_LABELS[s] ?? s) : '';
+  }
+  function setText(id: string, v: number) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = v.toLocaleString('en-AU');
+  }
+
+  function render() {
+    const f = filter.value;
+    const rows = f === 'all' ? all : all.filter(r => (f === 'subscribed') === (r.status === 'subscribed'));
+    if (rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4"><div class="admin-empty">No subscribers to show.</div></td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(r => {
+      const sub = r.status === 'subscribed';
+      const badge = `<span class="admin-badge ${sub ? 'admin-badge-published' : 'admin-badge-member'}">${sub ? 'Subscribed' : 'Unsubscribed'}</span>`;
+      return `<tr>
+        <td><strong>${esc(r.email)}</strong></td>
+        <td style="color:var(--p-70);">${esc(sourceLabel(r.consent_source))}</td>
+        <td style="white-space:nowrap;color:var(--p-50);">${esc(fmtDate(r.created_at))}</td>
+        <td>${badge}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // CSV cell: neutralise spreadsheet formulas (sign-ups come from a public form,
+  // so an "email" starting with = + - @ could run as a formula in Excel), then quote.
+  function csvCell(v: unknown): string {
+    let s = String(v ?? '');
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+
+  function exportCsv() {
+    // Default: subscribed only. An export with unsubscribed people in it must never
+    // be loaded into a mail tool (Spam Act), so including them is an explicit opt-in.
+    const rows = csvUnsub.checked ? all : all.filter(r => r.status === 'subscribed');
+    const header = ['email', 'status', 'source', 'signed_up', 'unsubscribed_at'];
+    const lines = [header.map(csvCell).join(',')].concat(rows.map(r => [
+      r.email, r.status, r.consent_source, r.created_at, r.unsubscribed_at,
+    ].map(csvCell).join(',')));
+    const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `kneed-subscribers-${csvUnsub.checked ? 'all' : 'subscribed'}-${stamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  async function load() {
+    try {
+      const res = await fetch('/api/admin-subscribers', { headers: await authHeaders(), cache: 'no-store' });
+      if (!res.ok) throw new Error(String(res.status));
+      const json = await res.json() as { subscribers?: Sub[]; total?: number; subscribed?: number; unsubscribed?: number };
+      all = json.subscribers ?? [];
+      setText('stat-subscribed', json.subscribed ?? 0);
+      setText('stat-unsubscribed', json.unsubscribed ?? 0);
+      setText('stat-total', json.total ?? all.length);
+      csvBtn.disabled = false;
+      render();
+    } catch {
+      tbody.innerHTML = '<tr><td colspan="4"><div class="admin-empty">Couldn\'t load subscribers</div></td></tr>';
+    }
+  }
+
+  filter.addEventListener('change', render);
+  csvBtn.addEventListener('click', exportCsv);
+  load();
+</script>
