@@ -4,9 +4,8 @@ import type { APIContext, MiddlewareNext } from 'astro';
 // import.meta.env is Vite-inlined at build time and reads `undefined` for
 // secrets at Workers runtime (works locally, silent 500s in prod). See CLAUDE.md.
 import { env } from 'cloudflare:workers';
-import { HIDE_ARTICLES, HIDE_MAP } from './config/features';
+import { HIDE_ARTICLES, HIDE_MAP, GATE_ENABLED } from './config/features'; // GATE_ENABLED: flip in config/features.ts at launch
 
-const GATE_ENABLED = true; // set false at launch to disable the holding page
 const UNLOCK_TOKEN = 'ok-2026';
 
 // Preview-bypass cookie. Holds the TOKEN ITSELF, never an "allowed" boolean —
