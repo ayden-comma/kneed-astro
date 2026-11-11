@@ -5,6 +5,7 @@ import { requireAdmin } from '../../lib/requireAdmin';
 import { SITE_URL } from '../../lib/structuredData';
 import {
   renderEpisodeEmail,
+  renderEpisodeText,
   EPISODE_FROM,
   EPISODE_REPLY_TO,
   type EpisodeEmailData,
@@ -153,12 +154,14 @@ export const POST: APIRoute = async ({ request }) => {
       const to = auth.user.email;
       if (!to) return json(400, { ok: false, error: 'Your admin account has no email address for a test send' });
       const html = renderEpisodeEmail({ ...baseData, unsubscribeUrl: `${origin}/unsubscribe?token=preview` });
+      const text = renderEpisodeText({ ...baseData, unsubscribeUrl: `${origin}/unsubscribe?token=preview` });
       const sent = await resendPost(RESEND_ENDPOINT, {
         from:     EPISODE_FROM,
         to,
         reply_to: EPISODE_REPLY_TO,
         subject,
         html,
+        text,
         tags: [{ name: 'type', value: 'episode' }, { name: 'bakery_id', value: bakeryId }],
       });
       if (!sent) return json(502, { ok: false, mode: 'test', error: 'Test send failed' });
@@ -192,6 +195,7 @@ export const POST: APIRoute = async ({ request }) => {
         reply_to: EPISODE_REPLY_TO,
         subject,
         html:     renderEpisodeEmail({ ...baseData, unsubscribeUrl }),
+        text:     renderEpisodeText({ ...baseData, unsubscribeUrl }),
         headers: {
           'List-Unsubscribe':      `<${oneClickUrl}>`,
           'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',

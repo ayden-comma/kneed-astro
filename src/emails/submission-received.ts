@@ -33,7 +33,7 @@ export function renderSubmissionEmail(bakeryName: string, bakerySuburb: string):
   table,td{mso-table-lspace:0pt;mso-table-rspace:0pt}
   img{-ms-interpolation-mode:bicubic;border:0;height:auto;line-height:100%;outline:none;text-decoration:none}
   body{margin:0;padding:0;width:100%!important;background:#e4ddd2}
-  a{color:#a96c27}
+  a{color:#8f5a1f}
   @media only screen and (max-width:600px){.container{width:100%!important}.px{padding-left:24px!important;padding-right:24px!important}.h1{font-size:28px!important}}
 </style>
 </head>
@@ -44,10 +44,10 @@ export function renderSubmissionEmail(bakeryName: string, bakerySuburb: string):
 <tr><td align="center" style="padding:28px 12px;">
   <table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;background:#f2ede6;border-radius:10px;overflow:hidden;">
     <tr><td align="center" bgcolor="#0e0c0a" style="background:#0e0c0a;padding:26px 20px;">
-      <a href="https://kneed.tv" style="text-decoration:none;"><img src="${LOGO_URL}" width="200" alt="(K)NEED" style="display:block;width:200px;max-width:60%;height:auto;margin:0 auto;"></a>
+      <a href="https://kneed.tv" style="text-decoration:none;"><img src="${LOGO_URL}" width="200" alt="(K)NEED" style="display:block;width:200px;max-width:60%;height:auto;margin:0 auto;color:#f2ede6;font-family:'Josefin Sans','Century Gothic',Futura,Arial,sans-serif;font-weight:300;font-size:20px;letter-spacing:0.2em;text-align:center;"></a>
     </td></tr>
     <tr><td class="px" style="padding:44px 40px 20px;">
-      <div style="font-family:'Archivo Narrow','Arial Narrow',Arial,sans-serif;font-weight:600;font-size:12px;letter-spacing:0.26em;text-transform:uppercase;color:#a96c27;">Submission received</div>
+      <div style="font-family:'Archivo Narrow','Arial Narrow',Arial,sans-serif;font-weight:600;font-size:12px;letter-spacing:0.26em;text-transform:uppercase;color:#8f5a1f;">Submission received</div>
       <h1 class="h1" style="font-family:'Josefin Sans','Century Gothic',Futura,'Trebuchet MS',Arial,sans-serif;font-weight:300;font-size:31px;letter-spacing:0.09em;text-transform:uppercase;color:#0e0c0a;margin:14px 0 16px;line-height:1.15;">Thanks for the tip</h1>
       <p style="font-family:'Barlow',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.7;color:#2b2724;margin:0 0 8px;">Every bakery on (K)Need starts with someone telling us about one. We've got yours:</p>
     </td></tr>
@@ -61,14 +61,14 @@ export function renderSubmissionEmail(bakeryName: string, bakerySuburb: string):
       <p style="font-family:'Barlow',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.7;color:#57504a;margin:0;">We read every submission. We can't film them all, but the good ones go on the list, and if we head there, we'll be in touch. No need to reply.</p>
     </td></tr>
     <tr><td class="px" align="center" bgcolor="#f2ede6" style="background:#f2ede6;padding:30px 40px;">
-      <div style="font-family:'Archivo Narrow','Arial Narrow',Arial,sans-serif;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:#57504a;margin-bottom:14px;">
-        <a href="https://www.instagram.com/kneedtv" style="color:#57504a;text-decoration:none;">Instagram</a> &nbsp;·&nbsp;
-        <a href="https://www.tiktok.com/@kneedtv" style="color:#57504a;text-decoration:none;">TikTok</a> &nbsp;·&nbsp;
-        <a href="https://www.youtube.com/@kneedtv" style="color:#57504a;text-decoration:none;">YouTube</a> &nbsp;·&nbsp;
-        <a href="https://www.facebook.com/kneedtv" style="color:#57504a;text-decoration:none;">Facebook</a>
+      <div style="font-family:'Archivo Narrow','Arial Narrow',Arial,sans-serif;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#57504a;line-height:2;margin-bottom:14px;">
+        <a href="https://www.instagram.com/kneedtv" style="color:#57504a;text-decoration:none;white-space:nowrap;">Instagram</a> &nbsp;·&nbsp;
+        <a href="https://www.tiktok.com/@kneedtv" style="color:#57504a;text-decoration:none;white-space:nowrap;">TikTok</a> &nbsp;·&nbsp;
+        <a href="https://www.youtube.com/@kneedtv" style="color:#57504a;text-decoration:none;white-space:nowrap;">YouTube</a> &nbsp;·&nbsp;
+        <a href="https://www.facebook.com/kneedtv" style="color:#57504a;text-decoration:none;white-space:nowrap;">Facebook</a>
       </div>
-      <div style="font-family:'Archivo Narrow','Arial Narrow',Arial,sans-serif;font-size:11px;letter-spacing:0.24em;text-transform:uppercase;color:#8a8178;margin-bottom:12px;">A Comma Films Production</div>
-      <div style="font-family:'Barlow',Helvetica,Arial,sans-serif;font-size:12.5px;line-height:1.6;color:#8a8178;">This is a one-off confirmation of your bakery submission at kneed.tv<br><span style="color:#a89f94;">${SENDER_ADDRESS}</span></div>
+      <div style="font-family:'Archivo Narrow','Arial Narrow',Arial,sans-serif;font-size:11px;letter-spacing:0.24em;text-transform:uppercase;color:#57504a;margin-bottom:12px;">A Comma Films Production</div>
+      <div style="font-family:'Barlow',Helvetica,Arial,sans-serif;font-size:12.5px;line-height:1.6;color:#57504a;">This is a one-off confirmation of your bakery submission at kneed.tv<br><span style="color:#57504a;">${SENDER_ADDRESS}</span></div>
     </td></tr>
   </table>
 </td></tr>

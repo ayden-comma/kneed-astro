@@ -44,7 +44,7 @@ export function renderEpisodeEmail(d: EpisodeEmailData): string {
   table,td{mso-table-lspace:0pt;mso-table-rspace:0pt}
   img{-ms-interpolation-mode:bicubic;border:0;height:auto;line-height:100%;outline:none;text-decoration:none}
   body{margin:0;padding:0;width:100%!important;background:#e4ddd2}
-  a{color:#a96c27}
+  a{color:#8f5a1f}
   @media only screen and (max-width:600px){.container{width:100%!important}.px{padding-left:24px!important;padding-right:24px!important}.h1{font-size:27px!important}}
 </style>
 </head>
@@ -55,13 +55,13 @@ export function renderEpisodeEmail(d: EpisodeEmailData): string {
 <tr><td align="center" style="padding:28px 12px;">
   <table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;background:#f2ede6;border-radius:10px;overflow:hidden;">
     <tr><td align="center" bgcolor="#0e0c0a" style="background:#0e0c0a;padding:26px 20px;">
-      <a href="https://kneed.tv" style="text-decoration:none;"><img src="${LOGO_URL}" width="200" alt="(K)NEED" style="display:block;width:200px;max-width:60%;height:auto;margin:0 auto;"></a>
+      <a href="https://kneed.tv" style="text-decoration:none;"><img src="${LOGO_URL}" width="200" alt="(K)NEED" style="display:block;width:200px;max-width:60%;height:auto;margin:0 auto;color:#f2ede6;font-family:'Josefin Sans','Century Gothic',Futura,Arial,sans-serif;font-weight:300;font-size:20px;letter-spacing:0.2em;text-align:center;"></a>
     </td></tr>
     <tr><td style="padding:0;">
-      <a href="${watch}" style="text-decoration:none;display:block;"><img src="${thumb}" width="600" alt="${title}" style="display:block;width:100%;max-width:600px;height:auto;"></a>
+      <a href="${watch}" style="text-decoration:none;display:block;"><img src="${thumb}" width="600" alt="Watch: ${title}" style="display:block;width:100%;max-width:600px;height:auto;background:#0e0c0a;color:#f2ede6;font-family:'Josefin Sans','Century Gothic',Futura,Arial,sans-serif;font-size:18px;letter-spacing:0.1em;text-align:center;"></a>
     </td></tr>
     <tr><td class="px" align="center" style="padding:38px 40px 34px;">
-      <div style="font-family:'Archivo Narrow','Arial Narrow',Arial,sans-serif;font-weight:600;font-size:12px;letter-spacing:0.26em;text-transform:uppercase;color:#a96c27;text-align:center;">${eyebrow}</div>
+      <div style="font-family:'Archivo Narrow','Arial Narrow',Arial,sans-serif;font-weight:600;font-size:12px;letter-spacing:0.26em;text-transform:uppercase;color:#8f5a1f;text-align:center;">${eyebrow}</div>
       <h1 class="h1" style="font-family:'Josefin Sans','Century Gothic',Futura,'Trebuchet MS',Arial,sans-serif;font-weight:300;font-size:31px;letter-spacing:0.09em;text-transform:uppercase;color:#0e0c0a;margin:14px 0 16px;line-height:1.15;text-align:center;">${title}</h1>
       <p style="font-family:'Barlow',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.65;color:#2b2724;margin:0 0 28px;text-align:center;">${blurb}</p>
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto"><tr>
@@ -71,17 +71,17 @@ export function renderEpisodeEmail(d: EpisodeEmailData): string {
       </tr></table>
     </td></tr>
     <tr><td class="px" align="center" bgcolor="#f2ede6" style="background:#f2ede6;padding:30px 40px;">
-      <div style="font-family:'Archivo Narrow','Arial Narrow',Arial,sans-serif;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:#57504a;margin-bottom:14px;">
-        <a href="https://www.instagram.com/kneedtv" style="color:#57504a;text-decoration:none;">Instagram</a> &nbsp;·&nbsp;
-        <a href="https://www.tiktok.com/@kneedtv" style="color:#57504a;text-decoration:none;">TikTok</a> &nbsp;·&nbsp;
-        <a href="https://www.youtube.com/@kneedtv" style="color:#57504a;text-decoration:none;">YouTube</a> &nbsp;·&nbsp;
-        <a href="https://www.facebook.com/kneedtv" style="color:#57504a;text-decoration:none;">Facebook</a>
+      <div style="font-family:'Archivo Narrow','Arial Narrow',Arial,sans-serif;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#57504a;line-height:2;margin-bottom:14px;">
+        <a href="https://www.instagram.com/kneedtv" style="color:#57504a;text-decoration:none;white-space:nowrap;">Instagram</a> &nbsp;·&nbsp;
+        <a href="https://www.tiktok.com/@kneedtv" style="color:#57504a;text-decoration:none;white-space:nowrap;">TikTok</a> &nbsp;·&nbsp;
+        <a href="https://www.youtube.com/@kneedtv" style="color:#57504a;text-decoration:none;white-space:nowrap;">YouTube</a> &nbsp;·&nbsp;
+        <a href="https://www.facebook.com/kneedtv" style="color:#57504a;text-decoration:none;white-space:nowrap;">Facebook</a>
       </div>
-      <div style="font-family:'Archivo Narrow','Arial Narrow',Arial,sans-serif;font-size:11px;letter-spacing:0.24em;text-transform:uppercase;color:#8a8178;margin-bottom:12px;">A Comma Films Production</div>
-      <div style="font-family:'Barlow',Helvetica,Arial,sans-serif;font-size:12.5px;line-height:1.6;color:#8a8178;">
+      <div style="font-family:'Archivo Narrow','Arial Narrow',Arial,sans-serif;font-size:11px;letter-spacing:0.24em;text-transform:uppercase;color:#57504a;margin-bottom:12px;">A Comma Films Production</div>
+      <div style="font-family:'Barlow',Helvetica,Arial,sans-serif;font-size:12.5px;line-height:1.6;color:#57504a;">
         You're receiving this because you joined (K)Need at kneed.tv<br>
-        <a href="${unsub}" style="color:#8a8178;text-decoration:underline;">Unsubscribe</a><br>
-        <span style="color:#a89f94;">${SENDER_ADDRESS}</span>
+        <a href="${unsub}" style="color:#57504a;text-decoration:underline;">Unsubscribe</a><br>
+        <span style="color:#57504a;">${SENDER_ADDRESS}</span>
       </div>
     </td></tr>
   </table>
@@ -89,4 +89,21 @@ export function renderEpisodeEmail(d: EpisodeEmailData): string {
 </table>
 </body>
 </html>`;
+}
+
+// Plain-text part, sent alongside the HTML (readers, watch faces, spam scoring).
+export function renderEpisodeText(d: EpisodeEmailData): string {
+  const eyebrow = d.episodeNumber ? `Episode ${String(d.episodeNumber).padStart(2, '0')}` : 'New episode';
+  return [
+    eyebrow,
+    d.title,
+    '',
+    d.blurb,
+    '',
+    `Watch now: ${d.watchUrl}`,
+    '',
+    "You're receiving this because you joined (K)Need at kneed.tv",
+    `Unsubscribe: ${d.unsubscribeUrl}`,
+    SENDER_ADDRESS,
+  ].join('\n');
 }

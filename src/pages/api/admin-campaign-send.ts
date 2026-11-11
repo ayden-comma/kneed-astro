@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { env } from 'cloudflare:workers';
 import { requireAdmin } from '../../lib/requireAdmin';
 import { SITE_URL } from '../../lib/structuredData';
-import { renderCampaignEmail, markdownToEmailHtml, tiptapToEmailHtml } from '../../emails/campaign';
+import { renderCampaignEmail, renderCampaignText, htmlToPlainText, markdownToEmailHtml, tiptapToEmailHtml } from '../../emails/campaign';
 // Reuse the episode broadcast's sender identity — no new email dependency.
 import { EPISODE_FROM, EPISODE_REPLY_TO } from '../../emails/episode-alert';
 
@@ -116,12 +116,14 @@ export const POST: APIRoute = async ({ request }) => {
       const to = auth.user.email;
       if (!to) return json(400, { ok: false, error: 'Your admin account has no email address for a test send' });
       const html = renderCampaignEmail({ subject, preheader, bodyHtml, unsubscribeUrl: `${origin}/unsubscribe?token=preview` });
+      const text = renderCampaignText({ subject, preheader, bodyHtml, unsubscribeUrl: `${origin}/unsubscribe?token=preview` });
       const sent = await resendPost(RESEND_ENDPOINT, {
         from:     EPISODE_FROM,
         to,
         reply_to: EPISODE_REPLY_TO,
         subject,
         html,
+        text,
         tags,
       });
       if (!sent) return json(502, { ok: false, mode: 'test', error: 'Test send failed' });
@@ -132,6 +134,14 @@ export const POST: APIRoute = async ({ request }) => {
     // Double-send guard: never re-send an already-sent campaign.
     if (campaign.status === 'sent') {
       return json(200, { ok: false, alreadySent: true, error: 'This campaign has already been sent.' });
+    }
+
+    // Placeholder guard: starter templates mark the bits to fill in with [SQUARE
+    // BRACKETS] (e.g. "[first name]"). Refuse a live send while any remain, so a
+    // missed placeholder never reaches every subscriber. Test sends stay allowed.
+    const leftover = `${subject}\n${preheader}\n${htmlToPlainText(bodyHtml)}`.match(/\[[^\]\n]{1,80}\]/);
+    if (leftover) {
+      return json(400, { ok: false, error: `Placeholder text still in the email: ${leftover[0]}. Replace it before sending to everyone.` });
     }
 
     const { data: subs, error: subsErr } = await svc
@@ -156,6 +166,7 @@ export const POST: APIRoute = async ({ request }) => {
         reply_to: EPISODE_REPLY_TO,
         subject,
         html:     renderCampaignEmail({ subject, preheader, bodyHtml, unsubscribeUrl }),
+        text:     renderCampaignText({ subject, preheader, bodyHtml, unsubscribeUrl }),
         headers: {
           'List-Unsubscribe':      `<${oneClickUrl}>`,
           'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',

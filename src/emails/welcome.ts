@@ -211,7 +211,7 @@ export function renderWelcomeEmail(unsubscribeUrl: string): string {
     <tr>
     <td align="center" bgcolor="#0e0c0a" style="background:#0e0c0a;padding:26px 20px;">
       <a href="${SITE_URL}" style="text-decoration:none;">
-        <img src="${LOGO_URL}" width="200" alt="(K)NEED" style="display:block;width:200px;max-width:60%;height:auto;margin:0 auto;color:#f2ede6;font-family:${F_HEAD};font-weight:300;font-size:26px;letter-spacing:0.3em;text-align:center;">
+        <img src="${LOGO_URL}" width="200" alt="(K)NEED" style="display:block;width:200px;max-width:60%;height:auto;margin:0 auto;color:#f2ede6;font-family:${F_HEAD};font-weight:300;font-size:20px;letter-spacing:0.2em;text-align:center;">
       </a>
     </td>
     </tr>
