@@ -36,9 +36,11 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     <div class="admin-filters" style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
       <select class="admin-filter-select" id="status-filter">
         <option value="subscribed">Subscribed</option>
+        <option value="nonmember">Subscribed, not members</option>
         <option value="unsubscribed">Unsubscribed</option>
         <option value="all">All</option>
       </select>
+      <span id="filter-count" style="font-size:0.82rem;color:var(--p-50);"></span>
     </div>
     <div class="admin-table-wrap">
       <table class="admin-table">
@@ -67,6 +69,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     consent_source: string | null;
     created_at: string | null;
     unsubscribed_at: string | null;
+    member_id: string | null;
   };
 
   const SOURCE_LABELS: Record<string, string> = {
@@ -103,9 +106,17 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     if (el) el.textContent = v.toLocaleString('en-AU');
   }
 
+  function filtered(f: string): Sub[] {
+    if (f === 'all') return all;
+    if (f === 'unsubscribed') return all.filter(r => r.status !== 'subscribed');
+    if (f === 'nonmember') return all.filter(r => r.status === 'subscribed' && !r.member_id);
+    return all.filter(r => r.status === 'subscribed');
+  }
+
   function render() {
-    const f = filter.value;
-    const rows = f === 'all' ? all : all.filter(r => (f === 'subscribed') === (r.status === 'subscribed'));
+    const rows = filtered(filter.value);
+    const countEl = document.getElementById('filter-count');
+    if (countEl) countEl.textContent = `${rows.length.toLocaleString('en-AU')} shown`;
     if (rows.length === 0) {
       tbody.innerHTML = '<tr><td colspan="4"><div class="admin-empty">No subscribers to show.</div></td></tr>';
       return;
@@ -114,7 +125,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       const sub = r.status === 'subscribed';
       const badge = `<span class="admin-badge ${sub ? 'admin-badge-published' : 'admin-badge-member'}">${sub ? 'Subscribed' : 'Unsubscribed'}</span>`;
       return `<tr>
-        <td><strong>${esc(r.email)}</strong></td>
+        <td><strong>${esc(r.email)}</strong>${r.member_id ? ` <a class="admin-badge admin-badge-admin" href="/admin/members/${encodeURIComponent(r.member_id)}" style="text-decoration:none;margin-left:0.4rem;" title="Open member">Member</a>` : ''}</td>
         <td style="color:var(--p-70);">${esc(sourceLabel(r.consent_source))}</td>
         <td style="white-space:nowrap;color:var(--p-50);">${esc(fmtDate(r.created_at))}</td>
         <td>${badge}</td>
@@ -133,7 +144,10 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
   function exportCsv() {
     // Default: subscribed only. An export with unsubscribed people in it must never
     // be loaded into a mail tool (Spam Act), so including them is an explicit opt-in.
-    const rows = csvUnsub.checked ? all : all.filter(r => r.status === 'subscribed');
+    // "Subscribed, not members" exports just that group (for a join invite at launch).
+    const nonMember = filter.value === 'nonmember';
+    const rows = nonMember ? filtered('nonmember')
+      : csvUnsub.checked ? all : all.filter(r => r.status === 'subscribed');
     const header = ['email', 'status', 'source', 'signed_up', 'unsubscribed_at'];
     const lines = [header.map(csvCell).join(',')].concat(rows.map(r => [
       r.email, r.status, r.consent_source, r.created_at, r.unsubscribed_at,
@@ -143,7 +157,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     const a = document.createElement('a');
     const stamp = new Date().toISOString().slice(0, 10);
     a.href = url;
-    a.download = `kneed-subscribers-${csvUnsub.checked ? 'all' : 'subscribed'}-${stamp}.csv`;
+    a.download = `kneed-subscribers-${nonMember ? 'not-members' : csvUnsub.checked ? 'all' : 'subscribed'}-${stamp}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();
