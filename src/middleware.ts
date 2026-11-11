@@ -53,13 +53,13 @@ function holdingPage(wrong: boolean, staff: boolean): string {
      ============================================================ -->
 
 <title>(K)Need — A documentary series from Comma Films</title>
-<meta name="description" content="(K)Need. A cultural and culinary exploration of bread and pastry, told through the bakers who live it. New series October 2026.">
+<meta name="description" content="(K)Need. A cultural and culinary exploration of bread and pastry, told through the bakers who live it. New series December 2026.">
 
 <!-- Gate stays noindex (decided). Does NOT block OG previews, so sharing still works. -->
 <meta name="robots" content="noindex">
 
 <meta property="og:type" content="website">
-<meta property="og:title" content="(K)Need — New series, October 2026">
+<meta property="og:title" content="(K)Need — New series, December 2026">
 <meta property="og:description" content="A cultural and culinary exploration of bread and pastry, told through the bakers who live it.">
 <meta property="og:url" content="https://kneed.tv/">
 <meta property="og:image" content="https://kneed.tv/images/kneed-teaser-og.jpg">
@@ -261,7 +261,7 @@ img,svg{max-width:100%;display:block}
     </h1>
 
     <span class="hero-rule" aria-hidden="true"></span>
-    <p class="display hero-line">New Series October 2026</p>
+    <p class="display hero-line">New Series December 2026</p>
     <p class="body-copy hero-dek">(K)Need. A cultural and culinary exploration of bread and pastry, told through the bakers who live it.</p>
   </section>
 

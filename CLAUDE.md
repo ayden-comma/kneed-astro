@@ -4,6 +4,14 @@
 
 Always typecheck with `npx astro check`. It covers `.astro` files (component frontmatter and templates) in addition to `.ts`. `npx tsc --noEmit` alone **misses `.astro` files** and under-reported the error count this session. There is no `typecheck` npm script — use `npx astro check` directly.
 
+## Deploying: push to main, never `wrangler deploy`
+
+kneed.tv is served by the Cloudflare Worker **`kneed-astro-worker`**. Ship by committing and pushing to `main` on GitHub (Ayden pushes); Cloudflare then builds and deploys it. Every release from Oct 2026 on went out this way (e.g. f7cfb21, 2026-10-11: pushed, then live on kneed.tv with no manual step).
+
+**Never run `npx wrangler deploy`.** `wrangler.jsonc` has no top-level `name`, so wrangler falls back to the folder name and creates a brand-new, empty Worker called `kneed-astro` that serves nothing (this happened on 2026-11-11). Any other wrangler command (`secret put`, `tail`) must pass `--name kneed-astro-worker`; see HANDOFF.md. Don't add a `name` to `wrangler.jsonc` to "fix" this without checking the Worker's build settings in the Cloudflare dashboard first.
+
+After a push, verify on kneed.tv itself (not a workers.dev URL): the change is visible, the holding page returns 200, and it still links /privacy and /terms (Google brand verification depends on all three).
+
 ## Report every numbered instruction explicitly
 
 When a prompt contains a multi-item or numbered list of instructions, the final report **must** give an explicit done / not-done status for every single item. Do not silently drop a requested change — if an item was skipped, could not be done, or was intentionally left out, say so and why. (Silent omissions of requested changes have occurred; this rule exists to prevent them.)
