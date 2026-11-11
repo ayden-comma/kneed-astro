@@ -29,8 +29,9 @@ function timingSafeEqual(a: string, b: string): boolean {
 // truth). Only the TODO-marked wiring points differ: newsletter endpoint path,
 // real submit handler, favicon links, and the staff unlock block (rendered only
 // on ?staff=1 or after a wrong password, so the default page matches the
-// reference exactly). Assets wired 2026-09-09: teaser sRKFnUrQ2Nc (0:24),
-// kneed-teaser-loop.mp4, kneed-teaser-poster.jpg, kneed-teaser-og.jpg.
+// reference exactly). Assets wired 2026-09-09, teaser swapped 2026-11-11: 8jPdhh_dZkI
+// (1:44), kneed-teaser-loop-V2.mp4, kneed-teaser-poster-V2.jpg, kneed-teaser-og.jpg.
+// New files get new names (-V2) so browsers and Cloudflare can't keep serving the old ones.
 // GA4 watch events remain a second pass (backlog F5).
 function holdingPage(wrong: boolean, staff: boolean): string {
   return `<!doctype html>
@@ -279,18 +280,18 @@ img,svg{max-width:100%;display:block}
   ================================================================== -->
   <section class="player-wrap">
     <div class="player" id="player"
-         data-yt-id="sRKFnUrQ2Nc">
+         data-yt-id="8jPdhh_dZkI">
 
-      <img class="poster" src="/images/kneed-teaser-poster.jpg" alt="" width="1920" height="1080">
+      <img class="poster" src="/images/kneed-teaser-poster-V2.jpg" alt="" width="1920" height="1080">
 
       <video id="ambient" muted loop playsinline preload="metadata"
-             poster="/images/kneed-teaser-poster.jpg" aria-hidden="true">
-        <source src="/video/kneed-teaser-loop.mp4" type="video/mp4">
+             poster="/images/kneed-teaser-poster-V2.jpg" aria-hidden="true">
+        <source src="/video/kneed-teaser-loop-V2.mp4" type="video/mp4">
       </video>
 
       <button class="play" type="button" id="playBtn">
         <span class="ring" aria-hidden="true"></span>
-        <span>Watch the teaser now &middot; 0:24</span>
+        <span>Watch the teaser now &middot; 1:44</span>
       </button>
     </div>
   </section>
