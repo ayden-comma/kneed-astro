@@ -30,7 +30,7 @@ function timingSafeEqual(a: string, b: string): boolean {
 // real submit handler, favicon links, and the staff unlock block (rendered only
 // on ?staff=1 or after a wrong password, so the default page matches the
 // reference exactly). Assets wired 2026-09-09, teaser swapped 2026-11-11: 8jPdhh_dZkI
-// (1:44), kneed-teaser-loop-V2.mp4, kneed-teaser-poster-V2.jpg, kneed-teaser-og.jpg.
+// (1:44), kneed-teaser-loop-V2.mp4, kneed-teaser-poster-V2.jpeg, kneed-teaser-og.jpg.
 // New files get new names (-V2) so browsers and Cloudflare can't keep serving the old ones.
 // GA4 watch events remain a second pass (backlog F5).
 function holdingPage(wrong: boolean, staff: boolean): string {
@@ -53,14 +53,14 @@ function holdingPage(wrong: boolean, staff: boolean): string {
      Every string is approved copy. Do not reword.
      ============================================================ -->
 
-<title>(K)Need — A documentary series from Comma Films</title>
-<meta name="description" content="(K)Need. A cultural and culinary exploration of bread and pastry, told through the bakers who live it. New series December 2026.">
+<title>(K)NEED — A documentary series from Comma Films</title>
+<meta name="description" content="(K)NEED. A cultural and culinary exploration of bread and pastry, told through the bakers who live it. New series December 2026.">
 
 <!-- Gate stays noindex (decided). Does NOT block OG previews, so sharing still works. -->
 <meta name="robots" content="noindex">
 
 <meta property="og:type" content="website">
-<meta property="og:title" content="(K)Need — New series, December 2026">
+<meta property="og:title" content="(K)NEED — New series, December 2026">
 <meta property="og:description" content="A cultural and culinary exploration of bread and pastry, told through the bakers who live it.">
 <meta property="og:url" content="https://kneed.tv/">
 <meta property="og:image" content="https://kneed.tv/images/kneed-teaser-og.jpg">
@@ -263,7 +263,7 @@ img,svg{max-width:100%;display:block}
 
     <span class="hero-rule" aria-hidden="true"></span>
     <p class="display hero-line">New Series December 2026</p>
-    <p class="body-copy hero-dek">(K)Need. A cultural and culinary exploration of bread and pastry, told through the bakers who live it.</p>
+    <p class="body-copy hero-dek">(K)NEED. A cultural and culinary exploration of bread and pastry, told through the bakers who live it.</p>
   </section>
 
   <!-- ===== 2. PLAYER =================================================
@@ -282,10 +282,10 @@ img,svg{max-width:100%;display:block}
     <div class="player" id="player"
          data-yt-id="8jPdhh_dZkI">
 
-      <img class="poster" src="/images/kneed-teaser-poster-V2.jpg" alt="" width="1920" height="1080">
+      <img class="poster" src="/images/kneed-teaser-poster-V2.jpeg" alt="" width="1920" height="1080">
 
       <video id="ambient" muted loop playsinline preload="metadata"
-             poster="/images/kneed-teaser-poster-V2.jpg" aria-hidden="true">
+             poster="/images/kneed-teaser-poster-V2.jpeg" aria-hidden="true">
         <source src="/video/kneed-teaser-loop-V2.mp4" type="video/mp4">
       </video>
 
@@ -321,7 +321,7 @@ img,svg{max-width:100%;display:block}
 
     <!-- Success replaces the form (matches the pattern already shipped on signup) -->
     <div class="signup-done" id="signupDone" hidden>
-      <p>You're in. The first episode reaches you before it goes anywhere else.</p>
+      <p>Welcome to (K)NEED</p>
     </div>
 
     <p class="signup-error" id="signupError" hidden>That email doesn't look right. Check it and try again.</p>
@@ -399,7 +399,7 @@ img,svg{max-width:100%;display:block}
     var iframe = document.createElement('iframe');
     iframe.src = 'https://www.youtube-nocookie.com/embed/' + id +
                  '?autoplay=1&rel=0&modestbranding=1&playsinline=1';
-    iframe.title = '(K)Need teaser';
+    iframe.title = '(K)NEED teaser';
     iframe.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
     iframe.setAttribute('allowfullscreen', '');
     player.appendChild(iframe);
