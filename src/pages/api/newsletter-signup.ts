@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { env } from 'cloudflare:workers';
-import { renderWelcomeEmail, WELCOME_SUBJECT, WELCOME_FROM, WELCOME_REPLY_TO } from '../../emails/welcome';
+import { renderWelcomeEmail, renderWelcomeText, WELCOME_SUBJECT, WELCOME_FROM, WELCOME_REPLY_TO } from '../../emails/welcome';
 import { SITE_URL } from '../../lib/structuredData';
 
 export const prerender = false;
@@ -104,7 +104,7 @@ async function upsertSubscriber(
 
 // Fire-and-forget welcome email via Resend — same pattern as submit-bakery.ts.
 // Guarded on the API key; a failed or slow send is logged and never propagates.
-async function sendWelcomeEmail(toEmail: string, unsubscribeUrl: string): Promise<void> {
+async function sendWelcomeEmail(toEmail: string, unsubscribeUrl: string, oneClickUrl: string): Promise<void> {
   const resendKey = env.RESEND_API_KEY;
   if (!resendKey) {
     console.warn('[newsletter-signup] RESEND_API_KEY not set — welcome email skipped');
@@ -123,6 +123,12 @@ async function sendWelcomeEmail(toEmail: string, unsubscribeUrl: string): Promis
         reply_to: WELCOME_REPLY_TO,
         subject:  WELCOME_SUBJECT,
         html:     renderWelcomeEmail(unsubscribeUrl),
+        text:     renderWelcomeText(unsubscribeUrl),
+        // One-click unsubscribe (RFC 8058), same as episode and campaign sends.
+        headers: {
+          'List-Unsubscribe':      `<${oneClickUrl}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        },
       }),
     });
     if (!emailRes.ok) {
@@ -225,7 +231,8 @@ export const POST: APIRoute = async ({ request }) => {
       // of the email. See admin-campaign-send.ts for the cutover rationale.
       const origin = SITE_URL;
       const unsubscribeUrl = `${origin}/unsubscribe?token=${result.unsubscribeToken}`;
-      await sendWelcomeEmail(email, unsubscribeUrl);
+      const oneClickUrl = `${origin}/api/unsubscribe?token=${result.unsubscribeToken}`;
+      await sendWelcomeEmail(email, unsubscribeUrl, oneClickUrl);
     }
 
     return json(200, { ok: true, already: result.status === 'already', resurrected: result.status === 'resurrected' });
