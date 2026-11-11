@@ -11,6 +11,8 @@ type EventRow = {
   bakery_id: string | null;
   campaign_id: string | null;
   clicked_url: string | null;
+  email_type: string | null;
+  email_variant: string | null;
 };
 
 export const GET: APIRoute = async ({ request }) => {
@@ -26,11 +28,23 @@ export const GET: APIRoute = async ({ request }) => {
     if (!serviceKey) return json(500, { error: 'Server configuration error' });
     const svc = createClient(supabaseUrl, serviceKey);
 
-    // Attributable events carry either a bakery_id (episode) or a campaign_id (campaign).
-    const { data: events, error: evErr } = await svc
+    // Attributable events carry a bakery_id (episode), a campaign_id (campaign), or a
+    // type=welcome tag (the automatic welcome email). The welcome tag is read straight
+    // from the stored webhook payload (raw.data.tags), so no extra column is needed.
+    // Welcome sends are tagged from 2026-11-12; earlier welcomes were untagged.
+    let { data: events, error: evErr } = await svc
       .from('email_events')
-      .select('event_type, recipient, bakery_id, campaign_id, clicked_url')
-      .or('bakery_id.not.is.null,campaign_id.not.is.null');
+      .select('event_type, recipient, bakery_id, campaign_id, clicked_url, email_type:raw->data->tags->>type, email_variant:raw->data->tags->>variant')
+      .or('bakery_id.not.is.null,campaign_id.not.is.null,raw->data->tags->>type.eq.welcome');
+    if (evErr) {
+      // Safety net: if the JSON-path filter is ever rejected, fall back to the original
+      // episode + campaign query so the Analytics page still loads (welcome row missing).
+      console.error('[admin-email-analytics] welcome-aware query failed, falling back:', evErr.message);
+      ({ data: events, error: evErr } = await svc
+        .from('email_events')
+        .select('event_type, recipient, bakery_id, campaign_id, clicked_url')
+        .or('bakery_id.not.is.null,campaign_id.not.is.null') as any);
+    }
     if (evErr) {
       console.error('[admin-email-analytics] events load failed:', evErr.message);
       return json(500, { error: 'Failed to load events' });
@@ -41,7 +55,7 @@ export const GET: APIRoute = async ({ request }) => {
     // ── Aggregate in JS. Each broadcast is keyed by kind+id so episodes and campaigns
     //    never collide even in the unlikely event of a shared UUID. ──────────────────
     type Agg = {
-      kind: 'episode' | 'campaign';
+      kind: 'episode' | 'campaign' | 'welcome';
       id: string;
       sent: number;
       delivered: number;
@@ -53,8 +67,11 @@ export const GET: APIRoute = async ({ request }) => {
     const byBroadcast = new Map<string, Agg>();
 
     for (const r of rows) {
-      const kind: 'episode' | 'campaign' = r.bakery_id ? 'episode' : 'campaign';
-      const id = (r.bakery_id ?? r.campaign_id) as string | null;
+      const kind: 'episode' | 'campaign' | 'welcome' =
+        r.bakery_id ? 'episode' : r.campaign_id ? 'campaign' : 'welcome';
+      const id = kind === 'welcome'
+        ? `welcome-${r.email_variant === 'full' ? 'full' : 'prelaunch'}`
+        : (r.bakery_id ?? r.campaign_id) as string | null;
       if (!id) continue;
       const key = `${kind}:${id}`;
       let a = byBroadcast.get(key);
@@ -112,7 +129,9 @@ export const GET: APIRoute = async ({ request }) => {
         .sort((x, y) => y.count - x.count);
       const name = a.kind === 'episode'
         ? (bakeryMeta.get(a.id)?.name ?? null)
-        : (campaignMeta.get(a.id)?.subject ?? null);
+        : a.kind === 'welcome'
+          ? (a.id === 'welcome-full' ? 'Welcome email (automatic)' : 'Welcome email, pre-launch (automatic)')
+          : (campaignMeta.get(a.id)?.subject ?? null);
       const episode_number = a.kind === 'episode' ? (bakeryMeta.get(a.id)?.episode_number ?? null) : null;
       return {
         kind:               a.kind,

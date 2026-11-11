@@ -185,7 +185,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 
   // ── EMAIL: episode-announcement click analytics ─────────────────
   type EmailBroadcast = {
-    kind: 'episode' | 'campaign';
+    kind: 'episode' | 'campaign' | 'welcome';
     id: string;
     name: string | null;
     episode_number: number | null;
@@ -209,6 +209,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
     const u = url.toLowerCase();
     if (u.includes('instagram.com')) return 'Instagram';
     if (u.includes('tiktok.com'))    return 'TikTok';
+    if (u.includes('youtube.com/watch') || u.includes('youtu.be/')) return 'Teaser / video';
     if (u.includes('youtube.com'))   return 'YouTube';
     if (u.includes('facebook.com'))  return 'Facebook';
     if (u.includes('/unsubscribe'))  return 'Unsubscribe';
@@ -298,7 +299,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
       <table class="admin-table">
         <thead><tr>
           <th class="th-sortable" data-sort="episode" style="cursor:pointer;">Episode <span class="sort-indicator"></span></th>
-          <th class="th-sortable" data-sort="bakery" style="cursor:pointer;">Bakery / Campaign <span class="sort-indicator"></span></th>
+          <th class="th-sortable" data-sort="bakery" style="cursor:pointer;">Email <span class="sort-indicator"></span></th>
           <th class="th-sortable" data-sort="sent" style="cursor:pointer;text-align:right;">Sent <span class="sort-indicator"></span></th>
           <th class="th-sortable" data-sort="delivered" style="cursor:pointer;text-align:right;">Delivered <span class="sort-indicator"></span></th>
           <th class="th-sortable" data-sort="clicked" style="cursor:pointer;text-align:right;">Clicked <span class="sort-indicator"></span></th>

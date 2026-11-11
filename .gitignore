@@ -22,3 +22,8 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# Claude session leftovers (never commit)
+_to_delete/
+Claude outputs/
+.claude/settings.local.json

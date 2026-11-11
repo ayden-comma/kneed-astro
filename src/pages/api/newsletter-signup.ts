@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { env } from 'cloudflare:workers';
 import { renderWelcomeEmail, renderWelcomeText, WELCOME_SUBJECT, WELCOME_FROM, WELCOME_REPLY_TO } from '../../emails/welcome';
+import { GATE_ENABLED } from '../../config/features';
 import { SITE_URL } from '../../lib/structuredData';
 
 export const prerender = false;
@@ -129,6 +130,11 @@ async function sendWelcomeEmail(toEmail: string, unsubscribeUrl: string, oneClic
           'List-Unsubscribe':      `<${oneClickUrl}>`,
           'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
         },
+        // Click attribution in Admin, Analytics (read from the webhook payload's tags).
+        tags: [
+          { name: 'type',    value: 'welcome' },
+          { name: 'variant', value: GATE_ENABLED ? 'prelaunch' : 'full' },
+        ],
       }),
     });
     if (!emailRes.ok) {
